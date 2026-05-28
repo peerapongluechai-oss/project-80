@@ -4,24 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Project 80: Road To Bangsaen42</title>
+    
+    <!-- PWA: โค้ดทำแอปเต็มจอมือถือ -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#09090b"> <!-- เปลี่ยนสีขอบเป็นดำสนิท -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #0f172a; }
+        body { font-family: 'Prompt', sans-serif; background-color: #09090b; }
         @keyframes confetti-fall {
             0% { transform: translateY(0) rotate(0deg); opacity: 1; }
             100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
         }
-        @keyframes breathe {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(1.02) translateY(-1px); }
+        /* อนิเมชันวิ่ง */
+        @keyframes run-bounce {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-3px) rotate(1deg); }
+            50% { transform: translateY(0px) rotate(0deg); }
+            75% { transform: translateY(-3px) rotate(-1deg); }
         }
-        .animate-breathe { animation: breathe 3s ease-in-out infinite; transform-origin: bottom; }
+        .animate-run { animation: run-bounce 0.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; transform-origin: bottom center; }
+        
+        /* เส้นสปีดด้านหลัง */
+        @keyframes speed-lines {
+            0% { transform: translateY(-10px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(100px); opacity: 0; }
+        }
+        .speed-line-1 { animation: speed-lines 0.8s linear infinite; }
+        .speed-line-2 { animation: speed-lines 1.2s linear infinite 0.3s; }
+        .speed-line-3 { animation: speed-lines 1.0s linear infinite 0.6s; }
+
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* แถบเฉียงสไตล์นักแข่ง */
+        .racing-stripes {
+            background-image: repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.03) 10px,
+                rgba(255, 255, 255, 0.03) 20px
+            );
+        }
     </style>
 </head>
 <body>
@@ -35,7 +69,7 @@
         const { useState, useEffect } = React;
 
         // ---------------------------------------------------------
-        // 🔥 ตั้งค่า Firebase Database (กุญแจของลูกพี่ myfamilyproject)
+        // 🔥 ตั้งค่า Firebase Database
         // ---------------------------------------------------------
         const getFirebaseConfig = () => {
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
@@ -48,7 +82,6 @@
                 storageBucket: "myfamilyproject-ecff4.firebasestorage.app",
                 messagingSenderId: "714527535272",
                 appId: "1:714527535272:web:fefa9679e822d31e52529d"
-                // ลบ measurementId ออกเพื่อลดระยะเวลาโหลดที่ไม่จำเป็น
             };
         };
 
@@ -57,12 +90,11 @@
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'project80_github_app';
 
-        // --- Component ย่อย (Avatars & Confetti) ---
         const Confetti = () => {
             return (
                 <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
                 {Array.from({ length: 50 }).map((_, i) => {
-                    const colors = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#10b981'];
+                    const colors = ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'];
                     const randomColor = colors[Math.floor(Math.random() * colors.length)];
                     const isCircle = Math.random() > 0.5;
                     return (
@@ -81,43 +113,74 @@
             );
         };
 
-        const MaleAvatar = ({ weight, targetWeight, initialWeight }) => {
+        // 🏃‍♂️ อัปเกรด: ตัวละครนักวิ่งมาราธอน
+        const RunnerAvatar = ({ weight, targetWeight, initialWeight }) => {
             const progress = Math.max(0, Math.min(1, (initialWeight - weight) / (initialWeight - targetWeight)));
-            const bellyRx = 32 - (18 * progress);
-            const chestRx = 24 + (8 * progress);
+            // เมื่อ นน. ลด: ไหล่จะกว้างขึ้น (V-Shape), เอวจะคอดลง
+            const bellySize = 25 - (11 * progress); // จากพุง 25 เหลือ 14
+            const chestSize = 20 + (8 * progress);  // จากอก 20 ขยายเป็น 28
+            const armSpread = 28 + (5 * progress);
 
             return (
-                <div className="relative w-28 h-28 flex items-center justify-center mx-2 group">
-                    <div className="absolute -top-4 whitespace-nowrap bg-red-900/90 px-3 py-1 rounded-full text-[10px] font-black text-orange-400 shadow-md border border-red-700 z-10 transition-all duration-500">
-                        {progress >= 1 ? 'พร้อมลุย Bangsaen42! 🏅' : progress > 0.5 ? 'หุ่นนักวิ่งเริ่มมาแล้ว! 🏃‍♂️' : 'ซ้อมให้ยับเลยลูกพี่! ⚡'}
+                <div className="relative w-32 h-32 flex items-center justify-center mx-2 group overflow-hidden rounded-full border-4 border-zinc-800 bg-zinc-900 shadow-[0_0_20px_rgba(249,115,22,0.2)]">
+                    
+                    {/* เส้นความเร็วพื้นหลัง (Speed lines) */}
+                    <div className="absolute inset-0 opacity-40">
+                        <div className="absolute left-[20%] w-0.5 h-10 bg-orange-500 speed-line-1"></div>
+                        <div className="absolute left-[80%] w-0.5 h-16 bg-lime-400 speed-line-2"></div>
+                        <div className="absolute left-[50%] w-1 h-8 bg-zinc-600 speed-line-3"></div>
                     </div>
-                    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg transition-transform duration-300">
-                        <g className="animate-breathe">
-                            <line x1="42" y1="65" x2="42" y2="90" stroke="#f97316" strokeWidth="6" strokeLinecap="round" />
-                            <line x1="58" y1="65" x2="58" y2="90" stroke="#f97316" strokeWidth="6" strokeLinecap="round" />
-                            <path d="M 38 88 L 45 88 L 45 92 L 37 92 Z" fill="#e2e8f0" rx="2" />
-                            <path d="M 55 88 L 62 88 L 62 92 L 55 92 Z" fill="#e2e8f0" rx="2" />
-                            <path d="M 35 40 L 25 55" stroke="#fcd5ce" strokeWidth={6 + (2 * progress)} strokeLinecap="round" className="transition-all duration-700 ease-out" />
-                            <path d="M 65 40 L 75 55" stroke="#fcd5ce" strokeWidth={6 + (2 * progress)} strokeLinecap="round" className="transition-all duration-700 ease-out" />
-                            <ellipse cx="50" cy="58" rx={bellyRx} ry="22" fill="#1e293b" className="transition-all duration-700 ease-out" />
-                            <path d={`M ${50 - chestRx} 40 Q 50 35 ${50 + chestRx} 40 L ${50 + bellyRx} 58 L ${50 - bellyRx} 58 Z`} fill="#334155" className="transition-all duration-700 ease-out" />
-                            <path d="M 45 38 L 50 48 L 55 38" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
-                            <circle cx="50" cy="22" r="13" fill="#fcd5ce" />
-                            <path d="M 37 20 Q 50 5 63 20 Q 50 15 37 20" fill="#0f172a" />
-                            <path d="M 37 20 C 37 10, 63 10, 63 20" fill="#0f172a" />
-                            <circle cx="45" cy="23" r="1.5" fill="#0f172a" />
-                            <circle cx="55" cy="23" r="1.5" fill="#0f172a" />
-                            <path d="M 46 29 Q 50 31 54 29" fill="none" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" />
-                            {progress >= 0.6 && (
-                                <g fill="none" stroke="#f97316" strokeWidth="1" opacity={progress * 0.8}>
-                                    <rect x="44" y="48" width="5" height="4" rx="1" />
-                                    <rect x="51" y="48" width="5" height="4" rx="1" />
-                                    <rect x="44" y="53" width="5" height="4" rx="1" />
-                                    <rect x="51" y="53" width="5" height="4" rx="1" />
-                                    <rect x="44" y="58" width="5" height="4" rx="1" />
-                                    <rect x="51" y="58" width="5" height="4" rx="1" />
-                                </g>
-                            )}
+
+                    <div className="absolute -top-1 whitespace-nowrap bg-orange-500 text-black px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(249,115,22,0.5)] z-20">
+                        {progress >= 1 ? 'ELITE RUNNER 🏅' : progress > 0.5 ? 'BEAST MODE 🔥' : 'WARM UP ⚡'}
+                    </div>
+
+                    <svg viewBox="0 0 100 100" className="w-[120%] h-[120%] drop-shadow-2xl mt-4">
+                        <g className="animate-run">
+                            {/* แขนซ้าย (แกว่งหลัง) */}
+                            <path d={`M ${50-chestSize} 45 Q ${50-armSpread-10} 60 ${50-armSpread} 70`} fill="none" stroke="#fcd5ce" strokeWidth="7" strokeLinecap="round" />
+                            <path d={`M ${50-armSpread} 70 Q ${50-armSpread+10} 60 ${50-armSpread+5} 45`} fill="none" stroke="#fcd5ce" strokeWidth="6.5" strokeLinecap="round" />
+                            
+                            {/* ขา */}
+                            <path d={`M ${50-bellySize+5} 65 L 42 95`} stroke="#111827" strokeWidth="12" strokeLinecap="round" />
+                            <path d={`M ${50+bellySize-5} 65 L 58 95`} stroke="#111827" strokeWidth="12" strokeLinecap="round" />
+                            
+                            {/* ลำตัว (เสื้อกล้าม Singlet) - เปลี่ยนรูปร่างตาม Progress */}
+                            <path d={`M ${50-chestSize} 40 Q 50 45 ${50+chestSize} 40 L ${50+bellySize} 70 Q 50 75 ${50-bellySize} 70 Z`} fill="#f97316" />
+                            
+                            {/* ลวดลายเสื้อซิ่ง */}
+                            <path d={`M 50 40 L ${50+bellySize-2} 70 L 50 72 Z`} fill="#ea580c" />
+                            <path d={`M ${50-chestSize+2} 40 L 50 40 L 50 72 L ${50-bellySize+2} 70 Z`} fill="#ff8a3d" />
+
+                            {/* ป้ายบิบ (BIB) เบอร์ 80 */}
+                            <g transform="translate(40, 48)">
+                                <rect x="0" y="0" width="20" height="12" fill="#ffffff" rx="1.5" />
+                                <rect x="1" y="1" width="18" height="3" fill="#ef4444" rx="0.5" />
+                                <text x="10" y="10.5" fontSize="6.5" fontWeight="900" fill="#000" textAnchor="middle" fontFamily="sans-serif">80</text>
+                            </g>
+
+                            {/* แขนขวา (แกว่งหน้า) */}
+                            <path d={`M ${50+chestSize} 45 Q ${50+armSpread+10} 60 ${50+armSpread} 70`} fill="none" stroke="#fcd5ce" strokeWidth="7" strokeLinecap="round" />
+                            <path d={`M ${50+armSpread} 70 Q ${50+armSpread-10} 55 ${50+armSpread-15} 40`} fill="none" stroke="#fcd5ce" strokeWidth="6.5" strokeLinecap="round" />
+
+                            {/* คอและหัว */}
+                            <rect x="45" y="25" width="10" height="15" fill="#fcd5ce" />
+                            <circle cx="50" cy="20" r="13" fill="#fcd5ce" />
+                            
+                            {/* แว่นตากันแดดสปอร์ต (Oakley style) */}
+                            <path d="M 37 18 Q 50 25 63 18 L 60 23 Q 50 26 40 23 Z" fill="#09090b" />
+                            <path d="M 40 19 L 60 19 L 58 22 L 42 22 Z" fill="#bef264" opacity="0.8"/>
+                            
+                            {/* หมวกแก๊ปนักวิ่ง (Runner Cap) */}
+                            <path d="M 36 15 C 36 5, 64 5, 64 15 Z" fill="#111827" />
+                            <path d="M 34 15 Q 50 10 66 15 L 72 15 L 66 18 Q 50 13 34 18 Z" fill="#111827" />
+                            <circle cx="50" cy="11" r="2" fill="#f97316" />
+
+                            {/* เหงื่อ (จะหายไปเมื่อฟิตขึ้น) */}
+                            <g opacity={1 - progress}>
+                                <path d="M 60 25 Q 62 30 60 32 Q 58 30 60 25 Z" fill="#60a5fa" />
+                                <path d="M 64 28 Q 66 32 64 34 Q 62 32 64 28 Z" fill="#60a5fa" />
+                            </g>
                         </g>
                     </svg>
                 </div>
@@ -134,23 +197,37 @@
             };
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-orange-900 flex items-center justify-center p-6 text-slate-200">
-                    <div className="bg-slate-800 p-8 rounded-[32px] border border-slate-700 shadow-2xl w-full max-w-sm text-center">
-                        <div className="text-6xl mb-4 animate-bounce">☁️</div>
-                        <h1 className="text-2xl font-black text-orange-400 mb-2">เข้าสู่ระบบ Cloud</h1>
-                        <p className="text-xs text-slate-400 mb-6 font-medium">พิมพ์ชื่อของคุณ ระบบจะซิงค์ข้อมูลกับฐานข้อมูล MyFamilyProject อัตโนมัติ ป้องกันข้อมูลสูญหาย</p>
-                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="ตัวอย่าง: Peerapong"
-                                className="w-full bg-slate-900 border-2 border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:border-orange-500 transition-colors"
-                            />
-                            <button type="submit" className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black text-sm py-3.5 rounded-2xl shadow-lg shadow-orange-900/50 active:scale-95 transition-transform">
-                                โหลดข้อมูล 🚀
-                            </button>
-                        </form>
+                <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-200 relative overflow-hidden">
+                    {/* ของตกแต่งพื้นหลัง */}
+                    <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[100px] opacity-20"></div>
+                    <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-lime-500 rounded-full blur-[100px] opacity-10"></div>
+                    
+                    <div className="w-full max-w-sm z-10">
+                        <div className="text-center mb-10">
+                            <h2 className="text-lime-400 font-black tracking-[0.3em] text-xs uppercase mb-2 animate-pulse">Training Camp</h2>
+                            <h1 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]">PROJECT <span className="text-orange-500">80</span></h1>
+                            <div className="h-1 w-20 bg-gradient-to-r from-orange-500 to-lime-400 mx-auto mt-4 rounded-full"></div>
+                        </div>
+
+                        <div className="bg-zinc-900/80 backdrop-blur-md p-8 rounded-[24px] border border-zinc-800 shadow-2xl shadow-black">
+                            <p className="text-xs text-zinc-400 mb-6 font-medium text-center">สแกนชื่อนักวิ่ง เพื่อซิงค์ข้อมูลตารางซ้อมกับศูนย์บัญชาการ (Cloud) แบบ Real-time</p>
+                            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-500">🏃‍♂️</div>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Runner ID (Ex: Peerapong)"
+                                        className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-xl pl-12 pr-4 py-3.5 text-sm font-bold text-white focus:outline-none focus:border-orange-500 transition-colors uppercase placeholder:normal-case"
+                                    />
+                                </div>
+                                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-400 text-black font-black text-sm py-4 rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.3)] active:scale-95 transition-all uppercase tracking-wider flex items-center justify-center gap-2">
+                                    <span>Start Engine</span>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             );
@@ -158,19 +235,16 @@
 
         // --- หน้า Dashboard หลัก ที่ผูกกับ Firestore ---
         const Dashboard = ({ user, profileName, onLogout }) => {
-            // ระบบ Local-First Cache เพื่อให้แอปโหลดเข้าได้ทันที 0 วินาที
             const localCacheKey = `p80_cache_${profileName}`;
             const cachedDataStr = window.localStorage.getItem(localCacheKey);
             const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
 
-            // ถ้ามีแคชให้โหลดเข้าแอปทันที ถ้าไม่มีให้โหลดรอ 2 วิ
             const [loadingData, setLoadingData] = useState(!cachedData);
             const [activeTab, setActiveTab] = useState('tracker'); 
             const [showConfetti, setShowConfetti] = useState(false);
             
             const dateString = new Date().toDateString(); 
 
-            // ข้อมูลหลักดึงจากแคช หรือ ค่าตั้งต้น
             const [weight, setWeight] = useState(cachedData?.weight || 94.0);
             const [allRecords, setAllRecords] = useState(cachedData?.records || {});
             
@@ -180,7 +254,6 @@
                 exerciseChecks: [false, false, false, false], fastingSuccess: false
             };
             
-            // ค้นหาข้อมูลของวันนี้จากแคช
             const [dailyData, setDailyData] = useState(() => {
                 if (cachedData?.records && cachedData.records[dateString]) {
                     return cachedData.records[dateString];
@@ -188,25 +261,20 @@
                 return defaultDailyData;
             });
             
-            // ระบุ Path ของเอกสารบน Cloud
             const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profileName);
 
-            // ดึงข้อมูล Real-time จาก Cloud แบบพื้นหลัง
             useEffect(() => {
                 if (!user) return;
 
-                // ระบบตั้งเวลาตัดจบ (Timeout 2 วินาที) เผื่อเน็ตมือถือมีปัญหา จะได้เข้าแอปได้เลย
                 const timeoutId = setTimeout(() => {
                     setLoadingData(false);
                 }, 2000);
 
                 const unsubscribe = onSnapshot(docRef, (docSnap) => {
-                    clearTimeout(timeoutId); // ปิดตัวนับเวลาถ้าระบบโหลดเสร็จก่อน
+                    clearTimeout(timeoutId); 
                     
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        
-                        // เซฟทับลงแคชในเครื่องทันที
                         window.localStorage.setItem(localCacheKey, JSON.stringify(data));
                         
                         if (data.weight) setWeight(data.weight);
@@ -218,7 +286,6 @@
                             setDailyData(defaultDailyData);
                         }
                     } else {
-                        // สร้างเอกสารใหม่
                         setDoc(docRef, { weight: 94.0, records: {} }, { merge: true });
                     }
                     setLoadingData(false);
@@ -233,48 +300,38 @@
                 };
             }, [user.uid, profileName, dateString]);
 
-            // ฟังก์ชันอัปเดตข้อมูลขึ้น Cloud และ Local Cache
             const updateDaily = (key, value) => {
                 const newData = { ...dailyData, [key]: value };
                 setDailyData(newData); 
                 
-                // อัปเดตแคชในเครื่องให้ไวปรู๊ดปร๊าด
                 const newRecords = { ...allRecords, [dateString]: newData };
                 setAllRecords(newRecords);
                 window.localStorage.setItem(localCacheKey, JSON.stringify({ weight, records: newRecords }));
-                
-                // อัปเดต Cloud เบื้องหลัง
                 setDoc(docRef, { records: { [dateString]: newData } }, { merge: true });
             };
 
             const updateWeightToCloud = (newWeight) => {
                 setWeight(newWeight);
-                
-                // อัปเดตแคชในเครื่อง
                 window.localStorage.setItem(localCacheKey, JSON.stringify({ weight: newWeight, records: allRecords }));
-                
-                // อัปเดต Cloud เบื้องหลัง
                 setDoc(docRef, { weight: newWeight }, { merge: true });
             };
 
-            // เป้าหมายพื้นฐาน
             const targetWeight = 80.0;
             const initialWeight = 94.0;
             const todayOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const todayStr = new Date().toLocaleDateString('th-TH', todayOptions);
 
-            const planStartDate = new Date(2026, 5, 1); // 1 มิ.ย. 2026
+            const planStartDate = new Date(2026, 5, 1); 
             const diffTime = new Date().getTime() - planStartDate.getTime();
             const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1); 
             const totalDays = 90; 
             const overallProgress = Math.min(Math.round((diffDays / totalDays) * 100), 100);
 
-            // --- ระบบตารางซ้อมอัจฉริยะ ---
             const getTrainingConfig = (type) => {
                 switch(type) {
                 case 'rest':
                     return {
-                        id: 'rest', icon: '💤', color: 'blue', title: 'วันพักฟื้น (Rest & Recovery)',
+                        id: 'rest', icon: '💤', color: 'blue', title: 'Rest & Recovery',
                         desc: 'เน้นโปรตีนซ่อมแซมกล้ามเนื้อ ลดคาร์บเพราะไม่ได้ใช้พลังงานหนัก',
                         water: 10,
                         meals: { breakfast: 'ไข่ต้ม 3 ฟอง + นมโปรตีนสูง', lunch: 'เกาเหลาไก่ฉีก', snack: 'ถั่วแระญี่ปุ่น', dinner: 'สเต็กเนื้อ/ไก่ + ผักย่าง' },
@@ -287,7 +344,7 @@
                     };
                 case 'speed':
                     return {
-                        id: 'speed', icon: '⚡', color: 'orange', title: 'ซ้อมความเร็ว (Speed / Interval)',
+                        id: 'speed', icon: '⚡', color: 'orange', title: 'Speed & Interval',
                         desc: 'เน้นคาร์บย่อยง่ายก่อนซ้อม เพื่อให้มีแรงระเบิดพลังงาน',
                         water: 12,
                         meals: { breakfast: 'ขนมปังโฮลวีตทาเนยถั่ว', lunch: 'ข้าวกล้อง 1.5 ทัพพี + กะเพราไก่', snack: 'Energy Gel', dinner: 'ข้าว 1 ทัพพี + ปลาเผา' },
@@ -300,7 +357,7 @@
                     };
                 case 'long':
                     return {
-                        id: 'long', icon: '🔥', color: 'red', title: 'วิ่งยาว (Long Run)',
+                        id: 'long', icon: '🔥', color: 'red', title: 'Long Run Sunday',
                         desc: 'โหลดคาร์บล่วงหน้า ดื่มน้ำให้เยอะ และให้รางวัลตัวเองหลังซ้อม!',
                         water: 15,
                         meals: { breakfast: 'โหลดคาร์บ: ข้าวโอ๊ต/ขนมปังแยม', lunch: 'ก๋วยเตี๋ยว 1-2 ชาม', snack: 'แตงโม/เกลือแร่', dinner: 'หมูกระทะ/ชาบู' },
@@ -314,7 +371,7 @@
                 case 'easy':
                 default:
                     return {
-                        id: 'easy', icon: '🏃‍♂️', color: 'emerald', title: 'วิ่งจ๊อกกิ้ง (Easy Run)',
+                        id: 'easy', icon: '👟', color: 'lime', title: 'Easy Jogging',
                         desc: 'กินอาหารตามปกติ คุมแคลอรีเพื่อลดไขมัน',
                         water: 12,
                         meals: { breakfast: 'แซนวิชโฮลวีตไข่ต้ม', lunch: 'ข้าวกล้อง 1.5 ทัพพี + อกไก่ย่าง', snack: 'กล้วยหอม 1 ลูก', dinner: 'สเต็กปลาแซลมอน' },
@@ -329,9 +386,8 @@
             };
 
             const currentConfig = getTrainingConfig(dailyData.trainingType);
-            const targetWater = currentConfig.water; // โหลดตัวเลขน้ำตามโหมดซ้อม
+            const targetWater = currentConfig.water; 
 
-            // --- ฟีเจอร์ใหม่: ระบบพับเก็บอัตโนมัติ (Auto-Collapse) ---
             const [mealsOpen, setMealsOpen] = useState(true);
             const [waterOpen, setWaterOpen] = useState(true);
             const [exOpen, setExOpen] = useState(true);
@@ -350,7 +406,6 @@
                 setExOpen(completedEx < currentConfig.exercises.length);
             }, [dailyData.exerciseChecks, currentConfig.exercises.length]);
 
-            // --- ฟีเจอร์ใหม่: คำนวณคะแนนย้อนหลัง ---
             const computeScoreForRecord = (rec) => {
                 if (!rec) return 0;
                 const config = getTrainingConfig(rec.trainingType || 'easy');
@@ -372,7 +427,6 @@
                 return d.toDateString();
             });
 
-            // คำนวณคะแนนรวมวันนี้
             let dailyScore = 0;
             if (dailyData.breakfastDone) dailyScore += 10;
             if (dailyData.lunchDone) dailyScore += 10;
@@ -394,10 +448,10 @@
             }, [dailyScore]);
 
             const getMotivationalMessage = () => {
-                if (dailyScore === 100) return "โคตรสุด! ภารกิจซ้อมวันนี้เคลียร์ 100% ⚡";
-                if (dailyScore >= 70) return "อีกนิดเดียวลูกพี่ อัดให้เต็มร้อย! 💪";
-                if (dailyScore >= 40) return "เครื่องกำลังร้อน ลุยต่ออย่าแผ่ว! 🏃‍♂️";
-                return "พร้อมผูกเชือกรองเท้าออกไปซ้อมรึยัง? 🔥";
+                if (dailyScore === 100) return "PERFECT RUN! ฟอร์มโหดจัด ⚡";
+                if (dailyScore >= 70) return "เครื่องร้อนแล้ว อัดให้สุด! 🔥";
+                if (dailyScore >= 40) return "รักษาเพซไว้ อย่าเพิ่งแผ่ว! 🏃‍♂️";
+                return "พร้อมลุยหรือยังนักวิ่ง? 🏁";
             };
 
             const rewardsList = [
@@ -408,179 +462,185 @@
             const todayReward = rewardsList[diffDays % rewardsList.length];
 
             const waterSchedule = [
-                { time: '06:00 - 08:00', desc: 'หลังตื่นนอน (กระตุ้นระบบเผาผลาญ)', amount: 2, ml: 500 },
-                { time: '09:00 - 12:00', desc: 'ช่วงสายถึงเที่ยง (จิบเรื่อยๆ ลดความหิว)', amount: 3, ml: 750 },
-                { time: '13:00 - 16:00', desc: 'ช่วงบ่าย (เติมความสดชื่น แก้ง่วง)', amount: 3, ml: 750 },
+                { time: '06:00 - 08:00', desc: 'ตื่นนอน (กระตุ้นระบบเผาผลาญ)', amount: 2, ml: 500 },
+                { time: '09:00 - 12:00', desc: 'สาย-เที่ยง (จิบเรื่อยๆ ลดหิว)', amount: 3, ml: 750 },
+                { time: '13:00 - 16:00', desc: 'ช่วงบ่าย (เติมความสดชื่น)', amount: 3, ml: 750 },
                 { time: '17:00 - 19:00', desc: 'ช่วงเย็น/ซ้อมวิ่ง (ชดเชยเหงื่อ)', amount: 3, ml: 750 },
-                { time: '20:00 - 22:00', desc: 'ก่อนนอน (จิบเบาๆ กันตะคริวกลางคืน)', amount: 1, ml: 250 },
+                { time: '20:00 - 22:00', desc: 'ก่อนนอน (กันตะคริวกลางคืน)', amount: 1, ml: 250 },
             ];
 
             if (loadingData) {
                 return (
-                    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-400">
-                        <div className="text-4xl animate-spin mb-4">☁️</div>
-                        <p>กำลังดึงข้อมูลจาก Cloud...</p>
+                    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-orange-500">
+                        <svg className="w-12 h-12 animate-spin mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <p className="font-black tracking-widest uppercase text-sm">Warming Up...</p>
                     </div>
                 );
             }
 
             return (
-                <div className="min-h-screen text-slate-200 pb-24 selection:bg-orange-500 animation-fade-in">
+                <div className="min-h-screen text-zinc-200 pb-24 selection:bg-orange-500/30 font-sans">
                     {showConfetti && <Confetti />}
 
-                    {/* Header */}
-                    <header className="relative bg-gradient-to-br from-slate-900 via-red-900 to-orange-900 p-6 pb-14 rounded-b-[40px] shadow-lg border-b border-red-800/50 overflow-hidden text-white">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-red-500 opacity-20 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4"></div>
+                    {/* Header: Racing Banner */}
+                    <header className="relative bg-zinc-950 pt-10 pb-16 px-6 border-b border-zinc-800 overflow-hidden shadow-2xl z-10">
+                        <div className="absolute inset-0 racing-stripes opacity-20"></div>
+                        <div className="absolute top-0 right-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[80px] opacity-20"></div>
                         <div className="relative z-10">
-                            <div className="flex justify-between items-start mb-1">
+                            <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="text-orange-400 font-black text-[11px] tracking-[0.2em] uppercase mb-1">📍 Road To Bangsaen42</p>
-                                    <h1 className="text-4xl font-black tracking-tight leading-none mb-1 uppercase drop-shadow-md text-white">Project <span className="text-orange-400">80</span></h1>
-                                    <h2 className="text-base font-bold text-white/90 tracking-wide mt-1">Hello, {profileName}! 🔥</h2>
+                                    <p className="text-lime-400 font-black text-[10px] tracking-[0.3em] uppercase mb-1 drop-shadow-md">Road To Bangsaen42</p>
+                                    <h1 className="text-5xl font-black tracking-tighter leading-none mb-1 uppercase text-white italic">Project <span className="text-orange-500">80</span></h1>
+                                    <h2 className="text-xs font-bold text-zinc-400 tracking-wider mt-2 uppercase">Runner: <span className="text-white">{profileName}</span></h2>
                                 </div>
-                                <button onClick={onLogout} className="bg-white/10 hover:bg-white/20 p-2.5 rounded-2xl backdrop-blur-md shadow-sm border border-white/20 flex flex-col items-center transition-colors">
-                                    <span className="text-xl">🚪</span>
-                                    <span className="text-[8px] font-bold mt-1 uppercase tracking-wider">ออกระบบ</span>
+                                <button onClick={onLogout} className="bg-zinc-900 border border-zinc-800 p-2.5 rounded-xl shadow-md flex flex-col items-center hover:bg-zinc-800 transition-colors">
+                                    <svg className="w-5 h-5 text-zinc-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    <span className="text-[8px] font-black uppercase tracking-wider text-zinc-500">Log Out</span>
                                 </button>
                             </div>
-                            <p className="text-slate-400 font-medium text-xs mt-3">📅 {todayStr}</p>
+                            <div className="mt-5 inline-block bg-zinc-900 border border-zinc-800 px-3 py-1 rounded-md">
+                                <p className="text-orange-500 font-bold text-[10px] tracking-widest uppercase">DAY {diffDays > 0 ? diffDays : '0'} / 90</p>
+                            </div>
                         </div>
                     </header>
 
-                    {/* Floating Cards */}
-                    <div className="px-5 -mt-10 relative z-20 space-y-4">
+                    {/* Main Content */}
+                    <div className="px-5 -mt-8 relative z-20 space-y-5">
                         
-                        {/* แบนเนอร์ลิงก์ไปตารางซ้อมมาราธอน */}
-                        <a 
-                            href="https://bangsaen42-team.netlify.app/?room=1158ae49" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="block bg-gradient-to-r from-orange-600 to-red-600 rounded-[20px] p-4 shadow-lg shadow-orange-900/50 border border-orange-400/50 flex items-center justify-between transform transition-all active:scale-95"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm text-2xl">📍</div>
-                                <div>
-                                    <h3 className="text-white font-black text-sm tracking-wide">ดูตารางซ้อมมาราธอนทีม</h3>
-                                    <p className="text-orange-100 text-[10px] font-medium mt-0.5 opacity-90">Bangsaen42 Team Dashboard 🚀</p>
+                        {/* Avatar & Target Card */}
+                        <div className="bg-zinc-900/90 backdrop-blur-xl rounded-[24px] p-5 shadow-2xl border border-zinc-800 flex items-center justify-between gap-2 overflow-hidden relative">
+                            {/* Graphic behind avatar */}
+                            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-orange-500/10 to-transparent"></div>
+                            
+                            <div className="flex flex-col z-10 shrink-0">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">Target Weight</span>
+                                <div className="flex items-baseline gap-1">
+                                    <input 
+                                        type="number" 
+                                        step="0.1" 
+                                        value={weight} 
+                                        onChange={(e) => updateWeightToCloud(parseFloat(e.target.value) || 0)}
+                                        className="w-24 bg-transparent text-5xl font-black text-white italic tracking-tighter outline-none border-b-4 border-zinc-800 focus:border-lime-400 transition-colors"
+                                    />
+                                    <span className="text-lime-400 font-bold text-sm uppercase tracking-wider">KG</span>
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <button onClick={() => updateWeightToCloud(Number((weight + 0.1).toFixed(1)))} className="w-10 h-10 bg-zinc-800 rounded-lg text-zinc-400 font-black text-xl hover:bg-zinc-700 active:scale-95 transition-all">+</button>
+                                    <button onClick={() => updateWeightToCloud(Math.max(70, Number((weight - 0.1).toFixed(1))))} className="w-10 h-10 bg-orange-500 rounded-lg text-black font-black text-2xl shadow-[0_0_15px_rgba(249,115,22,0.4)] active:scale-95 transition-all">-</button>
                                 </div>
                             </div>
-                            <span className="text-white/80 text-xl">🔗</span>
-                        </a>
+                            
+                            <div className="flex-1 flex justify-end z-10 relative mr-2">
+                                <RunnerAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} />
+                            </div>
+                        </div>
 
-                        <div className="bg-slate-800 rounded-[24px] p-5 shadow-2xl shadow-black/50 border border-slate-700 flex flex-col">
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex flex-col z-10 shrink-0">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">🎯 เป้าหมาย: 80.0 กก.</span>
-                                    <div className="flex items-baseline gap-1">
-                                        <input 
-                                            type="number" 
-                                            step="0.1" 
-                                            value={weight} 
-                                            onChange={(e) => updateWeightToCloud(parseFloat(e.target.value) || 0)}
-                                            className="w-24 bg-transparent text-4xl font-black text-white tracking-tighter drop-shadow-md outline-none border-b-2 border-dashed border-slate-600 focus:border-orange-500 transition-colors"
-                                        />
-                                        <span className="text-slate-400 font-bold">กก.</span>
+                        {/* Progress Bar (Track Style) */}
+                        <div className="bg-zinc-900 rounded-[20px] p-5 border border-zinc-800 shadow-lg">
+                            <div className="flex justify-between items-end mb-3">
+                                <h3 className="font-black text-white text-xs tracking-widest uppercase">Training Progress</h3>
+                                <span className="text-xl font-black italic text-lime-400 leading-none">{overallProgress}%</span>
+                            </div>
+                            <div className="relative w-full bg-zinc-950 h-4 rounded-full overflow-hidden border border-zinc-800">
+                                {/* Track lines */}
+                                <div className="absolute inset-0 flex flex-col justify-evenly opacity-30">
+                                    <div className="h-[1px] w-full bg-white border-dashed"></div>
+                                    <div className="h-[1px] w-full bg-white border-dashed"></div>
+                                </div>
+                                {/* Fill */}
+                                <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-600 via-orange-500 to-lime-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(204,255,0,0.5)]" style={{ width: `${overallProgress}%` }}></div>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex gap-2 mt-2">
+                            <button onClick={() => setActiveTab('tracker')} className={`flex-1 py-4 px-2 rounded-[16px] font-black text-[11px] uppercase tracking-widest flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === 'tracker' ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>
+                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                PIT STOP
+                            </button>
+                            <button onClick={() => setActiveTab('plan')} className={`flex-1 py-4 px-2 rounded-[16px] font-black text-[11px] uppercase tracking-widest flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === 'plan' ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>
+                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                PLAYBOOK
+                            </button>
+                            <button onClick={() => setActiveTab('stats')} className={`flex-1 py-4 px-2 rounded-[16px] font-black text-[11px] uppercase tracking-widest flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === 'stats' ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>
+                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                                DASHBOARD
+                            </button>
+                        </div>
+                        
+                        {/* Marathon Team Banner */}
+                        {activeTab === 'plan' && (
+                            <a href="https://bangsaen42-team.netlify.app/?room=1158ae49" target="_blank" rel="noopener noreferrer"
+                                className="block bg-gradient-to-r from-orange-600 to-red-600 rounded-[20px] p-5 shadow-[0_0_20px_rgba(234,88,12,0.3)] border border-orange-500/50 active:scale-95 transition-transform">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-white font-black text-base italic uppercase tracking-wider drop-shadow-md">Bangsaen42 Team 🔥</h3>
+                                        <p className="text-orange-200 text-xs font-bold mt-1">Tap to check daily mileage goal</p>
+                                    </div>
+                                    <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm text-white">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                     </div>
                                 </div>
-                                <div className="flex-1 flex justify-center"><MaleAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} /></div>
-                                <div className="flex flex-col gap-2 bg-slate-900/50 p-2 rounded-[18px] border border-slate-700 z-10 shrink-0">
-                                    <button onClick={() => updateWeightToCloud(Number((weight + 0.1).toFixed(1)))} className="w-10 h-10 bg-slate-800 rounded-[12px] text-slate-400 font-bold text-xl border border-slate-600 active:scale-95 leading-none hover:bg-slate-700">+</button>
-                                    <button onClick={() => updateWeightToCloud(Math.max(70, Number((weight - 0.1).toFixed(1))))} className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-[12px] text-white font-bold text-2xl shadow-[0_0_15px_rgba(249,115,22,0.4)] border border-orange-400/50 active:scale-95 leading-none">-</button>
-                                </div>
-                            </div>
-                        </div>
+                            </a>
+                        )}
 
-                        <div className="bg-slate-800 rounded-[24px] p-5 shadow-lg border border-slate-700">
-                            <div className="flex justify-between items-center mb-3">
-                                <h3 className="font-bold text-slate-200 text-sm">🏆 ความสำเร็จของแคมเปญ</h3>
-                                <span className="text-xs font-black text-orange-400">วันที่ {diffDays > 0 ? diffDays : '0'} / 90</span>
-                            </div>
-                            <div className="relative w-full bg-slate-900 h-3 rounded-full overflow-hidden mb-2 border border-slate-700">
-                                <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 rounded-full transition-all duration-1000 ease-out" style={{ width: `${overallProgress}%` }}></div>
-                            </div>
-                            <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                                <span>Start</span><span className="text-orange-400">{overallProgress}%</span><span>Goal</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Tabs */}
-                    <div className="flex justify-center gap-2 mt-8 px-5">
-                        <button onClick={() => setActiveTab('tracker')} className={`flex-1 py-3.5 px-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'tracker' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
-                            🔥 เช็คลิสต์
-                        </button>
-                        <button onClick={() => setActiveTab('plan')} className={`flex-1 py-3.5 px-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'plan' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
-                            📖 แผนซ้อม
-                        </button>
-                        <button onClick={() => setActiveTab('stats')} className={`flex-1 py-3.5 px-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'stats' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
-                            📊 สถิติ
-                        </button>
-                    </div>
-
-                    <main className="px-5 mt-6 space-y-6">
+                        <div className="space-y-6">
                         {activeTab === 'tracker' ? (
                             <>
-                                {/* 🎛️ ระบบ Sync โหมดการซ้อม */}
-                                <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg">
-                                    <div className="mb-4">
-                                        <h2 className="font-black text-white text-sm uppercase tracking-wide flex items-center gap-2">🎯 1. เลือกโหมดการซ้อมวันนี้</h2>
-                                        <p className="text-[11px] text-slate-400 mt-1">ตารางอาหารและน้ำจะถูกปรับให้อัตโนมัติ (และเซฟขึ้น Cloud)</p>
+                                {/* Score Dashboard */}
+                                <section className={`rounded-[24px] p-6 border-2 flex items-center justify-between relative overflow-hidden transition-colors duration-500 ${dailyScore === 100 ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_30px_rgba(249,115,22,0.4)]' : 'bg-zinc-900 border-zinc-800 text-white shadow-xl'}`}>
+                                    <div className="relative z-10 max-w-[60%]">
+                                        <h2 className="font-black text-2xl italic tracking-tighter uppercase mb-1">Energy</h2>
+                                        <p className={`text-xs font-bold leading-snug tracking-wide ${dailyScore === 100 ? 'text-black/80' : 'text-zinc-400'}`}>{getMotivationalMessage()}</p>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={() => updateDaily('trainingType', 'rest')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'rest' ? 'bg-blue-900/50 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
-                                            <span className="text-2xl">💤</span><span className="text-xs font-bold">วันพัก (Rest)</span>
-                                        </button>
-                                        <button onClick={() => updateDaily('trainingType', 'easy')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'easy' ? 'bg-emerald-900/50 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
-                                            <span className="text-2xl">🏃‍♂️</span><span className="text-xs font-bold">วิ่งเบาๆ (Easy)</span>
-                                        </button>
-                                        <button onClick={() => updateDaily('trainingType', 'speed')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'speed' ? 'bg-orange-900/50 border-orange-500 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
-                                            <span className="text-2xl">⚡</span><span className="text-xs font-bold">ความเร็ว (Speed)</span>
-                                        </button>
-                                        <button onClick={() => updateDaily('trainingType', 'long')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'long' ? 'bg-red-900/50 border-red-500 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
-                                            <span className="text-2xl">🔥</span><span className="text-xs font-bold">วิ่งยาว (Long)</span>
-                                        </button>
+                                    <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+                                        <svg className="w-full h-full transform -rotate-90 drop-shadow-lg" viewBox="0 0 36 36">
+                                            <path className={dailyScore === 100 ? 'text-orange-600/30' : 'text-zinc-950'} strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            <path className={`transition-all duration-1000 ease-out ${dailyScore === 100 ? 'text-white' : 'text-lime-400'}`} strokeDasharray={`${dailyScore}, 100`} strokeWidth="4" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        </svg>
+                                        <div className="absolute flex flex-col items-center justify-center"><span className="text-3xl font-black italic">{dailyScore}</span></div>
                                     </div>
                                 </section>
 
-                                {/* Score Ring */}
-                                <section className={`rounded-[24px] p-6 shadow-xl border flex items-center justify-between relative overflow-hidden transition-colors duration-500 ${dailyScore === 100 ? 'bg-gradient-to-br from-orange-600 to-red-600 border-orange-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-200'}`}>
-                                    <div className="relative z-10 max-w-[60%]">
-                                        <h2 className="font-black text-lg mb-1 tracking-wide uppercase">พลังงานวันนี้</h2>
-                                        <p className="text-sm font-bold leading-snug text-slate-400">{getMotivationalMessage()}</p>
-                                    </div>
-                                    <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                                            <path className={dailyScore === 100 ? 'text-red-800/50' : 'text-slate-900'} strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                            <path className={`transition-all duration-1000 ease-out ${dailyScore === 100 ? 'text-white' : 'text-orange-400'}`} strokeDasharray={`${dailyScore}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                        </svg>
-                                        <div className="absolute flex flex-col items-center justify-center"><span className="text-xl font-black">{dailyScore}</span></div>
+                                {/* โหมดการซ้อม */}
+                                <section className="bg-zinc-900 rounded-[24px] p-5 border border-zinc-800">
+                                    <h2 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 01. Select Pace</h2>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[
+                                            { id: 'rest', label: 'REST', icon: '💤', color: 'blue-500', bg: 'blue-500/10' },
+                                            { id: 'easy', label: 'EASY', icon: '👟', color: 'lime-400', bg: 'lime-400/10' },
+                                            { id: 'speed', label: 'SPEED', icon: '⚡', color: 'orange-500', bg: 'orange-500/10' },
+                                            { id: 'long', label: 'LONG', icon: '🔥', color: 'red-500', bg: 'red-500/10' }
+                                        ].map(type => (
+                                            <button key={type.id} onClick={() => updateDaily('trainingType', type.id)} className={`p-4 rounded-xl flex items-center gap-3 border-2 transition-all active:scale-95 ${dailyData.trainingType === type.id ? `bg-${type.bg} border-${type.color} shadow-[0_0_15px_rgba(var(--tw-colors-${type.color}),0.2)]` : 'bg-zinc-950 border-zinc-800'}`}>
+                                                <span className="text-2xl">{type.icon}</span>
+                                                <span className={`text-sm font-black italic tracking-widest uppercase ${dailyData.trainingType === type.id ? `text-${type.color}` : 'text-zinc-500'}`}>{type.label}</span>
+                                            </button>
+                                        ))}
                                     </div>
                                 </section>
 
                                 {/* วินัยการกิน */}
-                                <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg transition-all duration-500">
+                                <section className="bg-zinc-900 rounded-[24px] p-5 border border-zinc-800 transition-all duration-500">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setMealsOpen(!mealsOpen)}>
-                                        <h2 className="font-black text-slate-300 px-1 flex items-center gap-2 uppercase tracking-wide text-sm">2. โหลดคาร์บ & โปรตีน (40 Pts)</h2>
-                                        <span className="text-slate-400 text-xs">{mealsOpen ? '🔽 พับเก็บ' : '▶️ เปิดดู'}</span>
+                                        <h2 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 02. Fuel Intake (40 Pts)</h2>
+                                        <span className="text-zinc-500 text-xs font-bold uppercase">{mealsOpen ? 'HIDE' : 'SHOW'}</span>
                                     </div>
                                     {mealsOpen && (
-                                    <div className="grid gap-3 mt-4 animation-fade-in">
+                                    <div className="grid gap-3 mt-5 animation-fade-in">
                                         {[
-                                            { key: 'breakfastDone', state: dailyData.breakfastDone, icon: '🥞', title: 'มื้อเช้า', time: '08:00', desc: currentConfig.meals.breakfast },
-                                            { key: 'lunchDone', state: dailyData.lunchDone, icon: '🍱', title: 'มื้อเที่ยง', time: '12:30', desc: currentConfig.meals.lunch },
-                                            { key: 'snackDone', state: dailyData.snackDone, icon: '🍌', title: 'มื้อว่าง', time: '15:30', desc: currentConfig.meals.snack },
-                                            { key: 'dinnerDone', state: dailyData.dinnerDone, icon: '🥩', title: 'มื้อเย็น', time: '18:30', desc: currentConfig.meals.dinner }
+                                            { key: 'breakfastDone', state: dailyData.breakfastDone, label: 'B-FAST', desc: currentConfig.meals.breakfast },
+                                            { key: 'lunchDone', state: dailyData.lunchDone, label: 'LUNCH', desc: currentConfig.meals.lunch },
+                                            { key: 'snackDone', state: dailyData.snackDone, label: 'SNACK', desc: currentConfig.meals.snack },
+                                            { key: 'dinnerDone', state: dailyData.dinnerDone, label: 'DINNER', desc: currentConfig.meals.dinner }
                                         ].map((meal, idx) => (
-                                            <div key={idx} onClick={() => updateDaily(meal.key, !meal.state)} className={`p-4 rounded-[20px] cursor-pointer flex items-center justify-between transition-all duration-300 active:scale-95 ${meal.state ? 'bg-slate-800/40 border border-slate-700/50 opacity-50' : 'bg-slate-800 shadow-md border border-slate-700'}`}>
-                                                <div className="flex items-center gap-3.5">
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${meal.state ? 'bg-blue-900/50' : 'bg-slate-900 border border-slate-800'}`}>{meal.icon}</div>
-                                                    <div>
-                                                        <h3 className={`font-extrabold text-sm ${meal.state ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{meal.title}</h3>
-                                                        <p className={`text-xs mt-1 line-clamp-1 font-medium ${meal.state ? 'text-slate-600' : 'text-cyan-400'}`}>{meal.desc}</p>
-                                                    </div>
+                                            <div key={idx} onClick={() => updateDaily(meal.key, !meal.state)} className={`p-4 rounded-[16px] cursor-pointer flex items-center gap-4 transition-all duration-300 active:scale-95 border-l-4 ${meal.state ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-orange-500 shadow-md'}`}>
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${meal.state ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                                 </div>
-                                                <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 ${meal.state ? 'border-cyan-500 bg-cyan-500' : 'border-slate-600 bg-slate-900'}`}>
-                                                    {meal.state && <span className="text-slate-900 text-xs font-bold">✓</span>}
+                                                <div>
+                                                    <h3 className={`font-black text-xs uppercase tracking-widest ${meal.state ? 'text-zinc-600 line-through' : 'text-white'}`}>{meal.label}</h3>
+                                                    <p className={`text-[11px] mt-1 font-medium ${meal.state ? 'text-zinc-700' : 'text-zinc-400'}`}>{meal.desc}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -589,61 +649,48 @@
                                 </section>
 
                                 {/* เติมน้ำ */}
-                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700 relative overflow-hidden mt-6 transition-all duration-500">
-                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-900/30 transition-all duration-700 -z-0" style={{ height: `${Math.min((dailyData.water/targetWater)*100, 100)}%` }}></div>
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden transition-all duration-500">
+                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-500/10 transition-all duration-700 -z-0" style={{ height: `${Math.min((dailyData.water/targetWater)*100, 100)}%` }}></div>
                                     <div className="relative z-10">
-                                        <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setWaterOpen(!waterOpen)}>
-                                            <h2 className="font-black text-slate-200 text-sm uppercase tracking-wide">💧 ดื่มน้ำกันตะคริว (20 Pts)</h2>
-                                            <div className="flex items-center gap-2">
-                                                <div className="bg-slate-900 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-slate-700">{dailyData.water} / {targetWater} แก้ว</div>
-                                                <span className="text-slate-400 text-xs">{waterOpen ? '🔽' : '▶️'}</span>
+                                        <div className="flex items-center justify-between mb-5 cursor-pointer" onClick={() => setWaterOpen(!waterOpen)}>
+                                            <h2 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-blue-500 rounded-full"></span> 03. Hydration (20 Pts)</h2>
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-blue-400 text-sm font-black italic">{dailyData.water} / {targetWater}</div>
+                                                <span className="text-zinc-500 text-xs font-bold uppercase">{waterOpen ? 'HIDE' : 'SHOW'}</span>
                                             </div>
                                         </div>
                                         {waterOpen && (
                                         <div className="animation-fade-in">
-                                            <p className="text-xs text-slate-400 text-center mb-4">{currentConfig.id === 'long' ? 'วิ่งยาวต้องเติมให้ถึง 15 แก้ว (ชดเชยเหงื่อ)' : 'จิบเรื่อยๆ ตลอดวัน (แก้วละ ~250 ml)'}</p>
-                                            <div className="flex items-center justify-center gap-6 mb-2">
-                                                <button onClick={() => updateDaily('water', Math.max(0, dailyData.water - 1))} className="w-12 h-12 rounded-[16px] bg-slate-900 border border-slate-700 text-xl font-medium text-slate-500 active:scale-95">-</button>
-                                                <div className="text-6xl transition-all duration-500" style={{ filter: dailyData.water >= targetWater ? 'drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.5))' : 'grayscale(1)' }}>💧</div>
-                                                <button onClick={() => updateDaily('water', dailyData.water + 1)} className="w-12 h-12 rounded-[16px] bg-blue-500 text-white text-xl font-bold active:scale-95 shadow-[0_0_15px_rgba(59,130,246,0.4)]">+</button>
+                                            <div className="flex items-center justify-center gap-6 mb-6">
+                                                <button onClick={() => updateDaily('water', Math.max(0, dailyData.water - 1))} className="w-14 h-14 rounded-full bg-zinc-950 border-2 border-zinc-800 text-2xl font-black text-zinc-500 active:scale-95">-</button>
+                                                <div className="text-6xl transition-all duration-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">💧</div>
+                                                <button onClick={() => updateDaily('water', dailyData.water + 1)} className="w-14 h-14 rounded-full bg-blue-500 text-black text-2xl font-black active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.4)]">+</button>
                                             </div>
                                             
-                                            {/* ตารางเวลาดื่มน้ำ */}
-                                            <div className="mt-5 pt-5 border-t border-blue-900/30">
-                                                <h3 className="text-xs font-bold text-slate-300 mb-3 text-center flex items-center justify-center gap-1.5">
-                                                    <span className="text-blue-400">⏱️</span> ตารางดื่มน้ำแนะนำ (แก้วละ ~250 ml)
-                                                </h3>
-                                                <div className="space-y-2">
-                                                    {waterSchedule.map((item, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="text-[10px] font-black text-blue-400 w-max bg-blue-900/30 px-2 py-0.5 rounded-md">{item.time}</span>
-                                                                <span className="text-[10px] font-medium text-slate-400 pl-1">{item.desc}</span>
-                                                            </div>
-                                                            <div className="text-[10px] font-bold text-blue-300 bg-slate-800 px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-700 whitespace-nowrap">
-                                                                {item.amount} แก้ว <span className="text-slate-500 font-normal">({item.ml}ml)</span>
-                                                            </div>
+                                            <div className="pt-4 border-t border-zinc-800/50 space-y-2">
+                                                {waterSchedule.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-[10px] font-black text-black bg-blue-500 px-2 py-0.5 rounded uppercase">{item.time}</span>
+                                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">{item.desc}</span>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                                <p className="text-[9px] text-slate-500 text-center mt-3">* วันวิ่ง Long Run ให้เพิ่มการจิบน้ำ/เกลือแร่ระหว่างซ้อมทุก 45 นาที</p>
+                                                        <div className="text-[10px] font-black text-blue-400 italic">{item.amount}x</div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                         )}
                                     </div>
                                 </section>
 
-                                {/* ภารกิจเสริมสร้างกล้ามเนื้อ */}
-                                <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg mt-6 transition-all duration-500">
+                                {/* ภารกิจกล้ามเนื้อ */}
+                                <section className="bg-zinc-900 rounded-[24px] p-5 border border-zinc-800 transition-all duration-500">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setExOpen(!exOpen)}>
-                                        <div>
-                                            <h2 className="font-black text-slate-300 px-1 flex items-center gap-2 uppercase tracking-wide text-sm">3. ภารกิจเสริมสร้างกล้ามเนื้อ (20 Pts)</h2>
-                                            <p className="text-[11px] text-orange-400 font-bold mt-1 px-1">ท่าบริการร่างกายส่วนต่างๆ ป้องกันอาการบาดเจ็บ</p>
-                                        </div>
-                                        <span className="text-slate-400 text-xs shrink-0">{exOpen ? '🔽 พับเก็บ' : '▶️ เปิดดู'}</span>
+                                        <h2 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 04. Core & Mobility (20 Pts)</h2>
+                                        <span className="text-zinc-500 text-xs font-bold uppercase">{exOpen ? 'HIDE' : 'SHOW'}</span>
                                     </div>
                                     {exOpen && (
-                                    <div className="grid gap-3 mt-4 animation-fade-in">
+                                    <div className="grid gap-3 mt-5 animation-fade-in">
                                         {currentConfig.exercises.map((ex, idx) => {
                                             const isDone = dailyData.exerciseChecks[idx] || false;
                                             return (
@@ -651,19 +698,13 @@
                                                 const newChecks = [...dailyData.exerciseChecks];
                                                 newChecks[idx] = !isDone;
                                                 updateDaily('exerciseChecks', newChecks);
-                                            }} className={`p-4 rounded-[20px] cursor-pointer flex items-center justify-between transition-all duration-300 active:scale-95 ${isDone ? 'bg-slate-800/40 border border-slate-700/50 opacity-60' : 'bg-slate-800 shadow-md border border-slate-700'}`}>
-                                                <div className="flex items-center gap-3.5">
-                                                    <div className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center transition-colors ${isDone ? 'bg-cyan-900/50 text-cyan-400' : 'bg-slate-900 text-slate-500 border border-slate-700'}`}><span className="font-black text-sm">{idx + 1}</span></div>
-                                                    <div className="pr-2">
-                                                        <h3 className={`font-extrabold text-sm transition-all leading-tight ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{ex.title}</h3>
-                                                        <p className={`text-[11px] mt-1.5 font-medium leading-snug ${isDone ? 'text-slate-600' : 'text-slate-400'}`}>
-                                                            <span className={`px-1.5 py-0.5 rounded-md mr-1.5 ${isDone ? 'bg-slate-800 text-slate-600' : 'bg-slate-700 text-orange-400'}`}>🎯 {ex.focus}</span>
-                                                            {ex.detail}
-                                                        </p>
-                                                    </div>
+                                            }} className={`p-4 rounded-[16px] cursor-pointer flex items-center gap-4 transition-all duration-300 active:scale-95 border-l-4 ${isDone ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-lime-400 shadow-md'}`}>
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${isDone ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                                 </div>
-                                                <div className={`w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isDone ? 'border-cyan-500 bg-cyan-500' : 'border-slate-600 bg-slate-900'}`}>
-                                                    {isDone && <span className="text-slate-900 text-xs font-bold">✓</span>}
+                                                <div>
+                                                    <h3 className={`font-black text-xs uppercase tracking-wider ${isDone ? 'text-zinc-600 line-through' : 'text-white'}`}>{ex.title}</h3>
+                                                    <p className={`text-[10px] mt-1 font-bold tracking-wide uppercase ${isDone ? 'text-zinc-700' : 'text-lime-400/80'}`}>TARGET: {ex.focus}</p>
                                                 </div>
                                             </div>
                                         )})}
@@ -672,119 +713,108 @@
                                 </section>
 
                                 {/* IF */}
-                                <section onClick={() => updateDaily('fastingSuccess', !dailyData.fastingSuccess)} className={`mt-6 p-4 rounded-[24px] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-between active:scale-95 ${dailyData.fastingSuccess ? 'border-blue-500 bg-blue-900/20' : 'border-slate-700 bg-slate-800 hover:border-slate-600'}`}>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${dailyData.fastingSuccess ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-900 text-slate-500 border border-slate-700'}`}>🌙</div>
-                                        <div className={`relative w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${dailyData.fastingSuccess ? 'border-blue-500 bg-blue-500' : 'border-slate-600 bg-slate-900'}`}>
-                                            {dailyData.fastingSuccess && <span className="text-white text-[10px] font-bold">✓</span>}
+                                <section onClick={() => updateDaily('fastingSuccess', !dailyData.fastingSuccess)} className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all duration-300 flex items-center justify-between active:scale-95 ${dailyData.fastingSuccess ? 'bg-indigo-900/20 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-zinc-900 border-zinc-800'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-3xl">🌙</div>
+                                        <div>
+                                            <h3 className={`font-black text-sm uppercase tracking-widest ${dailyData.fastingSuccess ? 'text-indigo-400' : 'text-white'}`}>Intermittent Fasting</h3>
+                                            <p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase tracking-wider">No food before sleep (20 Pts)</p>
                                         </div>
                                     </div>
-                                    <div>
-                                        <h3 className={`font-extrabold text-sm ${dailyData.fastingSuccess ? 'text-blue-400' : 'text-slate-200'}`}>งดมื้อดึก (IF)</h3>
-                                        <p className="text-[10px] text-slate-400 font-bold mt-1">20 Pts • ให้ร่างกายฟื้นฟูกล้ามเนื้อตอนนอน</p>
+                                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${dailyData.fastingSuccess ? 'border-indigo-500 bg-indigo-500 text-black' : 'border-zinc-600 text-transparent'}`}>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                     </div>
                                 </section>
                             </>
                         ) : activeTab === 'plan' ? (
                             <div className="space-y-6 pb-10 animation-fade-in">
-                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h2 className="font-extrabold text-lg text-white flex items-center gap-2">🍽️ ตารางเสบียงนักวิ่ง</h2>
-                                    </div>
-                                    <div className="space-y-4">
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
+                                    <h2 className="font-black text-lg text-white mb-6 uppercase tracking-widest italic">Nutrition Playbook</h2>
+                                    <div className="space-y-4 relative z-10">
                                         {[
-                                            { meal: 'มื้อเช้า', desc: currentConfig.meals.breakfast },
-                                            { meal: 'มื้อเที่ยง', desc: currentConfig.meals.lunch },
-                                            { meal: 'มื้อว่าง', desc: currentConfig.meals.snack },
-                                            { meal: 'มื้อเย็น', desc: currentConfig.meals.dinner }
+                                            { id: 'B-FAST', desc: currentConfig.meals.breakfast },
+                                            { id: 'LUNCH', desc: currentConfig.meals.lunch },
+                                            { id: 'SNACK', desc: currentConfig.meals.snack },
+                                            { id: 'DINNER', desc: currentConfig.meals.dinner }
                                         ].map((item, idx) => (
-                                            <div key={idx} className="bg-slate-900/50 p-4 rounded-[16px] border border-slate-700">
-                                                <h3 className="font-extrabold text-orange-400 text-sm mb-1">{item.meal}</h3>
-                                                <p className="text-sm font-medium text-slate-300 leading-snug">{item.desc}</p>
+                                            <div key={idx} className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800/50">
+                                                <h3 className="font-black text-orange-500 text-xs mb-1.5 uppercase tracking-widest">{item.id}</h3>
+                                                <p className="text-sm font-medium text-zinc-300">{item.desc}</p>
                                             </div>
                                         ))}
-                                    </div>
-                                    <div className="mt-5 p-4 bg-orange-900/20 rounded-[16px] text-xs font-medium text-orange-300 flex items-start gap-3 border border-orange-800/50 leading-relaxed">
-                                        <span className="text-lg">💡</span>
-                                        <p>วันไหนซ้อม Long Run (วิ่งยาว) แนะนำให้โหลดคาร์โบไฮเดรตล่วงหน้า 1-2 วันนะครับ จะได้มีแรงฮึดจนจบ!</p>
                                     </div>
                                 </section>
 
-                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700 mb-10">
-                                    <div className="mb-5">
-                                        <h2 className="font-black text-lg text-white flex items-center gap-2 tracking-wide uppercase">🏃‍♂️ แผนการฝึกซ้อมเสริม</h2>
-                                        <p className="text-[11px] font-bold text-orange-500 mt-1 uppercase tracking-widest">{currentConfig.title}</p>
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-lime-400/10 rounded-full blur-2xl"></div>
+                                    <div className="mb-6 relative z-10">
+                                        <h2 className="font-black text-lg text-white uppercase tracking-widest italic">Workout Routine</h2>
+                                        <p className="text-xs font-black text-lime-400 mt-1 uppercase tracking-widest">{currentConfig.title}</p>
                                     </div>
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 relative z-10">
                                         {currentConfig.exercises.map((ex, idx) => (
-                                            <div key={idx} className="flex items-start gap-3 bg-slate-900 p-4 rounded-[16px] border border-slate-700">
-                                                <div className="w-8 h-8 shrink-0 rounded-full bg-orange-900/50 flex items-center justify-center text-sm font-black text-orange-400 border border-orange-700/50 mt-0.5">
-                                                    {idx + 1}
-                                                </div>
+                                            <div key={idx} className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800/50 flex gap-4">
+                                                <span className="font-black text-lime-400 text-xl italic opacity-50">0{idx+1}</span>
                                                 <div>
-                                                    <span className="text-sm font-bold text-slate-200 leading-relaxed block">{ex.title}</span>
-                                                    <span className="text-[11px] text-slate-400 block mt-1"><strong className="text-orange-400">โฟกัส:</strong> {ex.focus} — {ex.detail}</span>
+                                                    <span className="text-sm font-bold text-white uppercase tracking-wide block">{ex.title}</span>
+                                                    <span className="text-[11px] text-zinc-400 block mt-1"><strong className="text-lime-400">FOCUS:</strong> {ex.focus} <br/>{ex.detail}</span>
                                                 </div>
                                             </div>
                                         ))}
-                                    </div>
-                                    <div className="mt-5 p-4 bg-blue-900/20 rounded-[16px] text-xs font-bold text-blue-300 flex items-start gap-3 border border-blue-800/30 leading-relaxed">
-                                        <span className="text-lg animate-pulse">📍</span>
-                                        <p>อย่าลืมกดปุ่ม <strong>"ดูตารางซ้อมมาราธอนทีม"</strong> ด้านบนสุด เพื่อเช็กระยะวิ่งหลักที่ต้องเก็บในแต่ละวันจากโค้ชของคุณนะครับ!</p>
                                     </div>
                                 </section>
                             </div>
                         ) : activeTab === 'stats' ? (
                             <div className="space-y-6 pb-10 animation-fade-in">
-                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700">
-                                    <h2 className="font-black text-lg text-white mb-2 flex items-center gap-2">📊 สถิติพลังงาน 7 วันย้อนหลัง</h2>
-                                    <p className="text-xs text-slate-400 mb-6">แถบกราฟแสดงคะแนนความสำเร็จของแต่ละวัน</p>
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
+                                    <h2 className="font-black text-lg text-white mb-1 uppercase tracking-widest italic">Performance</h2>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-6">Last 7 Days Record</p>
                                     
-                                    <div className="flex items-end justify-between h-48 gap-2 mt-4 pt-4 border-t border-slate-700">
+                                    <div className="flex items-end justify-between h-48 gap-2 pt-4 border-t border-zinc-800">
                                         {last7Days.map((dateStr, i) => {
                                             const rec = allRecords[dateStr];
                                             const score = computeScoreForRecord(rec);
                                             const dayObj = new Date(dateStr);
-                                            const dayName = dayObj.toLocaleDateString('th-TH', {weekday: 'short'});
+                                            const dayName = dayObj.toLocaleDateString('en-US', {weekday: 'short'});
                                             const isToday = dateStr === dateString;
                                             
-                                            // ถ้าเป็นวันนี้ ให้ใช้ dailyScore ที่คำนวณสดๆ แทน
                                             const finalScore = isToday ? dailyScore : score;
                                             
                                             return (
                                                 <div key={dateStr} className="flex flex-col items-center flex-1 gap-2 h-full">
-                                                    <span className="text-[10px] font-bold text-orange-400">{finalScore}%</span>
-                                                    <div className="w-full bg-slate-900 rounded-t-xl relative flex items-end justify-center h-full border border-slate-700 overflow-hidden">
-                                                        <div className={`w-full rounded-t-xl transition-all duration-1000 ${finalScore === 100 ? 'bg-gradient-to-t from-red-600 to-orange-400' : 'bg-gradient-to-t from-slate-600 to-slate-500'}`} style={{height: `${finalScore}%`}}></div>
+                                                    <span className={`text-[9px] font-black ${finalScore === 100 ? 'text-lime-400' : 'text-zinc-500'}`}>{finalScore}</span>
+                                                    <div className="w-full bg-zinc-950 rounded-t-md relative flex items-end justify-center h-full border border-zinc-800 overflow-hidden">
+                                                        <div className={`w-full rounded-t-md transition-all duration-1000 ${finalScore === 100 ? 'bg-gradient-to-t from-orange-600 to-lime-400' : 'bg-zinc-700'}`} style={{height: `${finalScore}%`}}></div>
                                                     </div>
-                                                    <span className={`text-[10px] ${isToday ? 'font-black text-white' : 'text-slate-400'}`}>{isToday ? 'วันนี้' : dayName}</span>
+                                                    <span className={`text-[9px] font-black uppercase ${isToday ? 'text-white' : 'text-zinc-600'}`}>{isToday ? 'TODAY' : dayName}</span>
                                                 </div>
                                             )
                                         })}
                                     </div>
                                 </section>
 
-                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700">
-                                    <h2 className="font-black text-sm text-slate-300 uppercase tracking-wide mb-4">🏆 สรุปภาพรวม</h2>
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
+                                    <h2 className="font-black text-sm text-zinc-500 uppercase tracking-widest mb-4">Body Stats</h2>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-slate-900 p-4 rounded-[16px] border border-slate-700 text-center">
-                                            <p className="text-[10px] text-slate-400 font-bold mb-1">น้ำหนักปัจจุบัน</p>
-                                            <p className="text-2xl font-black text-white">{weight.toFixed(1)} <span className="text-xs font-normal text-slate-500">กก.</span></p>
+                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center">
+                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1">Current Weight</p>
+                                            <p className="text-3xl font-black text-white italic">{weight.toFixed(1)} <span className="text-xs font-bold text-zinc-600 not-italic">KG</span></p>
                                         </div>
-                                        <div className="bg-slate-900 p-4 rounded-[16px] border border-slate-700 text-center">
-                                            <p className="text-[10px] text-slate-400 font-bold mb-1">เป้าหมายลดอีก</p>
-                                            <p className="text-2xl font-black text-orange-400">{Math.max(0, weight - targetWeight).toFixed(1)} <span className="text-xs font-normal text-slate-500">กก.</span></p>
+                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-orange-500/30 text-center shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+                                            <p className="text-[10px] text-orange-500 font-bold uppercase tracking-wider mb-1">To Goal</p>
+                                            <p className="text-3xl font-black text-lime-400 italic">{Math.max(0, weight - targetWeight).toFixed(1)} <span className="text-xs font-bold text-zinc-600 not-italic">KG</span></p>
                                         </div>
                                     </div>
                                 </section>
                             </div>
                         ) : null}
-                    </main>
+                        </div>
+                    </div>
                 </div>
             );
         };
 
-        // --- Container หลักและเชื่อมต่อระบบ Auth ---
         const MainContainer = () => {
             const [user, setUser] = useState(null);
             const [authLoading, setAuthLoading] = useState(true);
@@ -821,7 +851,7 @@
                 window.localStorage.removeItem('p80_current_profile');
             };
 
-            if (authLoading) return <div className="text-white text-center mt-20 text-lg">กำลังเชื่อมต่อฐานข้อมูล Cloud... ☁️</div>;
+            if (authLoading) return <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center"><div className="w-10 h-10 border-4 border-zinc-800 border-t-orange-500 rounded-full animate-spin mb-4"></div><p className="text-zinc-500 font-black tracking-widest text-xs uppercase">CONNECTING...</p></div>;
             if (!user || !currentUser) return <LoginScreen onLogin={handleLogin} />;
 
             return <Dashboard user={user} profileName={currentUser} onLogout={handleLogout} />;
