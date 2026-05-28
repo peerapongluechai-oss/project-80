@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Project 80: Road To Bangsaen42</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel (For JSX compilation in browser) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #0f172a; }
@@ -31,10 +27,38 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+    <!-- สคริปต์นี้ต้องใช้ data-type="module" เพื่อรองรับ Firebase -->
+    <script type="text/babel" data-type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         const { useState, useEffect } = React;
 
-        // --- Component พลุเฉลิมฉลอง ---
+        // ---------------------------------------------------------
+        // 🔥 ตั้งค่า Firebase Database (Cloud Storage) 
+        // ---------------------------------------------------------
+        const getFirebaseConfig = () => {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                return JSON.parse(__firebase_config);
+            }
+            // สำหรับการใช้งานบน GitHub Pages ของคุณ (ใช้ระบบเชื่อมต่ออัตโนมัติสำรอง)
+            return {
+                apiKey: "demo-api-key-project80",
+                authDomain: "project80-demo.firebaseapp.com",
+                projectId: "project80-demo",
+                storageBucket: "project80-demo.appspot.com",
+                messagingSenderId: "123456",
+                appId: "1:123:web:456"
+            };
+        };
+
+        const app = initializeApp(getFirebaseConfig());
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'project80_github_app';
+
+        // --- Component ย่อย (Avatars & Confetti) ---
         const Confetti = () => {
             return (
                 <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
@@ -58,18 +82,16 @@
             );
         };
 
-        // --- Component ตัวการ์ตูนผู้ชาย (Male Dynamic Avatar) ---
         const MaleAvatar = ({ weight, targetWeight, initialWeight }) => {
             const progress = Math.max(0, Math.min(1, (initialWeight - weight) / (initialWeight - targetWeight)));
             const bellyRx = 32 - (18 * progress);
-            const chestRx = 24 + (8 * progress); // อกผายขึ้น
+            const chestRx = 24 + (8 * progress);
 
             return (
                 <div className="relative w-28 h-28 flex items-center justify-center mx-2 group">
                     <div className="absolute -top-4 whitespace-nowrap bg-red-900/90 px-3 py-1 rounded-full text-[10px] font-black text-orange-400 shadow-md border border-red-700 z-10 transition-all duration-500">
                         {progress >= 1 ? 'พร้อมลุย Bangsaen42! 🏅' : progress > 0.5 ? 'หุ่นนักวิ่งเริ่มมาแล้ว! 🏃‍♂️' : 'ซ้อมให้ยับเลยลูกพี่! ⚡'}
                     </div>
-
                     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg transition-transform duration-300">
                         <g className="animate-breathe">
                             <line x1="42" y1="65" x2="42" y2="90" stroke="#f97316" strokeWidth="6" strokeLinecap="round" />
@@ -103,48 +125,21 @@
             );
         };
 
-        // --- Custom Hook: ระบบ Save ข้อมูลอัตโนมัติแยกตาม User ---
-        function useStickyState(defaultValue, key, resetDaily, currentUser) {
-            const fullKey = `p80_${currentUser}_${key}`;
-            const dateKey = `p80_${currentUser}_${key}_date`;
-
-            const [value, setValue] = React.useState(() => {
-                const todayStr = new Date().toDateString();
-                const savedDate = window.localStorage.getItem(dateKey);
-                
-                if (resetDaily && savedDate !== todayStr) {
-                    return defaultValue;
-                }
-
-                const stickyValue = window.localStorage.getItem(fullKey);
-                return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
-            });
-
-            React.useEffect(() => {
-                window.localStorage.setItem(fullKey, JSON.stringify(value));
-                window.localStorage.setItem(dateKey, new Date().toDateString());
-            }, [fullKey, value]);
-
-            return [value, setValue];
-        }
-
-        // --- Component: หน้า Login ---
+        // --- หน้า Login ---
         const LoginScreen = ({ onLogin }) => {
             const [name, setName] = useState('');
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                if (name.trim()) {
-                    onLogin(name.trim());
-                }
+                if (name.trim()) onLogin(name.trim());
             };
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-orange-900 flex items-center justify-center p-6 text-slate-200">
                     <div className="bg-slate-800 p-8 rounded-[32px] border border-slate-700 shadow-2xl w-full max-w-sm text-center">
-                        <div className="text-6xl mb-4 animate-bounce">🔥</div>
-                        <h1 className="text-2xl font-black text-orange-400 mb-2">เข้าสู่ระบบ</h1>
-                        <p className="text-xs text-slate-400 mb-6 font-medium">พิมพ์ชื่อของคุณเพื่อเข้าสู่โปรแกรมเตรียมมาราธอนส่วนตัว (Project 80)</p>
+                        <div className="text-6xl mb-4 animate-bounce">☁️</div>
+                        <h1 className="text-2xl font-black text-orange-400 mb-2">เข้าสู่ระบบ Cloud</h1>
+                        <p className="text-xs text-slate-400 mb-6 font-medium">พิมพ์ชื่อของคุณ ระบบจะซิงค์ข้อมูลกับฐานข้อมูล Cloud อัตโนมัติ ป้องกันข้อมูลสูญหาย</p>
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                             <input
                                 type="text"
@@ -153,11 +148,8 @@
                                 placeholder="ตัวอย่าง: Peerapong"
                                 className="w-full bg-slate-900 border-2 border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:border-orange-500 transition-colors"
                             />
-                            <button
-                                type="submit"
-                                className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black text-sm py-3.5 rounded-2xl shadow-lg shadow-orange-900/50 active:scale-95 transition-transform"
-                            >
-                                เข้าสู่แคมป์มาราธอน 🚀
+                            <button type="submit" className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black text-sm py-3.5 rounded-2xl shadow-lg shadow-orange-900/50 active:scale-95 transition-transform">
+                                โหลดข้อมูล 🚀
                             </button>
                         </form>
                     </div>
@@ -165,150 +157,206 @@
             );
         }
 
-        // --- Component: หน้า Dashboard หลัก ---
-        const Dashboard = ({ currentUser, onLogout }) => {
+        // --- หน้า Dashboard หลัก ที่ผูกกับ Firestore ---
+        const Dashboard = ({ user, profileName, onLogout }) => {
+            const [loadingData, setLoadingData] = useState(true);
             const [activeTab, setActiveTab] = useState('tracker'); 
-            
-            // Trackers ที่แยกตาม User
-            const [weight, setWeight] = useStickyState(94.0, 'weight', false, currentUser);
-            const [water, setWater] = useStickyState(0, 'water', true, currentUser);
-            const [trainingType, setTrainingType] = useStickyState('easy', 'trainingType', true, currentUser); // โหมดซ้อม: rest, easy, speed, long
-
-            const [breakfastDone, setBreakfastDone] = useStickyState(false, 'breakfast', true, currentUser);
-            const [lunchDone, setLunchDone] = useStickyState(false, 'lunch', true, currentUser);
-            const [snackDone, setSnackDone] = useStickyState(false, 'snack', true, currentUser);
-            const [dinnerDone, setDinnerDone] = useStickyState(false, 'dinner', true, currentUser);
-            const [exerciseChecks, setExerciseChecks] = useStickyState([false, false, false, false], 'exercises', true, currentUser);
-            const [fastingSuccess, setFastingSuccess] = useStickyState(false, 'fasting', true, currentUser);
-            
             const [showConfetti, setShowConfetti] = useState(false);
+            
+            // ข้อมูลหลักจาก Cloud
+            const [weight, setWeight] = useState(94.0);
+            const [allRecords, setAllRecords] = useState({}); // เพิ่ม state เก็บประวัติย้อนหลัง
+            
+            // ข้อมูลรายวันจาก Cloud
+            const defaultDailyData = {
+                trainingType: 'easy',
+                water: 0,
+                breakfastDone: false,
+                lunchDone: false,
+                snackDone: false,
+                dinnerDone: false,
+                exerciseChecks: [false, false, false, false],
+                fastingSuccess: false
+            };
+            const [dailyData, setDailyData] = useState(defaultDailyData);
 
-            // Targets
+            const dateString = new Date().toDateString(); // ค่าคีย์รายวัน (อัปเดตทุกเที่ยงคืน)
+            
+            // ระบุ Path ของเอกสารบน Cloud (แก้ไขให้ถูกต้องครบ 6 segments)
+            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profileName);
+
+            // ดึงข้อมูล Real-time จาก Cloud
+            useEffect(() => {
+                if (!user) return;
+
+                const unsubscribe = onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.weight) setWeight(data.weight);
+                        if (data.records) setAllRecords(data.records); // ดึงประวัติทั้งหมดมาเก็บไว้
+                        
+                        // ถ้าระบบเจอข้อมูลของวันนี้ ให้ดึงมาใช้ ถ้าไม่เจอแปลว่าขึ้นวันใหม่ (เที่ยงคืน) ให้รีเซ็ต
+                        if (data.records && data.records[dateString]) {
+                            setDailyData(data.records[dateString]);
+                        } else {
+                            setDailyData(defaultDailyData);
+                        }
+                    } else {
+                        // ถ้าเพิ่งเข้าครั้งแรก สร้างเอกสารใหม่บน Cloud
+                        setDoc(docRef, { weight: 94.0, records: {} }, { merge: true });
+                    }
+                    setLoadingData(false);
+                }, (error) => {
+                    console.error("Cloud connection error", error);
+                    setLoadingData(false);
+                });
+
+                return () => unsubscribe();
+            }, [user.uid, profileName, dateString]);
+
+            // ฟังก์ชันอัปเดตข้อมูลขึ้น Cloud อัตโนมัติ
+            const updateDaily = (key, value) => {
+                const newData = { ...dailyData, [key]: value };
+                setDailyData(newData); // อัปเดตหน้าจอทันที
+                
+                // สั่งเซฟขึ้น Cloud
+                setDoc(docRef, {
+                    records: { [dateString]: newData }
+                }, { merge: true });
+            };
+
+            const updateWeightToCloud = (newWeight) => {
+                setWeight(newWeight);
+                setDoc(docRef, { weight: newWeight }, { merge: true });
+            };
+
+            // เป้าหมายพื้นฐาน
             const targetWeight = 80.0;
             const initialWeight = 94.0;
+            const todayOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const todayStr = new Date().toLocaleDateString('th-TH', todayOptions);
 
-            const today = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const dateString = today.toLocaleDateString('th-TH', options);
-
-            // อัปเดตวันเริ่มต้นแคมเปญเป็น 1 มิถุนายน 2026 (เดือนใน JavaScript เริ่มนับจาก 0 -> 5 = มิถุนายน)
-            const planStartDate = new Date(2026, 5, 1); 
-            const diffTime = today.getTime() - planStartDate.getTime();
+            const planStartDate = new Date(2026, 5, 1); // 1 มิ.ย. 2026
+            const diffTime = new Date().getTime() - planStartDate.getTime();
             const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1); 
             const totalDays = 90; 
             const overallProgress = Math.min(Math.round((diffDays / totalDays) * 100), 100);
 
-            const weighInFrequency = 7; 
-            const currentCycleDay = diffDays > 0 ? (diffDays - 1) % weighInFrequency : 0;
-            const isWeighInDay = currentCycleDay === 0 && diffDays > 0;
-            const daysUntilNextWeighIn = diffDays > 0 ? weighInFrequency - currentCycleDay : Math.ceil(Math.abs(diffTime) / (1000 * 60 * 60 * 24));
-            
-            const nextWeighInDate = new Date(today);
-            if (diffDays <= 0) nextWeighInDate.setTime(planStartDate.getTime());
-            else if (!isWeighInDay) nextWeighInDate.setDate(today.getDate() + daysUntilNextWeighIn);
-            const nextWeighInString = nextWeighInDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-
-            const toggleExercise = (index) => {
-                const newChecks = [...exerciseChecks];
-                newChecks[index] = !newChecks[index];
-                setExerciseChecks(newChecks);
-            };
-
-            // --- ระบบปรับจูนตารางอาหารและการซ้อมอัจฉริยะ (Sync with Marathon Plan) ---
+            // --- ระบบตารางซ้อมอัจฉริยะ ---
             const getTrainingConfig = (type) => {
                 switch(type) {
                 case 'rest':
                     return {
-                        id: 'rest', icon: '💤', color: 'blue',
-                        title: 'วันพักฟื้น (Rest & Recovery)',
+                        id: 'rest', icon: '💤', color: 'blue', title: 'วันพักฟื้น (Rest & Recovery)',
                         desc: 'เน้นโปรตีนซ่อมแซมกล้ามเนื้อ ลดคาร์บเพราะไม่ได้ใช้พลังงานหนัก',
                         water: 10,
-                        meals: {
-                            breakfast: 'ไข่ต้ม 3 ฟอง + นมโปรตีนสูง (ลดแป้ง)',
-                            lunch: 'เกาเหลาไก่ฉีก หรือ สลัดปลาแซลมอน',
-                            snack: 'ถั่วแระญี่ปุ่น หรือ กรีกโยเกิร์ต',
-                            dinner: 'สเต็กเนื้อ/ไก่ + ผักย่าง (งดแป้งมื้อเย็น)'
-                        },
+                        meals: { breakfast: 'ไข่ต้ม 3 ฟอง + นมโปรตีนสูง', lunch: 'เกาเหลาไก่ฉีก', snack: 'ถั่วแระญี่ปุ่น', dinner: 'สเต็กเนื้อ/ไก่ + ผักย่าง' },
                         exercises: [
-                            'พักผ่อนร่างกายจากการวิ่ง (Active Rest)',
-                            'กลิ้งโฟมโรลเลอร์ (Foam Roller) นวดกล้ามเนื้อ (15 นาที)',
-                            'ยืดเหยียดโยคะ (Yoga for Runners) (15 นาที)',
-                            'ฝึกแกนกลางเบาๆ: Plank (3 เซต)'
+                            { title: 'Foam Rolling (นวดกล้ามเนื้อ)', focus: 'น่องและหน้าขา', detail: 'กลิ้งจุดละ 1-2 นาที คลายกรดแลคติก' },
+                            { title: 'Cat-Cow Stretch', focus: 'กระดูกสันหลัง', detail: 'แอ่นและโก่งหลังช้าๆ 15 ครั้ง คลายปวดหลัง' },
+                            { title: 'Child\'s Pose', focus: 'หลังล่างและไหล่', detail: 'หมอบกราบเหยียดแขนสุด ค้างไว้ 40 วินาที' },
+                            { title: 'Pigeon Pose', focus: 'สะโพก/สลักเพชร', detail: 'พับขาด้านหน้า ค้างไว้ข้างละ 30 วินาที' }
                         ]
                     };
                 case 'speed':
                     return {
-                        id: 'speed', icon: '⚡', color: 'orange',
-                        title: 'ซ้อมความเร็ว (Speed / Interval)',
+                        id: 'speed', icon: '⚡', color: 'orange', title: 'ซ้อมความเร็ว (Speed / Interval)',
                         desc: 'เน้นคาร์บย่อยง่ายก่อนซ้อม เพื่อให้มีแรงระเบิดพลังงาน',
                         water: 12,
-                        meals: {
-                            breakfast: 'ขนมปังโฮลวีตทาเนยถั่ว + กล้วยหอม + กาแฟดำ',
-                            lunch: 'ข้าวกล้อง 1.5 ทัพพี + กะเพราไก่ (ไม่มัน) + ไข่ดาว',
-                            snack: 'ผลไม้สด หรือ Energy Gel (ก่อนซ้อม 30 นาที)',
-                            dinner: 'ข้าว 1 ทัพพี + ปลาเผา/ปลาย่าง + ผักต้ม (เติมไกลโคเจน)'
-                        },
+                        meals: { breakfast: 'ขนมปังโฮลวีตทาเนยถั่ว', lunch: 'ข้าวกล้อง 1.5 ทัพพี + กะเพราไก่', snack: 'Energy Gel', dinner: 'ข้าว 1 ทัพพี + ปลาเผา' },
                         exercises: [
-                            'วอร์มอัพ (Dynamic Stretching) (10 นาที)',
-                            'วิ่ง Interval หรือ Tempo (ดูระยะในตารางทีม)',
-                            'บอดี้เวทแกนกลางลำตัว (Core Workout)',
-                            'คูลดาวน์ และ ยืดเหยียด (Static Stretching)'
+                            { title: 'Push-up (วิดพื้น)', focus: 'อก ไหล่ แขน', detail: 'ทำ 3 เซต เซตละ 10-15 ครั้ง (คุกเข่าได้)' },
+                            { title: 'Forward Lunges', focus: 'ต้นขาด้านหน้า', detail: 'ก้าวสลับซ้ายขวา 3 เซต เซตละ 10 ครั้ง/ข้าง' },
+                            { title: 'Bird-Dog', focus: 'แกนกลางและหลัง', detail: 'ยืดแขนสลับขา 3 เซต เซตละ 15 ครั้ง/ข้าง' },
+                            { title: 'Mountain Climber', focus: 'หน้าท้อง/คาร์ดิโอ', detail: 'แทงเข่าสลับเร็วๆ 3 เซต เซตละ 30 วินาที' }
                         ]
                     };
                 case 'long':
                     return {
-                        id: 'long', icon: '🔥', color: 'red',
-                        title: 'วิ่งยาว (Long Run)',
+                        id: 'long', icon: '🔥', color: 'red', title: 'วิ่งยาว (Long Run)',
                         desc: 'โหลดคาร์บล่วงหน้า ดื่มน้ำให้เยอะ และให้รางวัลตัวเองหลังซ้อม!',
                         water: 15,
-                        meals: {
-                            breakfast: 'โหลดคาร์บ: ข้าวโอ๊ต/ขนมปังแยม + กาแฟดำ',
-                            lunch: 'ก๋วยเตี๋ยวเส้นหมี่/เส้นเล็ก 1-2 ชาม (เติมคาร์บ)',
-                            snack: 'แตงโมฉ่ำๆ หรือ เกลือแร่ (ฟื้นฟูหลังวิ่ง)',
-                            dinner: 'หมูกระทะ/ชาบู (เน้นเนื้อโปรตีน รางวัลหลังวิ่งยาว!)'
-                        },
+                        meals: { breakfast: 'โหลดคาร์บ: ข้าวโอ๊ต/ขนมปังแยม', lunch: 'ก๋วยเตี๋ยว 1-2 ชาม', snack: 'แตงโม/เกลือแร่', dinner: 'หมูกระทะ/ชาบู' },
                         exercises: [
-                            'ทาครีมกันเสียดสี แบกเป้น้ำ/พกเจล ให้พร้อม',
-                            'วิ่ง Long Run คุมโซนหัวใจ 2-3 (ดูระยะในตารางทีม)',
-                            'ฝึกจิบน้ำและกินเจลทุกๆ 45-60 นาที',
-                            'แช่น้ำเย็น (Ice bath) หรือยืดคลายกล้ามเนื้อชุดใหญ่'
+                            { title: 'Quad Stretch', focus: 'หน้าขา', detail: 'ยืนพับขาไปด้านหลัง ค้างไว้ข้างละ 30 วินาที' },
+                            { title: 'Hamstring Stretch', focus: 'หลังขา', detail: 'ก้มแตะสลับปลายเท้า ค้างไว้ข้างละ 30 วินาที' },
+                            { title: 'นวดคลายฝ่าเท้า', focus: 'ฝ่าเท้า (Plantar)', detail: 'ใช้ลูกเทนนิสเหยียบคลึงเบาๆ ข้างละ 2 นาที' },
+                            { title: 'Legs Up the Wall', focus: 'ลดบวม/คลายเส้น', detail: 'นอนหงายยกขาพาดกำแพง 10-15 นาที' }
                         ]
                     };
                 case 'easy':
                 default:
                     return {
-                        id: 'easy', icon: '🏃‍♂️', color: 'emerald',
-                        title: 'วิ่งจ๊อกกิ้ง (Easy Run)',
+                        id: 'easy', icon: '🏃‍♂️', color: 'emerald', title: 'วิ่งจ๊อกกิ้ง (Easy Run)',
                         desc: 'กินอาหารตามปกติ คุมแคลอรีเพื่อลดไขมัน',
                         water: 12,
-                        meals: {
-                            breakfast: 'แซนวิชโฮลวีตไข่ต้ม 2 ฟอง + กาแฟดำ',
-                            lunch: 'ข้าวกล้อง 1.5 ทัพพี + อกไก่ย่าง/ไก่อบ + ผักต้ม',
-                            snack: 'กล้วยหอม 1 ลูก (ก่อนวิ่ง)',
-                            dinner: 'สเต็กปลาแซลมอน/ปลาดอลลี่ ย่าง + สลัดผัก'
-                        },
+                        meals: { breakfast: 'แซนวิชโฮลวีตไข่ต้ม', lunch: 'ข้าวกล้อง 1.5 ทัพพี + อกไก่ย่าง', snack: 'กล้วยหอม 1 ลูก', dinner: 'สเต็กปลาแซลมอน' },
                         exercises: [
-                            'วอร์มอัพข้อต่อแบบนักวิ่ง (Dynamic Stretching)',
-                            'วิ่ง Easy Pace เรื่อยๆ สบายๆ (ดูระยะในตารางทีม)',
-                            'เวทเทรนนิ่งแกนกลาง (Core for Runners)',
-                            'ยืดเหยียดหลังวิ่งป้องกันตะคริว'
+                            { title: 'Plank (แพลงก์)', focus: 'แกนกลางลำตัว', detail: 'เกร็งหน้าท้อง 3 เซต เซตละ 40 วินาที' },
+                            { title: 'Bodyweight Squat', focus: 'ต้นขาและก้น', detail: 'ลงช้าๆ ขึ้นเร็ว 3 เซต เซตละ 15 ครั้ง' },
+                            { title: 'Glute Bridge', focus: 'สะโพก/หลังล่าง', detail: 'นอนหงายยกสะโพกเกร็งก้น 3 เซต เซตละ 15 ครั้ง' },
+                            { title: 'Calf Raises', focus: 'น่องและข้อเท้า', detail: 'ยืนเขย่งปลายเท้า 3 เซต เซตละ 20 ครั้ง' }
                         ]
                     };
                 }
             };
 
-            const currentConfig = getTrainingConfig(trainingType);
+            const currentConfig = getTrainingConfig(dailyData.trainingType);
             const targetWater = currentConfig.water;
 
+            // --- ฟีเจอร์ใหม่: ระบบพับเก็บอัตโนมัติ (Auto-Collapse) ---
+            const [mealsOpen, setMealsOpen] = useState(true);
+            const [waterOpen, setWaterOpen] = useState(true);
+            const [exOpen, setExOpen] = useState(true);
+
+            useEffect(() => {
+                const allDone = dailyData.breakfastDone && dailyData.lunchDone && dailyData.snackDone && dailyData.dinnerDone;
+                setMealsOpen(!allDone);
+            }, [dailyData.breakfastDone, dailyData.lunchDone, dailyData.snackDone, dailyData.dinnerDone]);
+
+            useEffect(() => {
+                setWaterOpen(dailyData.water < currentConfig.water);
+            }, [dailyData.water, currentConfig.water]);
+
+            useEffect(() => {
+                const completedEx = dailyData.exerciseChecks.filter(Boolean).length;
+                setExOpen(completedEx < currentConfig.exercises.length);
+            }, [dailyData.exerciseChecks, currentConfig.exercises.length]);
+
+            // --- ฟีเจอร์ใหม่: คำนวณคะแนนย้อนหลัง ---
+            const computeScoreForRecord = (rec) => {
+                if (!rec) return 0;
+                const config = getTrainingConfig(rec.trainingType || 'easy');
+                let s = 0;
+                if (rec.breakfastDone) s += 10;
+                if (rec.lunchDone) s += 10;
+                if (rec.snackDone) s += 10;
+                if (rec.dinnerDone) s += 10;
+                if (rec.water >= config.water) s += 20;
+                const exCount = (rec.exerciseChecks || []).filter(Boolean).length;
+                s += (exCount / config.exercises.length) * 20;
+                if (rec.fastingSuccess) s += 20;
+                return Math.min(Math.round(s), 100);
+            };
+
+            // สร้างอาเรย์วันที่ 7 วันย้อนหลัง
+            const last7Days = Array.from({length: 7}, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - 6 + i);
+                return d.toDateString();
+            });
+
+            // คำนวณคะแนนรวมวันนี้
             let dailyScore = 0;
-            if (breakfastDone) dailyScore += 10;
-            if (lunchDone) dailyScore += 10;
-            if (snackDone) dailyScore += 10;
-            if (dinnerDone) dailyScore += 10;
-            if (water >= targetWater) dailyScore += 20;
-            const completedExercises = exerciseChecks.filter(Boolean).length;
-            dailyScore += (completedExercises / 4) * 20;
-            if (fastingSuccess) dailyScore += 20;
+            if (dailyData.breakfastDone) dailyScore += 10;
+            if (dailyData.lunchDone) dailyScore += 10;
+            if (dailyData.snackDone) dailyScore += 10;
+            if (dailyData.dinnerDone) dailyScore += 10;
+            if (dailyData.water >= currentConfig.water) dailyScore += 20;
+            
+            const completedExercises = dailyData.exerciseChecks.filter(Boolean).length;
+            dailyScore += (completedExercises / currentConfig.exercises.length) * 20;
+            if (dailyData.fastingSuccess) dailyScore += 20;
             dailyScore = Math.min(Math.round(dailyScore), 100);
 
             useEffect(() => {
@@ -316,9 +364,7 @@
                     setShowConfetti(true);
                     const timer = setTimeout(() => setShowConfetti(false), 5000);
                     return () => clearTimeout(timer);
-                } else {
-                    setShowConfetti(false);
-                }
+                } else setShowConfetti(false);
             }, [dailyScore]);
 
             const getMotivationalMessage = () => {
@@ -335,6 +381,23 @@
             ];
             const todayReward = rewardsList[diffDays % rewardsList.length];
 
+            const waterSchedule = [
+                { time: '06:00 - 08:00', desc: 'หลังตื่นนอน (กระตุ้นระบบเผาผลาญ)', amount: 2, ml: 500 },
+                { time: '09:00 - 12:00', desc: 'ช่วงสายถึงเที่ยง (จิบเรื่อยๆ ลดความหิว)', amount: 3, ml: 750 },
+                { time: '13:00 - 16:00', desc: 'ช่วงบ่าย (เติมความสดชื่น แก้ง่วง)', amount: 3, ml: 750 },
+                { time: '17:00 - 19:00', desc: 'ช่วงเย็น/ซ้อมวิ่ง (ชดเชยเหงื่อ)', amount: 3, ml: 750 },
+                { time: '20:00 - 22:00', desc: 'ก่อนนอน (จิบเบาๆ กันตะคริวกลางคืน)', amount: 1, ml: 250 },
+            ];
+
+            if (loadingData) {
+                return (
+                    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-400">
+                        <div className="text-4xl animate-spin mb-4">☁️</div>
+                        <p>กำลังดึงข้อมูลจาก Cloud...</p>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen text-slate-200 pb-24 selection:bg-orange-500 animation-fade-in">
                     {showConfetti && <Confetti />}
@@ -347,61 +410,39 @@
                                 <div>
                                     <p className="text-orange-400 font-black text-[11px] tracking-[0.2em] uppercase mb-1">📍 Road To Bangsaen42</p>
                                     <h1 className="text-4xl font-black tracking-tight leading-none mb-1 uppercase drop-shadow-md text-white">Project <span className="text-orange-400">80</span></h1>
-                                    <h2 className="text-base font-bold text-white/90 tracking-wide mt-1">Hello, {currentUser}! 🔥</h2>
+                                    <h2 className="text-base font-bold text-white/90 tracking-wide mt-1">Hello, {profileName}! 🔥</h2>
                                 </div>
                                 <button onClick={onLogout} className="bg-white/10 hover:bg-white/20 p-2.5 rounded-2xl backdrop-blur-md shadow-sm border border-white/20 flex flex-col items-center transition-colors">
                                     <span className="text-xl">🚪</span>
                                     <span className="text-[8px] font-bold mt-1 uppercase tracking-wider">ออกระบบ</span>
                                 </button>
                             </div>
-                            <p className="text-slate-400 font-medium text-xs mt-3">📅 {dateString}</p>
+                            <p className="text-slate-400 font-medium text-xs mt-3">📅 {todayStr}</p>
                         </div>
                     </header>
 
                     {/* Floating Cards */}
                     <div className="px-5 -mt-10 relative z-20 space-y-4">
-                        
-                        {/* แบนเนอร์ลิงก์ไปตารางซ้อมมาราธอน */}
-                        <a 
-                            href="https://bangsaen42-team.netlify.app/?room=1158ae49" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="block bg-gradient-to-r from-orange-600 to-red-600 rounded-[20px] p-4 shadow-lg shadow-orange-900/50 border border-orange-400/50 flex items-center justify-between transform transition-all active:scale-95"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm text-2xl">📍</div>
-                                <div>
-                                    <h3 className="text-white font-black text-sm tracking-wide">ดูตารางซ้อมมาราธอนทีม</h3>
-                                    <p className="text-orange-100 text-[10px] font-medium mt-0.5 opacity-90">Bangsaen42 Team Dashboard 🚀</p>
-                                </div>
-                            </div>
-                            <span className="text-white/80 text-xl">🔗</span>
-                        </a>
-
                         <div className="bg-slate-800 rounded-[24px] p-5 shadow-2xl shadow-black/50 border border-slate-700 flex flex-col">
-                            <div className="mb-3">
-                                {isWeighInDay ? (
-                                    <div className="bg-red-900/50 text-orange-400 text-xs font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 border border-orange-500/30 animate-pulse shadow-sm">
-                                        ⚖️ ถึงเวลาขึ้นชั่ง! อัปเดตน้ำหนักเลยลูกพี่
-                                    </div>
-                                ) : (
-                                    <div className="bg-slate-900 text-slate-400 text-[10px] font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 border border-slate-700">
-                                        ⚖️ ชั่งน้ำหนักครั้งต่อไปใน {daysUntilNextWeighIn} วัน ({nextWeighInString})
-                                    </div>
-                                )}
-                            </div>
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex flex-col z-10 shrink-0">
                                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">🎯 เป้าหมาย: 80.0 กก.</span>
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl font-black text-white tracking-tighter drop-shadow-md">{weight.toFixed(1)}</span>
+                                        {/* ฟีเจอร์ใหม่: พิมพ์แก้ไขตัวเลขน้ำหนักได้เลย */}
+                                        <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            value={weight} 
+                                            onChange={(e) => updateWeightToCloud(parseFloat(e.target.value) || 0)}
+                                            className="w-24 bg-transparent text-4xl font-black text-white tracking-tighter drop-shadow-md outline-none border-b-2 border-dashed border-slate-600 focus:border-orange-500 transition-colors"
+                                        />
                                         <span className="text-slate-400 font-bold">กก.</span>
                                     </div>
                                 </div>
                                 <div className="flex-1 flex justify-center"><MaleAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} /></div>
                                 <div className="flex flex-col gap-2 bg-slate-900/50 p-2 rounded-[18px] border border-slate-700 z-10 shrink-0">
-                                    <button onClick={() => setWeight(prev => Number((prev + 0.1).toFixed(1)))} className="w-10 h-10 bg-slate-800 rounded-[12px] text-slate-400 font-bold text-xl border border-slate-600 active:scale-95 leading-none hover:bg-slate-700">+</button>
-                                    <button onClick={() => setWeight(prev => Math.max(70, Number((prev - 0.1).toFixed(1))))} className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-[12px] text-white font-bold text-2xl shadow-[0_0_15px_rgba(249,115,22,0.4)] border border-orange-400/50 active:scale-95 leading-none">-</button>
+                                    <button onClick={() => updateWeightToCloud(Number((weight + 0.1).toFixed(1)))} className="w-10 h-10 bg-slate-800 rounded-[12px] text-slate-400 font-bold text-xl border border-slate-600 active:scale-95 leading-none">+</button>
+                                    <button onClick={() => updateWeightToCloud(Math.max(70, Number((weight - 0.1).toFixed(1))))} className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-[12px] text-white font-bold text-2xl shadow-[0_0_15px_rgba(249,115,22,0.4)] border border-orange-400/50 active:scale-95 leading-none">-</button>
                                 </div>
                             </div>
                         </div>
@@ -421,72 +462,51 @@
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex justify-center gap-3 mt-8 px-5">
-                        <button onClick={() => setActiveTab('tracker')} className={`flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'tracker' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
-                            🔥 เช็คลิสต์วันนี้
+                    <div className="flex justify-center gap-2 mt-8 px-5">
+                        <button onClick={() => setActiveTab('tracker')} className={`flex-1 py-3.5 px-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'tracker' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
+                            🔥 เช็คลิสต์
                         </button>
-                        <button onClick={() => setActiveTab('plan')} className={`flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'plan' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
-                            📖 แผนฝึกซ้อม
+                        <button onClick={() => setActiveTab('plan')} className={`flex-1 py-3.5 px-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'plan' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
+                            📖 แผนซ้อม
+                        </button>
+                        <button onClick={() => setActiveTab('stats')} className={`flex-1 py-3.5 px-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'stats' ? 'bg-orange-500 text-slate-900 shadow-[0_0_20px_rgba(249,115,22,0.3)] translate-y-[-2px]' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
+                            📊 สถิติ
                         </button>
                     </div>
 
                     <main className="px-5 mt-6 space-y-6">
                         {activeTab === 'tracker' ? (
                             <>
-                                {/* --- 🎛️ ระบบ Sync โหมดการซ้อม --- */}
+                                {/* 🎛️ ระบบ Sync โหมดการซ้อม */}
                                 <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg">
                                     <div className="mb-4">
-                                        <h2 className="font-black text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                                            🎯 1. เลือกโหมดการซ้อมวันนี้
-                                        </h2>
-                                        <p className="text-[11px] text-slate-400 mt-1">ตารางอาหารและน้ำจะถูกปรับให้อัตโนมัติ</p>
+                                        <h2 className="font-black text-white text-sm uppercase tracking-wide flex items-center gap-2">🎯 1. เลือกโหมดการซ้อมวันนี้</h2>
+                                        <p className="text-[11px] text-slate-400 mt-1">ตารางอาหารและน้ำจะถูกปรับให้อัตโนมัติ (และเซฟขึ้น Cloud)</p>
                                     </div>
-                                    
                                     <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={() => setTrainingType('rest')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${trainingType === 'rest' ? 'bg-blue-900/50 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
+                                        <button onClick={() => updateDaily('trainingType', 'rest')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'rest' ? 'bg-blue-900/50 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
                                             <span className="text-2xl">💤</span><span className="text-xs font-bold">วันพัก (Rest)</span>
                                         </button>
-                                        <button onClick={() => setTrainingType('easy')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${trainingType === 'easy' ? 'bg-emerald-900/50 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
+                                        <button onClick={() => updateDaily('trainingType', 'easy')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'easy' ? 'bg-emerald-900/50 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
                                             <span className="text-2xl">🏃‍♂️</span><span className="text-xs font-bold">วิ่งเบาๆ (Easy)</span>
                                         </button>
-                                        <button onClick={() => setTrainingType('speed')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${trainingType === 'speed' ? 'bg-orange-900/50 border-orange-500 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
+                                        <button onClick={() => updateDaily('trainingType', 'speed')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'speed' ? 'bg-orange-900/50 border-orange-500 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
                                             <span className="text-2xl">⚡</span><span className="text-xs font-bold">ความเร็ว (Speed)</span>
                                         </button>
-                                        <button onClick={() => setTrainingType('long')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${trainingType === 'long' ? 'bg-red-900/50 border-red-500 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
+                                        <button onClick={() => updateDaily('trainingType', 'long')} className={`p-3 rounded-xl flex flex-col items-center gap-2 border-2 transition-all ${dailyData.trainingType === 'long' ? 'bg-red-900/50 border-red-500 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
                                             <span className="text-2xl">🔥</span><span className="text-xs font-bold">วิ่งยาว (Long)</span>
                                         </button>
                                     </div>
-
-                                    <div className={`mt-4 p-4 rounded-2xl flex items-start gap-4 border ${
-                                        currentConfig.id === 'rest' ? 'bg-blue-900/20 border-blue-800/50' :
-                                        currentConfig.id === 'easy' ? 'bg-emerald-900/20 border-emerald-800/50' :
-                                        currentConfig.id === 'speed' ? 'bg-orange-900/20 border-orange-800/50' :
-                                        'bg-red-900/20 border-red-800/50'
-                                    }`}>
-                                        <div className={`w-10 h-10 flex items-center justify-center rounded-full shrink-0 text-lg ${
-                                            currentConfig.id === 'rest' ? 'bg-blue-500' :
-                                            currentConfig.id === 'easy' ? 'bg-emerald-500' :
-                                            currentConfig.id === 'speed' ? 'bg-orange-500' :
-                                            'bg-red-500'
-                                        }`}>
-                                            {currentConfig.icon}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-slate-200">{currentConfig.title}</h3>
-                                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">{currentConfig.desc}</p>
-                                        </div>
-                                    </div>
                                 </section>
 
-                                {/* พลังงานวันนี้ */}
+                                {/* Score Ring */}
                                 <section className={`rounded-[24px] p-6 shadow-xl border flex items-center justify-between relative overflow-hidden transition-colors duration-500 ${dailyScore === 100 ? 'bg-gradient-to-br from-orange-600 to-red-600 border-orange-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-200'}`}>
-                                    <div className={`absolute -right-4 -top-4 w-32 h-32 rounded-full opacity-30 blur-2xl ${dailyScore === 100 ? 'bg-white' : 'bg-orange-500'}`}></div>
                                     <div className="relative z-10 max-w-[60%]">
-                                        <h2 className={`font-black text-lg mb-1 tracking-wide uppercase ${dailyScore === 100 ? 'text-white' : 'text-slate-100'}`}>พลังงานวันนี้</h2>
-                                        <p className={`text-sm font-bold leading-snug ${dailyScore === 100 ? 'text-orange-100' : 'text-slate-400'}`}>{getMotivationalMessage()}</p>
+                                        <h2 className="font-black text-lg mb-1 tracking-wide uppercase">พลังงานวันนี้</h2>
+                                        <p className="text-sm font-bold leading-snug text-slate-400">{getMotivationalMessage()}</p>
                                     </div>
                                     <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                        <svg className="w-full h-full transform -rotate-90 drop-shadow-lg" viewBox="0 0 36 36">
+                                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                             <path className={dailyScore === 100 ? 'text-red-800/50' : 'text-slate-900'} strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                             <path className={`transition-all duration-1000 ease-out ${dailyScore === 100 ? 'text-white' : 'text-orange-400'}`} strokeDasharray={`${dailyScore}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                         </svg>
@@ -494,103 +514,136 @@
                                     </div>
                                 </section>
 
-                                {/* กล่องของขวัญ */}
-                                <section className={`rounded-[24px] p-5 shadow-lg border transition-all duration-500 ${dailyScore === 100 ? 'bg-gradient-to-r from-slate-800 to-red-900/80 border-orange-500' : 'bg-slate-800/50 border-slate-700'}`}>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 text-2xl ${dailyScore === 100 ? 'bg-orange-500 text-slate-900 shadow-[0_0_15px_rgba(249,115,22,0.5)]' : 'bg-slate-900 border border-slate-700'}`}>🏆</div>
-                                        <div>
-                                            <h3 className={`font-black text-sm uppercase tracking-wide ${dailyScore === 100 ? 'text-orange-400' : 'text-slate-500'}`}>{dailyScore === 100 ? 'ปลดล็อกรางวัลนักวิ่ง!' : 'เป้าหมายรางวัลวันนี้'}</h3>
-                                            <p className={`text-xs mt-1.5 font-medium leading-relaxed ${dailyScore === 100 ? 'text-slate-300' : 'text-slate-600'}`}>{dailyScore === 100 ? `จัดไป! วันนี้ให้โควตาทาน "${todayReward}" เพื่อชาร์จพลังหลังซ้อมได้เลย! 🍻` : 'ทำภารกิจทั้งหมดให้ครบ 100% เพื่อปลดล็อกของชอบที่คุณเล็งไว้!'}</p>
-                                        </div>
-                                    </div>
-                                </section>
-
                                 {/* วินัยการกิน */}
-                                <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg">
-                                    <h2 className="font-black text-slate-300 mb-3 px-1 flex items-center gap-2 uppercase tracking-wide text-sm">2. โหลดคาร์บ & โปรตีน (40 Pts)</h2>
-                                    <div className="grid gap-3">
+                                <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg transition-all duration-500">
+                                    <div className="flex items-center justify-between cursor-pointer" onClick={() => setMealsOpen(!mealsOpen)}>
+                                        <h2 className="font-black text-slate-300 px-1 flex items-center gap-2 uppercase tracking-wide text-sm">2. โหลดคาร์บ & โปรตีน (40 Pts)</h2>
+                                        <span className="text-slate-400 text-xs">{mealsOpen ? '🔽 พับเก็บ' : '▶️ เปิดดู'}</span>
+                                    </div>
+                                    {mealsOpen && (
+                                    <div className="grid gap-3 mt-4 animation-fade-in">
                                         {[
-                                            { state: breakfastDone, setter: setBreakfastDone, icon: '🥞', title: 'มื้อเช้า', time: '08:00', desc: currentConfig.meals.breakfast },
-                                            { state: lunchDone, setter: setLunchDone, icon: '🍱', title: 'มื้อเที่ยง', time: '12:30', desc: currentConfig.meals.lunch },
-                                            { state: snackDone, setter: setSnackDone, icon: '🍌', title: 'มื้อว่าง', time: '15:30', desc: currentConfig.meals.snack },
-                                            { state: dinnerDone, setter: setDinnerDone, icon: '🥩', title: 'มื้อเย็น', time: '18:30', desc: currentConfig.meals.dinner }
+                                            { key: 'breakfastDone', state: dailyData.breakfastDone, icon: '🥞', title: 'มื้อเช้า', time: '08:00', desc: currentConfig.meals.breakfast },
+                                            { key: 'lunchDone', state: dailyData.lunchDone, icon: '🍱', title: 'มื้อเที่ยง', time: '12:30', desc: currentConfig.meals.lunch },
+                                            { key: 'snackDone', state: dailyData.snackDone, icon: '🍌', title: 'มื้อว่าง', time: '15:30', desc: currentConfig.meals.snack },
+                                            { key: 'dinnerDone', state: dailyData.dinnerDone, icon: '🥩', title: 'มื้อเย็น', time: '18:30', desc: currentConfig.meals.dinner }
                                         ].map((meal, idx) => (
-                                            <div key={idx} onClick={() => meal.setter(!meal.state)} className={`p-4 rounded-[20px] cursor-pointer flex items-center justify-between transition-all duration-300 active:scale-95 ${meal.state ? 'bg-slate-800/40 shadow-sm border border-slate-700/50 opacity-50' : 'bg-slate-800 shadow-md border border-slate-700 hover:border-slate-600'}`}>
+                                            <div key={idx} onClick={() => updateDaily(meal.key, !meal.state)} className={`p-4 rounded-[20px] cursor-pointer flex items-center justify-between transition-all duration-300 active:scale-95 ${meal.state ? 'bg-slate-800/40 border border-slate-700/50 opacity-50' : 'bg-slate-800 shadow-md border border-slate-700'}`}>
                                                 <div className="flex items-center gap-3.5">
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition-colors ${meal.state ? `bg-blue-900/50` : 'bg-slate-900 border border-slate-800'}`}>{meal.icon}</div>
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${meal.state ? 'bg-blue-900/50' : 'bg-slate-900 border border-slate-800'}`}>{meal.icon}</div>
                                                     <div>
-                                                        <h3 className={`font-extrabold text-sm transition-all ${meal.state ? 'text-slate-500 line-through decoration-slate-600' : 'text-slate-200'}`}>{meal.title} <span className="text-[10px] font-bold text-slate-400 ml-1 bg-slate-900 px-1.5 py-0.5 rounded uppercase border border-slate-700">{meal.time}</span></h3>
+                                                        <h3 className={`font-extrabold text-sm ${meal.state ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{meal.title}</h3>
                                                         <p className={`text-xs mt-1 line-clamp-1 font-medium ${meal.state ? 'text-slate-600' : 'text-cyan-400'}`}>{meal.desc}</p>
                                                     </div>
                                                 </div>
-                                                <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${meal.state ? `border-cyan-500 bg-cyan-500` : 'border-slate-600 bg-slate-900'}`}>
+                                                <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 ${meal.state ? 'border-cyan-500 bg-cyan-500' : 'border-slate-600 bg-slate-900'}`}>
                                                     {meal.state && <span className="text-slate-900 text-xs font-bold">✓</span>}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
+                                    )}
                                 </section>
 
                                 {/* เติมน้ำ */}
-                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700 relative overflow-hidden mt-6">
-                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-900/30 transition-all duration-700 -z-0" style={{ height: `${Math.min((water/targetWater)*100, 100)}%` }}></div>
+                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700 relative overflow-hidden mt-6 transition-all duration-500">
+                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-900/30 transition-all duration-700 -z-0" style={{ height: `${Math.min((dailyData.water/targetWater)*100, 100)}%` }}></div>
                                     <div className="relative z-10">
-                                        <div className="flex items-center gap-2 mb-4">
+                                        <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setWaterOpen(!waterOpen)}>
                                             <h2 className="font-black text-slate-200 text-sm uppercase tracking-wide">💧 ดื่มน้ำกันตะคริว (20 Pts)</h2>
-                                            <div className="ml-auto bg-slate-900 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-slate-700">{water} / {targetWater} แก้ว</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="bg-slate-900 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-slate-700">{dailyData.water} / {targetWater} แก้ว</div>
+                                                <span className="text-slate-400 text-xs">{waterOpen ? '🔽' : '▶️'}</span>
+                                            </div>
                                         </div>
-                                        <p className="text-xs text-slate-400 text-center mb-4">{currentConfig.id === 'long' ? 'วิ่งยาวต้องเติมให้ถึง 15 แก้ว (ชดเชยเหงื่อ)' : 'จิบเรื่อยๆ ตลอดวัน (แก้วละ ~250 ml)'}</p>
-                                        <div className="flex items-center justify-center gap-6 mb-2">
-                                            <button onClick={() => setWater(Math.max(0, water - 1))} className="w-12 h-12 rounded-[16px] bg-slate-900 border border-slate-700 text-xl font-medium text-slate-500 active:scale-95">-</button>
-                                            <div className="text-6xl transition-all duration-500" style={{ filter: water >= targetWater ? 'drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.5))' : 'grayscale(1)' }}>💧</div>
-                                            <button onClick={() => setWater(water + 1)} className="w-12 h-12 rounded-[16px] bg-blue-500 text-white text-xl font-bold active:scale-95 shadow-[0_0_15px_rgba(59,130,246,0.4)]">+</button>
+                                        {waterOpen && (
+                                        <div className="animation-fade-in">
+                                            <p className="text-xs text-slate-400 text-center mb-4">{currentConfig.id === 'long' ? 'วิ่งยาวต้องเติมให้ถึง 15 แก้ว (ชดเชยเหงื่อ)' : 'จิบเรื่อยๆ ตลอดวัน (แก้วละ ~250 ml)'}</p>
+                                            <div className="flex items-center justify-center gap-6 mb-2">
+                                                <button onClick={() => updateDaily('water', Math.max(0, dailyData.water - 1))} className="w-12 h-12 rounded-[16px] bg-slate-900 border border-slate-700 text-xl font-medium text-slate-500 active:scale-95">-</button>
+                                                <div className="text-6xl transition-all duration-500" style={{ filter: dailyData.water >= targetWater ? 'drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.5))' : 'grayscale(1)' }}>💧</div>
+                                                <button onClick={() => updateDaily('water', dailyData.water + 1)} className="w-12 h-12 rounded-[16px] bg-blue-500 text-white text-xl font-bold active:scale-95 shadow-[0_0_15px_rgba(59,130,246,0.4)]">+</button>
+                                            </div>
+                                            
+                                            {/* ตารางเวลาดื่มน้ำ */}
+                                            <div className="mt-5 pt-5 border-t border-blue-900/30">
+                                                <h3 className="text-xs font-bold text-slate-300 mb-3 text-center flex items-center justify-center gap-1.5">
+                                                    <span className="text-blue-400">⏱️</span> ตารางดื่มน้ำแนะนำ (แก้วละ ~250 ml)
+                                                </h3>
+                                                <div className="space-y-2">
+                                                    {waterSchedule.map((item, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-[10px] font-black text-blue-400 w-max bg-blue-900/30 px-2 py-0.5 rounded-md">{item.time}</span>
+                                                                <span className="text-[10px] font-medium text-slate-400 pl-1">{item.desc}</span>
+                                                            </div>
+                                                            <div className="text-[10px] font-bold text-blue-300 bg-slate-800 px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-700 whitespace-nowrap">
+                                                                {item.amount} แก้ว <span className="text-slate-500 font-normal">({item.ml}ml)</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[9px] text-slate-500 text-center mt-3">* วันวิ่ง Long Run ให้เพิ่มการจิบน้ำ/เกลือแร่ระหว่างซ้อมทุก 45 นาที</p>
+                                            </div>
                                         </div>
+                                        )}
                                     </div>
                                 </section>
 
-                                {/* ขยับร่างกาย */}
-                                <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg mt-6">
-                                    <div className="mb-3 px-1">
-                                        <h2 className="font-black text-slate-300 flex items-center gap-2 uppercase tracking-wide text-sm">3. ภารกิจหล่อหลอม (20 Pts)</h2>
-                                        <p className="text-xs text-orange-400 font-bold mt-1">มาราธอนต้องซ้อมถึง!</p>
+                                {/* ภารกิจเสริมสร้างกล้ามเนื้อ */}
+                                <section className="bg-slate-800 rounded-[24px] p-5 border border-slate-700 shadow-lg mt-6 transition-all duration-500">
+                                    <div className="flex items-center justify-between cursor-pointer" onClick={() => setExOpen(!exOpen)}>
+                                        <div>
+                                            <h2 className="font-black text-slate-300 px-1 flex items-center gap-2 uppercase tracking-wide text-sm">3. ภารกิจเสริมสร้างกล้ามเนื้อ (20 Pts)</h2>
+                                            <p className="text-[11px] text-orange-400 font-bold mt-1 px-1">ท่าบริการร่างกายส่วนต่างๆ ป้องกันอาการบาดเจ็บ</p>
+                                        </div>
+                                        <span className="text-slate-400 text-xs shrink-0">{exOpen ? '🔽 พับเก็บ' : '▶️ เปิดดู'}</span>
                                     </div>
-                                    <div className="grid gap-3">
+                                    {exOpen && (
+                                    <div className="grid gap-3 mt-4 animation-fade-in">
                                         {currentConfig.exercises.map((ex, idx) => {
-                                            const isDone = exerciseChecks[idx];
-                                            const parts = ex.split('(');
+                                            const isDone = dailyData.exerciseChecks[idx] || false;
                                             return (
-                                            <div key={idx} onClick={() => toggleExercise(idx)} className={`p-4 rounded-[20px] cursor-pointer flex items-center justify-between transition-all duration-300 active:scale-95 ${isDone ? 'bg-slate-800/40 border border-slate-700/50 opacity-60' : 'bg-slate-800 shadow-md border border-slate-700 hover:border-slate-600'}`}>
+                                            <div key={idx} onClick={() => {
+                                                const newChecks = [...dailyData.exerciseChecks];
+                                                newChecks[idx] = !isDone;
+                                                updateDaily('exerciseChecks', newChecks);
+                                            }} className={`p-4 rounded-[20px] cursor-pointer flex items-center justify-between transition-all duration-300 active:scale-95 ${isDone ? 'bg-slate-800/40 border border-slate-700/50 opacity-60' : 'bg-slate-800 shadow-md border border-slate-700'}`}>
                                                 <div className="flex items-center gap-3.5">
-                                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${isDone ? 'bg-cyan-900/50 text-cyan-400 border border-cyan-700/50' : 'bg-slate-900 text-slate-500 border border-slate-700'}`}><span className="font-black text-sm">{idx + 1}</span></div>
+                                                    <div className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center transition-colors ${isDone ? 'bg-cyan-900/50 text-cyan-400' : 'bg-slate-900 text-slate-500 border border-slate-700'}`}><span className="font-black text-sm">{idx + 1}</span></div>
                                                     <div className="pr-2">
-                                                        <h3 className={`font-extrabold text-sm transition-all leading-tight ${isDone ? 'text-slate-500 line-through decoration-slate-600' : 'text-slate-200'}`}>{parts[0].trim()}</h3>
-                                                        <p className={`text-[11px] mt-1 font-medium leading-snug ${isDone ? 'text-slate-600' : 'text-slate-400'}`}>{parts.length > 1 ? '(' + parts[1] : ''}</p>
+                                                        <h3 className={`font-extrabold text-sm transition-all leading-tight ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{ex.title}</h3>
+                                                        <p className={`text-[11px] mt-1.5 font-medium leading-snug ${isDone ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                            <span className={`px-1.5 py-0.5 rounded-md mr-1.5 ${isDone ? 'bg-slate-800 text-slate-600' : 'bg-slate-700 text-orange-400'}`}>🎯 {ex.focus}</span>
+                                                            {ex.detail}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isDone ? 'border-cyan-500 bg-cyan-500' : 'border-slate-600 bg-slate-900'}`}>
+                                                <div className={`w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isDone ? 'border-cyan-500 bg-cyan-500' : 'border-slate-600 bg-slate-900'}`}>
                                                     {isDone && <span className="text-slate-900 text-xs font-bold">✓</span>}
                                                 </div>
                                             </div>
                                         )})}
                                     </div>
+                                    )}
                                 </section>
 
                                 {/* IF */}
-                                <section onClick={() => setFastingSuccess(!fastingSuccess)} className={`mt-6 p-4 rounded-[24px] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-between active:scale-95 ${fastingSuccess ? 'border-blue-500 bg-blue-900/20' : 'border-slate-700 bg-slate-800 hover:border-slate-600'}`}>
+                                <section onClick={() => updateDaily('fastingSuccess', !dailyData.fastingSuccess)} className={`mt-6 p-4 rounded-[24px] border-2 cursor-pointer transition-all duration-300 flex flex-col justify-between active:scale-95 ${dailyData.fastingSuccess ? 'border-blue-500 bg-blue-900/20' : 'border-slate-700 bg-slate-800 hover:border-slate-600'}`}>
                                     <div className="flex items-center justify-between mb-3">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${fastingSuccess ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-900 text-slate-500 border border-slate-700'}`}>🌙</div>
-                                        <div className={`relative w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${fastingSuccess ? 'border-blue-500 bg-blue-500' : 'border-slate-600 bg-slate-900'}`}>
-                                            {fastingSuccess && <span className="text-white text-[10px] font-bold">✓</span>}
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${dailyData.fastingSuccess ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-900 text-slate-500 border border-slate-700'}`}>🌙</div>
+                                        <div className={`relative w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${dailyData.fastingSuccess ? 'border-blue-500 bg-blue-500' : 'border-slate-600 bg-slate-900'}`}>
+                                            {dailyData.fastingSuccess && <span className="text-white text-[10px] font-bold">✓</span>}
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className={`font-extrabold text-sm ${fastingSuccess ? 'text-blue-400' : 'text-slate-200'}`}>งดมื้อดึก (IF)</h3>
+                                        <h3 className={`font-extrabold text-sm ${dailyData.fastingSuccess ? 'text-blue-400' : 'text-slate-200'}`}>งดมื้อดึก (IF)</h3>
                                         <p className="text-[10px] text-slate-400 font-bold mt-1">20 Pts • ให้ร่างกายฟื้นฟูกล้ามเนื้อตอนนอน</p>
                                     </div>
                                 </section>
                             </>
-                        ) : (
-                            <div className="space-y-6 pb-10">
+                        ) : activeTab === 'plan' ? (
+                            <div className="space-y-6 pb-10 animation-fade-in">
                                 <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700">
                                     <div className="flex justify-between items-center mb-6">
                                         <h2 className="font-extrabold text-lg text-white flex items-center gap-2">🍽️ ตารางเสบียงนักวิ่ง</h2>
@@ -616,8 +669,8 @@
 
                                 <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700 mb-10">
                                     <div className="mb-5">
-                                        <h2 className="font-black text-lg text-white flex items-center gap-2 tracking-wide uppercase">🏃‍♂️ แผนการฝึกซ้อม</h2>
-                                        <p className="text-xs font-bold text-orange-500 mt-1 uppercase tracking-widest">{currentConfig.title}</p>
+                                        <h2 className="font-black text-lg text-white flex items-center gap-2 tracking-wide uppercase">🏃‍♂️ แผนการฝึกซ้อมเสริม</h2>
+                                        <p className="text-[11px] font-bold text-orange-500 mt-1 uppercase tracking-widest">{currentConfig.title}</p>
                                     </div>
                                     <div className="space-y-3">
                                         {currentConfig.exercises.map((ex, idx) => (
@@ -625,43 +678,110 @@
                                                 <div className="w-8 h-8 shrink-0 rounded-full bg-orange-900/50 flex items-center justify-center text-sm font-black text-orange-400 border border-orange-700/50 mt-0.5">
                                                     {idx + 1}
                                                 </div>
-                                                <span className="text-sm font-bold text-slate-200 leading-relaxed">{ex}</span>
+                                                <div>
+                                                    <span className="text-sm font-bold text-slate-200 leading-relaxed block">{ex.title}</span>
+                                                    <span className="text-[11px] text-slate-400 block mt-1"><strong className="text-orange-400">โฟกัส:</strong> {ex.focus} — {ex.detail}</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                     <div className="mt-5 p-4 bg-blue-900/20 rounded-[16px] text-xs font-bold text-blue-300 flex items-start gap-3 border border-blue-800/30 leading-relaxed">
                                         <span className="text-lg animate-pulse">📍</span>
-                                        <p>อย่าลืมกดปุ่ม <strong>"ดูตารางซ้อมมาราธอนทีม"</strong> ด้านบนสุด เพื่อเช็กระยะวิ่งที่ต้องเก็บในแต่ละวันจากโค้ชของคุณนะครับ!</p>
+                                        <p>อย่าลืมกดปุ่ม <strong>"ดูตารางซ้อมมาราธอนทีม"</strong> ด้านบนสุด เพื่อเช็กระยะวิ่งหลักที่ต้องเก็บในแต่ละวันจากโค้ชของคุณนะครับ!</p>
                                     </div>
                                 </section>
                             </div>
-                        )}
+                        ) : activeTab === 'stats' ? (
+                            <div className="space-y-6 pb-10 animation-fade-in">
+                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700">
+                                    <h2 className="font-black text-lg text-white mb-2 flex items-center gap-2">📊 สถิติพลังงาน 7 วันย้อนหลัง</h2>
+                                    <p className="text-xs text-slate-400 mb-6">แถบกราฟแสดงคะแนนความสำเร็จของแต่ละวัน</p>
+                                    
+                                    <div className="flex items-end justify-between h-48 gap-2 mt-4 pt-4 border-t border-slate-700">
+                                        {last7Days.map((dateStr, i) => {
+                                            const rec = allRecords[dateStr];
+                                            const score = computeScoreForRecord(rec);
+                                            const dayObj = new Date(dateStr);
+                                            const dayName = dayObj.toLocaleDateString('th-TH', {weekday: 'short'});
+                                            const isToday = dateStr === dateString;
+                                            
+                                            // ถ้าเป็นวันนี้ ให้ใช้ dailyScore ที่คำนวณสดๆ แทน
+                                            const finalScore = isToday ? dailyScore : score;
+                                            
+                                            return (
+                                                <div key={dateStr} className="flex flex-col items-center flex-1 gap-2 h-full">
+                                                    <span className="text-[10px] font-bold text-orange-400">{finalScore}%</span>
+                                                    <div className="w-full bg-slate-900 rounded-t-xl relative flex items-end justify-center h-full border border-slate-700 overflow-hidden">
+                                                        <div className={`w-full rounded-t-xl transition-all duration-1000 ${finalScore === 100 ? 'bg-gradient-to-t from-red-600 to-orange-400' : 'bg-gradient-to-t from-slate-600 to-slate-500'}`} style={{height: `${finalScore}%`}}></div>
+                                                    </div>
+                                                    <span className={`text-[10px] ${isToday ? 'font-black text-white' : 'text-slate-400'}`}>{isToday ? 'วันนี้' : dayName}</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </section>
+
+                                <section className="bg-slate-800 rounded-[24px] p-6 shadow-lg border border-slate-700">
+                                    <h2 className="font-black text-sm text-slate-300 uppercase tracking-wide mb-4">🏆 สรุปภาพรวม</h2>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-slate-900 p-4 rounded-[16px] border border-slate-700 text-center">
+                                            <p className="text-[10px] text-slate-400 font-bold mb-1">น้ำหนักปัจจุบัน</p>
+                                            <p className="text-2xl font-black text-white">{weight.toFixed(1)} <span className="text-xs font-normal text-slate-500">กก.</span></p>
+                                        </div>
+                                        <div className="bg-slate-900 p-4 rounded-[16px] border border-slate-700 text-center">
+                                            <p className="text-[10px] text-slate-400 font-bold mb-1">เป้าหมายลดอีก</p>
+                                            <p className="text-2xl font-black text-orange-400">{Math.max(0, weight - targetWeight).toFixed(1)} <span className="text-xs font-normal text-slate-500">กก.</span></p>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        ) : null}
                     </main>
                 </div>
             );
         };
 
-        // --- Container หลักเพื่อสลับหน้าระหว่าง Login กับ Dashboard ---
+        // --- Container หลักและเชื่อมต่อระบบ Auth ---
         const MainContainer = () => {
-            const [currentUser, setCurrentUser] = useState(() => {
-                return window.localStorage.getItem('p80_current_user') || null;
-            });
+            const [user, setUser] = useState(null);
+            const [authLoading, setAuthLoading] = useState(true);
+            const [currentUser, setCurrentUser] = useState(() => window.localStorage.getItem('p80_current_profile'));
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Auth error", error);
+                    }
+                };
+                initAuth();
+
+                const unsubscribe = onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    setAuthLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
 
             const handleLogin = (name) => {
                 setCurrentUser(name);
-                window.localStorage.setItem('p80_current_user', name);
+                window.localStorage.setItem('p80_current_profile', name);
             };
 
             const handleLogout = () => {
                 setCurrentUser(null);
-                window.localStorage.removeItem('p80_current_user');
+                window.localStorage.removeItem('p80_current_profile');
             };
 
-            if (!currentUser) {
-                return <LoginScreen onLogin={handleLogin} />;
-            }
+            if (authLoading) return <div className="text-white text-center mt-20 text-lg">กำลังเชื่อมต่อฐานข้อมูล Cloud... ☁️</div>;
+            if (!user || !currentUser) return <LoginScreen onLogin={handleLogin} />;
 
-            return <Dashboard key={currentUser} currentUser={currentUser} onLogout={handleLogout} />;
+            return <Dashboard user={user} profileName={currentUser} onLogout={handleLogout} />;
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
