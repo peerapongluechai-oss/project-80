@@ -47,8 +47,8 @@
                 projectId: "myfamilyproject-ecff4",
                 storageBucket: "myfamilyproject-ecff4.firebasestorage.app",
                 messagingSenderId: "714527535272",
-                appId: "1:714527535272:web:fefa9679e822d31e52529d",
-                measurementId: "G-ED3NCQF2CD"
+                appId: "1:714527535272:web:fefa9679e822d31e52529d"
+                // ลบ measurementId ออกเพื่อลดระยะเวลาโหลดที่ไม่จำเป็น
             };
         };
 
@@ -158,39 +158,57 @@
 
         // --- หน้า Dashboard หลัก ที่ผูกกับ Firestore ---
         const Dashboard = ({ user, profileName, onLogout }) => {
-            const [loadingData, setLoadingData] = useState(true);
+            // ระบบ Local-First Cache เพื่อให้แอปโหลดเข้าได้ทันที 0 วินาที
+            const localCacheKey = `p80_cache_${profileName}`;
+            const cachedDataStr = window.localStorage.getItem(localCacheKey);
+            const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
+
+            // ถ้ามีแคชให้โหลดเข้าแอปทันที ถ้าไม่มีให้โหลดรอ 2 วิ
+            const [loadingData, setLoadingData] = useState(!cachedData);
             const [activeTab, setActiveTab] = useState('tracker'); 
             const [showConfetti, setShowConfetti] = useState(false);
             
-            // ข้อมูลหลักจาก Cloud
-            const [weight, setWeight] = useState(94.0);
-            const [allRecords, setAllRecords] = useState({}); // ประวัติย้อนหลัง
-            
-            // ข้อมูลรายวันจาก Cloud
-            const defaultDailyData = {
-                trainingType: 'easy',
-                water: 0,
-                breakfastDone: false,
-                lunchDone: false,
-                snackDone: false,
-                dinnerDone: false,
-                exerciseChecks: [false, false, false, false],
-                fastingSuccess: false
-            };
-            const [dailyData, setDailyData] = useState(defaultDailyData);
-
             const dateString = new Date().toDateString(); 
+
+            // ข้อมูลหลักดึงจากแคช หรือ ค่าตั้งต้น
+            const [weight, setWeight] = useState(cachedData?.weight || 94.0);
+            const [allRecords, setAllRecords] = useState(cachedData?.records || {});
             
-            // ระบุ Path ของเอกสารบน Cloud (6 segments)
+            const defaultDailyData = {
+                trainingType: 'easy', water: 0, breakfastDone: false,
+                lunchDone: false, snackDone: false, dinnerDone: false,
+                exerciseChecks: [false, false, false, false], fastingSuccess: false
+            };
+            
+            // ค้นหาข้อมูลของวันนี้จากแคช
+            const [dailyData, setDailyData] = useState(() => {
+                if (cachedData?.records && cachedData.records[dateString]) {
+                    return cachedData.records[dateString];
+                }
+                return defaultDailyData;
+            });
+            
+            // ระบุ Path ของเอกสารบน Cloud
             const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profileName);
 
-            // ดึงข้อมูล Real-time จาก Cloud
+            // ดึงข้อมูล Real-time จาก Cloud แบบพื้นหลัง
             useEffect(() => {
                 if (!user) return;
 
+                // ระบบตั้งเวลาตัดจบ (Timeout 2 วินาที) เผื่อเน็ตมือถือมีปัญหา จะได้เข้าแอปได้เลย
+                const timeoutId = setTimeout(() => {
+                    setLoadingData(false);
+                }, 2000);
+
                 const unsubscribe = onSnapshot(docRef, (docSnap) => {
+                    clearTimeout(timeoutId); // ปิดตัวนับเวลาถ้าระบบโหลดเสร็จก่อน
+                    
                     if (docSnap.exists()) {
                         const data = docSnap.data();
+                        
+                        // เซฟทับลงแคชในเครื่องทันที
+                        window.localStorage.setItem(localCacheKey, JSON.stringify(data));
+                        
                         if (data.weight) setWeight(data.weight);
                         if (data.records) setAllRecords(data.records);
                         
@@ -200,6 +218,7 @@
                             setDailyData(defaultDailyData);
                         }
                     } else {
+                        // สร้างเอกสารใหม่
                         setDoc(docRef, { weight: 94.0, records: {} }, { merge: true });
                     }
                     setLoadingData(false);
@@ -208,18 +227,33 @@
                     setLoadingData(false);
                 });
 
-                return () => unsubscribe();
+                return () => {
+                    clearTimeout(timeoutId);
+                    unsubscribe();
+                };
             }, [user.uid, profileName, dateString]);
 
-            // ฟังก์ชันอัปเดตข้อมูลขึ้น Cloud อัตโนมัติ
+            // ฟังก์ชันอัปเดตข้อมูลขึ้น Cloud และ Local Cache
             const updateDaily = (key, value) => {
                 const newData = { ...dailyData, [key]: value };
                 setDailyData(newData); 
+                
+                // อัปเดตแคชในเครื่องให้ไวปรู๊ดปร๊าด
+                const newRecords = { ...allRecords, [dateString]: newData };
+                setAllRecords(newRecords);
+                window.localStorage.setItem(localCacheKey, JSON.stringify({ weight, records: newRecords }));
+                
+                // อัปเดต Cloud เบื้องหลัง
                 setDoc(docRef, { records: { [dateString]: newData } }, { merge: true });
             };
 
             const updateWeightToCloud = (newWeight) => {
                 setWeight(newWeight);
+                
+                // อัปเดตแคชในเครื่อง
+                window.localStorage.setItem(localCacheKey, JSON.stringify({ weight: newWeight, records: allRecords }));
+                
+                // อัปเดต Cloud เบื้องหลัง
                 setDoc(docRef, { weight: newWeight }, { merge: true });
             };
 
@@ -567,6 +601,7 @@
                                         </div>
                                         {waterOpen && (
                                         <div className="animation-fade-in">
+                                            <p className="text-xs text-slate-400 text-center mb-4">{currentConfig.id === 'long' ? 'วิ่งยาวต้องเติมให้ถึง 15 แก้ว (ชดเชยเหงื่อ)' : 'จิบเรื่อยๆ ตลอดวัน (แก้วละ ~250 ml)'}</p>
                                             <div className="flex items-center justify-center gap-6 mb-2">
                                                 <button onClick={() => updateDaily('water', Math.max(0, dailyData.water - 1))} className="w-12 h-12 rounded-[16px] bg-slate-900 border border-slate-700 text-xl font-medium text-slate-500 active:scale-95">-</button>
                                                 <div className="text-6xl transition-all duration-500" style={{ filter: dailyData.water >= targetWater ? 'drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.5))' : 'grayscale(1)' }}>💧</div>
