@@ -27,7 +27,6 @@
 <body>
     <div id="root"></div>
 
-    <!-- สคริปต์นี้ต้องใช้ data-type="module" เพื่อรองรับ Firebase -->
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -36,20 +35,20 @@
         const { useState, useEffect } = React;
 
         // ---------------------------------------------------------
-        // 🔥 ตั้งค่า Firebase Database (Cloud Storage) 
+        // 🔥 ตั้งค่า Firebase Database (รหัสคลาวด์ของลูกพี่)
         // ---------------------------------------------------------
         const getFirebaseConfig = () => {
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 return JSON.parse(__firebase_config);
             }
-            // สำหรับการใช้งานบน GitHub Pages ของคุณ (ใช้ระบบเชื่อมต่ออัตโนมัติสำรอง)
             return {
-                apiKey: "demo-api-key-project80",
-                authDomain: "project80-demo.firebaseapp.com",
-                projectId: "project80-demo",
-                storageBucket: "project80-demo.appspot.com",
-                messagingSenderId: "123456",
-                appId: "1:123:web:456"
+                apiKey: "AIzaSyAmQFwL7zniKTnT2INt93iHOlCuT97hC7g",
+                authDomain: "myfamilyproject-ecff4.firebaseapp.com",
+                projectId: "myfamilyproject-ecff4",
+                storageBucket: "myfamilyproject-ecff4.firebasestorage.app",
+                messagingSenderId: "714527535272",
+                appId: "1:714527535272:web:fefa9679e822d31e52529d",
+                measurementId: "G-ED3NCQF2CD"
             };
         };
 
@@ -139,7 +138,7 @@
                     <div className="bg-slate-800 p-8 rounded-[32px] border border-slate-700 shadow-2xl w-full max-w-sm text-center">
                         <div className="text-6xl mb-4 animate-bounce">☁️</div>
                         <h1 className="text-2xl font-black text-orange-400 mb-2">เข้าสู่ระบบ Cloud</h1>
-                        <p className="text-xs text-slate-400 mb-6 font-medium">พิมพ์ชื่อของคุณ ระบบจะซิงค์ข้อมูลกับฐานข้อมูล Cloud อัตโนมัติ ป้องกันข้อมูลสูญหาย</p>
+                        <p className="text-xs text-slate-400 mb-6 font-medium">พิมพ์ชื่อของคุณ ระบบจะซิงค์ข้อมูลกับฐานข้อมูล MyFamilyProject อัตโนมัติ ป้องกันข้อมูลสูญหาย</p>
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                             <input
                                 type="text"
@@ -182,7 +181,7 @@
 
             const dateString = new Date().toDateString(); // ค่าคีย์รายวัน (อัปเดตทุกเที่ยงคืน)
             
-            // ระบุ Path ของเอกสารบน Cloud (แก้ไขให้ถูกต้องครบ 6 segments)
+            // ระบุ Path ของเอกสารบน Cloud (6 segments ถูกต้องแน่นอน)
             const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profileName);
 
             // ดึงข้อมูล Real-time จาก Cloud
@@ -193,7 +192,7 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         if (data.weight) setWeight(data.weight);
-                        if (data.records) setAllRecords(data.records); // ดึงประวัติทั้งหมดมาเก็บไว้
+                        if (data.records) setAllRecords(data.records); 
                         
                         // ถ้าระบบเจอข้อมูลของวันนี้ ให้ดึงมาใช้ ถ้าไม่เจอแปลว่าขึ้นวันใหม่ (เที่ยงคืน) ให้รีเซ็ต
                         if (data.records && data.records[dateString]) {
@@ -339,7 +338,6 @@
                 return Math.min(Math.round(s), 100);
             };
 
-            // สร้างอาเรย์วันที่ 7 วันย้อนหลัง
             const last7Days = Array.from({length: 7}, (_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() - 6 + i);
@@ -423,12 +421,29 @@
 
                     {/* Floating Cards */}
                     <div className="px-5 -mt-10 relative z-20 space-y-4">
+                        
+                        {/* แบนเนอร์ลิงก์ไปตารางซ้อมมาราธอน */}
+                        <a 
+                            href="https://bangsaen42-team.netlify.app/?room=1158ae49" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block bg-gradient-to-r from-orange-600 to-red-600 rounded-[20px] p-4 shadow-lg shadow-orange-900/50 border border-orange-400/50 flex items-center justify-between transform transition-all active:scale-95"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm text-2xl">📍</div>
+                                <div>
+                                    <h3 className="text-white font-black text-sm tracking-wide">ดูตารางซ้อมมาราธอนทีม</h3>
+                                    <p className="text-orange-100 text-[10px] font-medium mt-0.5 opacity-90">Bangsaen42 Team Dashboard 🚀</p>
+                                </div>
+                            </div>
+                            <span className="text-white/80 text-xl">🔗</span>
+                        </a>
+
                         <div className="bg-slate-800 rounded-[24px] p-5 shadow-2xl shadow-black/50 border border-slate-700 flex flex-col">
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex flex-col z-10 shrink-0">
                                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">🎯 เป้าหมาย: 80.0 กก.</span>
                                     <div className="flex items-baseline gap-1">
-                                        {/* ฟีเจอร์ใหม่: พิมพ์แก้ไขตัวเลขน้ำหนักได้เลย */}
                                         <input 
                                             type="number" 
                                             step="0.1" 
@@ -441,7 +456,7 @@
                                 </div>
                                 <div className="flex-1 flex justify-center"><MaleAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} /></div>
                                 <div className="flex flex-col gap-2 bg-slate-900/50 p-2 rounded-[18px] border border-slate-700 z-10 shrink-0">
-                                    <button onClick={() => updateWeightToCloud(Number((weight + 0.1).toFixed(1)))} className="w-10 h-10 bg-slate-800 rounded-[12px] text-slate-400 font-bold text-xl border border-slate-600 active:scale-95 leading-none">+</button>
+                                    <button onClick={() => updateWeightToCloud(Number((weight + 0.1).toFixed(1)))} className="w-10 h-10 bg-slate-800 rounded-[12px] text-slate-400 font-bold text-xl border border-slate-600 active:scale-95 leading-none hover:bg-slate-700">+</button>
                                     <button onClick={() => updateWeightToCloud(Math.max(70, Number((weight - 0.1).toFixed(1))))} className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-[12px] text-white font-bold text-2xl shadow-[0_0_15px_rgba(249,115,22,0.4)] border border-orange-400/50 active:scale-95 leading-none">-</button>
                                 </div>
                             </div>
