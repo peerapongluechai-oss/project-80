@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Project 80: Road To Bangsaen42</title>
+    <title>Project 80: The Elite Runner</title>
     
     <!-- PWA: โค้ดทำแอปเต็มจอมือถือ -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#09090b"> <!-- เปลี่ยนสีขอบเป็นดำสนิท -->
+    <meta name="theme-color" content="#09090b">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
     
@@ -24,25 +24,12 @@
             0% { transform: translateY(0) rotate(0deg); opacity: 1; }
             100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
         }
-        /* อนิเมชันวิ่ง */
-        @keyframes run-bounce {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            25% { transform: translateY(-3px) rotate(1deg); }
-            50% { transform: translateY(0px) rotate(0deg); }
-            75% { transform: translateY(-3px) rotate(-1deg); }
+        @keyframes float-avatar {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
         }
-        .animate-run { animation: run-bounce 0.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; transform-origin: bottom center; }
+        .animate-float-avatar { animation: float-avatar 3s ease-in-out infinite; }
         
-        /* เส้นสปีดด้านหลัง */
-        @keyframes speed-lines {
-            0% { transform: translateY(-10px); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translateY(100px); opacity: 0; }
-        }
-        .speed-line-1 { animation: speed-lines 0.8s linear infinite; }
-        .speed-line-2 { animation: speed-lines 1.2s linear infinite 0.3s; }
-        .speed-line-3 { animation: speed-lines 1.0s linear infinite 0.6s; }
-
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -113,74 +100,77 @@
             );
         };
 
-        // 🏃‍♂️ อัปเกรด: ตัวละครนักวิ่งมาราธอน
-        const RunnerAvatar = ({ weight, targetWeight, initialWeight }) => {
+        // 🏃‍♂️ อัปเกรด: ตัวการ์ตูนผู้ชายนักวิ่ง ลุคสปอร์ต มีทรงผม หนวดเครา และแว่นกันแดด
+        const CoolRunnerAvatar = ({ weight, targetWeight, initialWeight }) => {
             const progress = Math.max(0, Math.min(1, (initialWeight - weight) / (initialWeight - targetWeight)));
-            // เมื่อ นน. ลด: ไหล่จะกว้างขึ้น (V-Shape), เอวจะคอดลง
-            const bellySize = 25 - (11 * progress); // จากพุง 25 เหลือ 14
-            const chestSize = 20 + (8 * progress);  // จากอก 20 ขยายเป็น 28
-            const armSpread = 28 + (5 * progress);
+            const bodyWidth = 36 - (12 * progress); // เปลี่ยนจากอวบเป็นลีน
+            const faceY = 32;
 
             return (
-                <div className="relative w-32 h-32 flex items-center justify-center mx-2 group overflow-hidden rounded-full border-4 border-zinc-800 bg-zinc-900 shadow-[0_0_20px_rgba(249,115,22,0.2)]">
-                    
-                    {/* เส้นความเร็วพื้นหลัง (Speed lines) */}
-                    <div className="absolute inset-0 opacity-40">
-                        <div className="absolute left-[20%] w-0.5 h-10 bg-orange-500 speed-line-1"></div>
-                        <div className="absolute left-[80%] w-0.5 h-16 bg-lime-400 speed-line-2"></div>
-                        <div className="absolute left-[50%] w-1 h-8 bg-zinc-600 speed-line-3"></div>
+                <div className="relative w-32 h-32 flex items-center justify-center mx-2 group">
+                    <div className="absolute -top-3 whitespace-nowrap bg-orange-500 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(249,115,22,0.5)] z-20 transition-all duration-500 transform group-hover:-translate-y-1">
+                        {progress >= 1 ? 'ELITE RUNNER 🏅' : progress > 0.6 ? 'หุ่นลีนเริ่มมา! 🔥' : progress > 0.3 ? 'เครื่องกำลังร้อน! ⚡' : 'ลุยกันเลยลูกพี่! 🏁'}
                     </div>
 
-                    <div className="absolute -top-1 whitespace-nowrap bg-orange-500 text-black px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(249,115,22,0.5)] z-20">
-                        {progress >= 1 ? 'ELITE RUNNER 🏅' : progress > 0.5 ? 'BEAST MODE 🔥' : 'WARM UP ⚡'}
-                    </div>
-
-                    <svg viewBox="0 0 100 100" className="w-[120%] h-[120%] drop-shadow-2xl mt-4">
-                        <g className="animate-run">
-                            {/* แขนซ้าย (แกว่งหลัง) */}
-                            <path d={`M ${50-chestSize} 45 Q ${50-armSpread-10} 60 ${50-armSpread} 70`} fill="none" stroke="#fcd5ce" strokeWidth="7" strokeLinecap="round" />
-                            <path d={`M ${50-armSpread} 70 Q ${50-armSpread+10} 60 ${50-armSpread+5} 45`} fill="none" stroke="#fcd5ce" strokeWidth="6.5" strokeLinecap="round" />
+                    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl transition-transform duration-300">
+                        <g className="animate-float-avatar">
+                            {/* ผมทรงสปอร์ตโฉบเฉี่ยวด้านหลัง */}
+                            <path d="M 32 25 Q 50 5 68 25 L 68 35 Q 50 20 32 35 Z" fill="#1e293b" />
                             
                             {/* ขา */}
-                            <path d={`M ${50-bellySize+5} 65 L 42 95`} stroke="#111827" strokeWidth="12" strokeLinecap="round" />
-                            <path d={`M ${50+bellySize-5} 65 L 58 95`} stroke="#111827" strokeWidth="12" strokeLinecap="round" />
+                            <rect x="42" y="65" width="5.5" height="28" rx="2.5" fill="#fcd5ce" />
+                            <rect x="52.5" y="65" width="5.5" height="28" rx="2.5" fill="#fcd5ce" />
                             
-                            {/* ลำตัว (เสื้อกล้าม Singlet) - เปลี่ยนรูปร่างตาม Progress */}
-                            <path d={`M ${50-chestSize} 40 Q 50 45 ${50+chestSize} 40 L ${50+bellySize} 70 Q 50 75 ${50-bellySize} 70 Z`} fill="#f97316" />
+                            {/* กางเกงวิ่งสีดำ */}
+                            <path d={`M ${50 - bodyWidth/2 - 2} 60 L ${50 + bodyWidth/2 + 2} 60 L ${50 + bodyWidth/2 + 3} 72 L 51 70 L 49 70 L ${50 - bodyWidth/2 - 3} 72 Z`} fill="#111827" />
                             
-                            {/* ลวดลายเสื้อซิ่ง */}
-                            <path d={`M 50 40 L ${50+bellySize-2} 70 L 50 72 Z`} fill="#ea580c" />
-                            <path d={`M ${50-chestSize+2} 40 L 50 40 L 50 72 L ${50-bellySize+2} 70 Z`} fill="#ff8a3d" />
+                            {/* รองเท้าวิ่งสีเขียวสะท้อนแสง (Volt) */}
+                            <path d="M 41 85 L 48.5 85 L 48.5 94 Q 45 96 41 94 Z" fill="#bef264" />
+                            <path d="M 51.5 85 L 59 85 L 59 94 Q 55 96 51.5 94 Z" fill="#bef264" />
+                            <rect x="42" y="80" width="5.5" height="5" fill="#3f6212" />
+                            <rect x="52.5" y="80" width="5.5" height="5" fill="#3f6212" />
 
-                            {/* ป้ายบิบ (BIB) เบอร์ 80 */}
-                            <g transform="translate(40, 48)">
-                                <rect x="0" y="0" width="20" height="12" fill="#ffffff" rx="1.5" />
-                                <rect x="1" y="1" width="18" height="3" fill="#ef4444" rx="0.5" />
-                                <text x="10" y="10.5" fontSize="6.5" fontWeight="900" fill="#000" textAnchor="middle" fontFamily="sans-serif">80</text>
+                            {/* ลำตัว (เสื้อกล้ามวิ่งสีส้มสะท้อนแสง) */}
+                            <rect x={50 - bodyWidth/2} y="50" width={bodyWidth} height="15" rx="3" fill="#f97316" className="transition-all duration-700 ease-out" />
+                            <path d={`M ${50 - bodyWidth/2} 50 L ${50 - bodyWidth/2 + 4} 43 L ${50 - bodyWidth/2 + 8} 50 Z`} fill="#f97316" className="transition-all duration-700 ease-out"/> 
+                            <path d={`M ${50 + bodyWidth/2} 50 L ${50 + bodyWidth/2 - 4} 43 L ${50 + bodyWidth/2 - 8} 50 Z`} fill="#f97316" className="transition-all duration-700 ease-out"/>
+
+                            {/* แขน */}
+                            <path d={`M ${50 - bodyWidth/2 + 2} 52 Q 35 65 38 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" className="transition-all duration-700 ease-out" />
+                            <path d={`M ${50 + bodyWidth/2 - 2} 52 Q 65 65 62 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" className="transition-all duration-700 ease-out" />
+
+                            {/* คอและหน้า */}
+                            <rect x="46" y={faceY + 12} width="8" height="6" fill="#fcd5ce" />
+                            <circle cx="50" cy={faceY} r="14.5" fill="#fcd5ce" />
+
+                            {/* ผมด้านหน้าทรงสปอร์ต (Spiky Hair) */}
+                            <path d="M 35 25 Q 50 10 65 25 Q 50 18 35 25" fill="#1e293b" />
+                            <path d="M 40 20 L 45 8 L 50 16 L 56 10 L 60 20 Z" fill="#1e293b" />
+
+                            {/* แว่นกันแดดสปอร์ตสุดเท่ */}
+                            <path d="M 35 30 Q 50 27 65 30 L 63 35 Q 50 40 37 35 Z" fill="#0f172a" />
+                            <path d="M 38 31 L 62 31 L 60 34 L 40 34 Z" fill="#f97316" opacity="0.8"/>
+                            
+                            {/* หนวดเคราจางๆ (ความเท่มาดแมน) */}
+                            <path d="M 42 42 Q 50 45 58 42" fill="none" stroke="#334155" strokeWidth="1" opacity="0.5" />
+                            
+                            {/* ปากยิ้มมุมปาก */}
+                            <path d="M 47 40 Q 50 42 53 40" fill="none" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" />
+
+                            {/* BIB (เบอร์วิ่ง) เบอร์ 80 */}
+                            <g transform={`translate(${50 - 8}, 52)`}>
+                                <rect x="0" y="0" width="16" height="9" fill="#ffffff" rx="1.5" />
+                                <rect x="1" y="1" width="14" height="2" fill="#ef4444" rx="0.5" />
+                                <text x="8" y="7.5" fontSize="4.5" fontWeight="900" fill="#000" textAnchor="middle" fontFamily="sans-serif">80</text>
                             </g>
 
-                            {/* แขนขวา (แกว่งหน้า) */}
-                            <path d={`M ${50+chestSize} 45 Q ${50+armSpread+10} 60 ${50+armSpread} 70`} fill="none" stroke="#fcd5ce" strokeWidth="7" strokeLinecap="round" />
-                            <path d={`M ${50+armSpread} 70 Q ${50+armSpread-10} 55 ${50+armSpread-15} 40`} fill="none" stroke="#fcd5ce" strokeWidth="6.5" strokeLinecap="round" />
-
-                            {/* คอและหัว */}
-                            <rect x="45" y="25" width="10" height="15" fill="#fcd5ce" />
-                            <circle cx="50" cy="20" r="13" fill="#fcd5ce" />
-                            
-                            {/* แว่นตากันแดดสปอร์ต (Oakley style) */}
-                            <path d="M 37 18 Q 50 25 63 18 L 60 23 Q 50 26 40 23 Z" fill="#09090b" />
-                            <path d="M 40 19 L 60 19 L 58 22 L 42 22 Z" fill="#bef264" opacity="0.8"/>
-                            
-                            {/* หมวกแก๊ปนักวิ่ง (Runner Cap) */}
-                            <path d="M 36 15 C 36 5, 64 5, 64 15 Z" fill="#111827" />
-                            <path d="M 34 15 Q 50 10 66 15 L 72 15 L 66 18 Q 50 13 34 18 Z" fill="#111827" />
-                            <circle cx="50" cy="11" r="2" fill="#f97316" />
-
-                            {/* เหงื่อ (จะหายไปเมื่อฟิตขึ้น) */}
-                            <g opacity={1 - progress}>
-                                <path d="M 60 25 Q 62 30 60 32 Q 58 30 60 25 Z" fill="#60a5fa" />
-                                <path d="M 64 28 Q 66 32 64 34 Q 62 32 64 28 Z" fill="#60a5fa" />
-                            </g>
+                            {/* เอฟเฟกต์ไฟลุก (ตอนน้ำหนักเริ่มลดลง/ผอมลง) */}
+                            {progress >= 0.6 && (
+                                <g className="text-orange-500" opacity={progress}>
+                                    <path d="M 22 25 L 24 30 L 29 32 L 24 34 L 22 39 L 20 34 L 15 32 L 20 30 Z" fill="currentColor" className="animate-pulse"/>
+                                    <path d="M 78 45 L 79 48 L 82 49 L 79 50 L 78 53 L 77 50 L 74 49 L 77 48 Z" fill="currentColor" className="animate-pulse" style={{animationDelay: '0.5s'}}/>
+                                </g>
+                            )}
                         </g>
                     </svg>
                 </div>
@@ -198,7 +188,6 @@
 
             return (
                 <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-200 relative overflow-hidden">
-                    {/* ของตกแต่งพื้นหลัง */}
                     <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[100px] opacity-20"></div>
                     <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-lime-500 rounded-full blur-[100px] opacity-10"></div>
                     
@@ -263,6 +252,7 @@
             
             const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profileName);
 
+            // ระบบซิงค์ข้อมูลคลาวด์
             useEffect(() => {
                 if (!user) return;
 
@@ -406,6 +396,7 @@
                 setExOpen(completedEx < currentConfig.exercises.length);
             }, [dailyData.exerciseChecks, currentConfig.exercises.length]);
 
+            // อัปเกรดระบบคะแนน: ถอด IF ออกจาก 100% แล้วเพิ่มคะแนนให้หมวดออกกำลังกาย
             const computeScoreForRecord = (rec) => {
                 if (!rec) return 0;
                 const config = getTrainingConfig(rec.trainingType || 'easy');
@@ -415,9 +406,11 @@
                 if (rec.snackDone) s += 10;
                 if (rec.dinnerDone) s += 10;
                 if (rec.water >= config.water) s += 20;
+                
                 const exCount = (rec.exerciseChecks || []).filter(Boolean).length;
-                s += (exCount / config.exercises.length) * 20;
-                if (rec.fastingSuccess) s += 20;
+                // ให้คะแนนออกกำลังกายท่าละ 10 คะแนน (รวม 4 ท่า = 40 คะแนน)
+                s += (exCount / config.exercises.length) * 40; 
+                
                 return Math.min(Math.round(s), 100);
             };
 
@@ -427,6 +420,7 @@
                 return d.toDateString();
             });
 
+            // คำนวณคะแนนของวันนี้
             let dailyScore = 0;
             if (dailyData.breakfastDone) dailyScore += 10;
             if (dailyData.lunchDone) dailyScore += 10;
@@ -435,8 +429,9 @@
             if (dailyData.water >= currentConfig.water) dailyScore += 20;
             
             const completedExercises = dailyData.exerciseChecks.filter(Boolean).length;
-            dailyScore += (completedExercises / currentConfig.exercises.length) * 20;
-            if (dailyData.fastingSuccess) dailyScore += 20;
+            // ให้คะแนนออกกำลังกาย 40 Pts (จากเดิม 20 Pts)
+            dailyScore += (completedExercises / currentConfig.exercises.length) * 40; 
+            
             dailyScore = Math.min(Math.round(dailyScore), 100);
 
             useEffect(() => {
@@ -448,7 +443,7 @@
             }, [dailyScore]);
 
             const getMotivationalMessage = () => {
-                if (dailyScore === 100) return "PERFECT RUN! ฟอร์มโหดจัด ⚡";
+                if (dailyScore === 100) return "PERFECT RUN! รับรางวัลเลย ⚡";
                 if (dailyScore >= 70) return "เครื่องร้อนแล้ว อัดให้สุด! 🔥";
                 if (dailyScore >= 40) return "รักษาเพซไว้ อย่าเพิ่งแผ่ว! 🏃‍♂️";
                 return "พร้อมลุยหรือยังนักวิ่ง? 🏁";
@@ -473,7 +468,7 @@
                 return (
                     <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-orange-500">
                         <svg className="w-12 h-12 animate-spin mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        <p className="font-black tracking-widest uppercase text-sm">Warming Up...</p>
+                        <p className="font-black tracking-widest uppercase text-sm">Warming Up Database...</p>
                     </div>
                 );
             }
@@ -531,7 +526,7 @@
                             </div>
                             
                             <div className="flex-1 flex justify-end z-10 relative mr-2">
-                                <RunnerAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} />
+                                <CoolRunnerAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} />
                             </div>
                         </div>
 
@@ -599,6 +594,17 @@
                                             <path className={`transition-all duration-1000 ease-out ${dailyScore === 100 ? 'text-white' : 'text-lime-400'}`} strokeDasharray={`${dailyScore}, 100`} strokeWidth="4" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                         </svg>
                                         <div className="absolute flex flex-col items-center justify-center"><span className="text-3xl font-black italic">{dailyScore}</span></div>
+                                    </div>
+                                </section>
+
+                                {/* กล่องของขวัญ */}
+                                <section className={`rounded-[24px] p-5 border transition-all duration-500 ${dailyScore === 100 ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-zinc-900 border-zinc-800'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 text-2xl transition-all ${dailyScore === 100 ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/50 scale-110' : 'bg-zinc-950 text-zinc-500 border border-zinc-800'}`}>🎁</div>
+                                        <div>
+                                            <h3 className={`font-black text-sm uppercase tracking-widest ${dailyScore === 100 ? 'text-orange-400' : 'text-zinc-500'}`}>{dailyScore === 100 ? 'REWARD UNLOCKED! 🎉' : 'Daily Reward'}</h3>
+                                            <p className={`text-[11px] mt-1.5 font-medium leading-relaxed ${dailyScore === 100 ? 'text-zinc-300' : 'text-zinc-600'}`}>{dailyScore === 100 ? `ยอดเยี่ยมมาก! วันนี้ได้สิทธิ์ทาน "${todayReward}" ให้รางวัลตัวเองเลยลูกพี่! 🍔` : 'ทำภารกิจด้านล่างให้ครบ 100% เพื่อปลดล็อกของอร่อยมื้อนี้'}</p>
+                                        </div>
                                     </div>
                                 </section>
 
@@ -683,10 +689,10 @@
                                     </div>
                                 </section>
 
-                                {/* ภารกิจกล้ามเนื้อ */}
+                                {/* ภารกิจกล้ามเนื้อ (อัปเกรดโชว์รายละเอียดท่า) */}
                                 <section className="bg-zinc-900 rounded-[24px] p-5 border border-zinc-800 transition-all duration-500">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setExOpen(!exOpen)}>
-                                        <h2 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 04. Core & Mobility (20 Pts)</h2>
+                                        <h2 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 04. Core & Mobility (40 Pts)</h2>
                                         <span className="text-zinc-500 text-xs font-bold uppercase">{exOpen ? 'HIDE' : 'SHOW'}</span>
                                     </div>
                                     {exOpen && (
@@ -698,13 +704,16 @@
                                                 const newChecks = [...dailyData.exerciseChecks];
                                                 newChecks[idx] = !isDone;
                                                 updateDaily('exerciseChecks', newChecks);
-                                            }} className={`p-4 rounded-[16px] cursor-pointer flex items-center gap-4 transition-all duration-300 active:scale-95 border-l-4 ${isDone ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-lime-400 shadow-md'}`}>
-                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${isDone ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}>
+                                            }} className={`p-4 rounded-[16px] cursor-pointer flex items-start gap-4 transition-all duration-300 active:scale-95 border-l-4 ${isDone ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-lime-400 shadow-md'}`}>
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${isDone ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}>
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                                 </div>
                                                 <div>
                                                     <h3 className={`font-black text-xs uppercase tracking-wider ${isDone ? 'text-zinc-600 line-through' : 'text-white'}`}>{ex.title}</h3>
-                                                    <p className={`text-[10px] mt-1 font-bold tracking-wide uppercase ${isDone ? 'text-zinc-700' : 'text-lime-400/80'}`}>TARGET: {ex.focus}</p>
+                                                    <p className={`text-[10px] mt-1.5 font-bold tracking-wide uppercase ${isDone ? 'text-zinc-700' : 'text-lime-400/80'}`}>
+                                                        TARGET: {ex.focus} <br/>
+                                                        <span className={`normal-case block mt-0.5 leading-relaxed font-medium ${isDone ? 'text-zinc-700' : 'text-zinc-400'}`}>{ex.detail}</span>
+                                                    </p>
                                                 </div>
                                             </div>
                                         )})}
@@ -712,13 +721,13 @@
                                     )}
                                 </section>
 
-                                {/* IF */}
+                                {/* IF (เปลี่ยนเป็นโบนัส ไม่นำมาคิด 100%) */}
                                 <section onClick={() => updateDaily('fastingSuccess', !dailyData.fastingSuccess)} className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all duration-300 flex items-center justify-between active:scale-95 ${dailyData.fastingSuccess ? 'bg-indigo-900/20 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-zinc-900 border-zinc-800'}`}>
                                     <div className="flex items-center gap-4">
                                         <div className="text-3xl">🌙</div>
                                         <div>
                                             <h3 className={`font-black text-sm uppercase tracking-widest ${dailyData.fastingSuccess ? 'text-indigo-400' : 'text-white'}`}>Intermittent Fasting</h3>
-                                            <p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase tracking-wider">No food before sleep (20 Pts)</p>
+                                            <p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase tracking-wider">Bonus Habit • No food before sleep</p>
                                         </div>
                                     </div>
                                     <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${dailyData.fastingSuccess ? 'border-indigo-500 bg-indigo-500 text-black' : 'border-zinc-600 text-transparent'}`}>
