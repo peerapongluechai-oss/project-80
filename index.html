@@ -20,29 +20,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #09090b; }
-        @keyframes confetti-fall {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-        }
-        @keyframes float-avatar {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-4px); }
-        }
+        @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+        @keyframes float-avatar { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-4px); } }
         .animate-float-avatar { animation: float-avatar 3s ease-in-out infinite; }
-        
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* แถบเฉียงสไตล์นักแข่ง */
-        .racing-stripes {
-            background-image: repeating-linear-gradient(
-                -45deg,
-                transparent,
-                transparent 10px,
-                rgba(255, 255, 255, 0.03) 10px,
-                rgba(255, 255, 255, 0.03) 20px
-            );
-        }
+        .racing-stripes { background-image: repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.03) 10px, rgba(255, 255, 255, 0.03) 20px); }
     </style>
 </head>
 <body>
@@ -55,20 +38,16 @@
 
         const { useState, useEffect } = React;
 
-        // ---------------------------------------------------------
-        // 🔥 ตั้งค่า Firebase Database
-        // ---------------------------------------------------------
         const getFirebaseConfig = () => {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                return JSON.parse(__firebase_config);
-            }
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) return JSON.parse(__firebase_config);
             return {
                 apiKey: "AIzaSyAmQFwL7zniKTnT2INt93iHOlCuT97hC7g",
                 authDomain: "myfamilyproject-ecff4.firebaseapp.com",
                 projectId: "myfamilyproject-ecff4",
                 storageBucket: "myfamilyproject-ecff4.firebasestorage.app",
                 messagingSenderId: "714527535272",
-                appId: "1:714527535272:web:fefa9679e822d31e52529d"
+                appId: "1:714527535272:web:fefa9679e822d31e52529d",
+                measurementId: "G-ED3NCQF2CD"
             };
         };
 
@@ -77,33 +56,22 @@
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'project80_github_app';
 
-        const Confetti = () => {
-            return (
-                <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-                {Array.from({ length: 50 }).map((_, i) => {
-                    const colors = ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'];
-                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                    const isCircle = Math.random() > 0.5;
-                    return (
-                    <div key={i} className="absolute top-[-10%]"
-                        style={{
-                        left: `${Math.random() * 100}%`,
-                        width: `${Math.random() * 10 + 5}px`, height: `${Math.random() * 10 + 5}px`,
-                        backgroundColor: randomColor, borderRadius: isCircle ? '50%' : '4px',
-                        animation: `confetti-fall ${Math.random() * 2 + 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`,
-                        animationDelay: `${Math.random() * 0.3}s`,
-                        }}
-                    />
-                    );
-                })}
-                </div>
-            );
-        };
+        const Confetti = () => (
+            <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+                {Array.from({ length: 50 }).map((_, i) => (
+                    <div key={i} className="absolute top-[-10%]" style={{
+                        left: `${Math.random() * 100}%`, width: `${Math.random() * 10 + 5}px`, height: `${Math.random() * 10 + 5}px`,
+                        backgroundColor: ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'][Math.floor(Math.random() * 5)], borderRadius: Math.random() > 0.5 ? '50%' : '4px',
+                        animation: `confetti-fall ${Math.random() * 2 + 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`, animationDelay: `${Math.random() * 0.3}s`,
+                    }} />
+                ))}
+            </div>
+        );
 
-        // 🏃‍♂️ อัปเกรด: ตัวการ์ตูนผู้ชายนักวิ่ง ลุคสปอร์ต มีทรงผม หนวดเครา และแว่นกันแดด
+        // 🏃‍♂️ ตัวการ์ตูนผู้ชายนักวิ่ง ลุคสปอร์ต มีทรงผม หนวดเครา และแว่นกันแดด
         const CoolRunnerAvatar = ({ weight, targetWeight, initialWeight }) => {
             const progress = Math.max(0, Math.min(1, (initialWeight - weight) / (initialWeight - targetWeight)));
-            const bodyWidth = 36 - (12 * progress); // เปลี่ยนจากอวบเป็นลีน
+            const bodyWidth = 36 - (12 * progress);
             const faceY = 32;
 
             return (
@@ -111,60 +79,34 @@
                     <div className="absolute -top-3 whitespace-nowrap bg-orange-500 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(249,115,22,0.5)] z-20 transition-all duration-500 transform group-hover:-translate-y-1">
                         {progress >= 1 ? 'ELITE RUNNER 🏅' : progress > 0.6 ? 'หุ่นลีนเริ่มมา! 🔥' : progress > 0.3 ? 'เครื่องกำลังร้อน! ⚡' : 'ลุยกันเลยลูกพี่! 🏁'}
                     </div>
-
                     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl transition-transform duration-300">
                         <g className="animate-float-avatar">
-                            {/* ผมทรงสปอร์ตโฉบเฉี่ยวด้านหลัง */}
                             <path d="M 32 25 Q 50 5 68 25 L 68 35 Q 50 20 32 35 Z" fill="#1e293b" />
-                            
-                            {/* ขา */}
                             <rect x="42" y="65" width="5.5" height="28" rx="2.5" fill="#fcd5ce" />
                             <rect x="52.5" y="65" width="5.5" height="28" rx="2.5" fill="#fcd5ce" />
-                            
-                            {/* กางเกงวิ่งสีดำ */}
                             <path d={`M ${50 - bodyWidth/2 - 2} 60 L ${50 + bodyWidth/2 + 2} 60 L ${50 + bodyWidth/2 + 3} 72 L 51 70 L 49 70 L ${50 - bodyWidth/2 - 3} 72 Z`} fill="#111827" />
-                            
-                            {/* รองเท้าวิ่งสีเขียวสะท้อนแสง (Volt) */}
                             <path d="M 41 85 L 48.5 85 L 48.5 94 Q 45 96 41 94 Z" fill="#bef264" />
                             <path d="M 51.5 85 L 59 85 L 59 94 Q 55 96 51.5 94 Z" fill="#bef264" />
                             <rect x="42" y="80" width="5.5" height="5" fill="#3f6212" />
                             <rect x="52.5" y="80" width="5.5" height="5" fill="#3f6212" />
-
-                            {/* ลำตัว (เสื้อกล้ามวิ่งสีส้มสะท้อนแสง) */}
                             <rect x={50 - bodyWidth/2} y="50" width={bodyWidth} height="15" rx="3" fill="#f97316" className="transition-all duration-700 ease-out" />
                             <path d={`M ${50 - bodyWidth/2} 50 L ${50 - bodyWidth/2 + 4} 43 L ${50 - bodyWidth/2 + 8} 50 Z`} fill="#f97316" className="transition-all duration-700 ease-out"/> 
                             <path d={`M ${50 + bodyWidth/2} 50 L ${50 + bodyWidth/2 - 4} 43 L ${50 + bodyWidth/2 - 8} 50 Z`} fill="#f97316" className="transition-all duration-700 ease-out"/>
-
-                            {/* แขน */}
                             <path d={`M ${50 - bodyWidth/2 + 2} 52 Q 35 65 38 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" className="transition-all duration-700 ease-out" />
                             <path d={`M ${50 + bodyWidth/2 - 2} 52 Q 65 65 62 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" className="transition-all duration-700 ease-out" />
-
-                            {/* คอและหน้า */}
                             <rect x="46" y={faceY + 12} width="8" height="6" fill="#fcd5ce" />
                             <circle cx="50" cy={faceY} r="14.5" fill="#fcd5ce" />
-
-                            {/* ผมด้านหน้าทรงสปอร์ต (Spiky Hair) */}
                             <path d="M 35 25 Q 50 10 65 25 Q 50 18 35 25" fill="#1e293b" />
                             <path d="M 40 20 L 45 8 L 50 16 L 56 10 L 60 20 Z" fill="#1e293b" />
-
-                            {/* แว่นกันแดดสปอร์ตสุดเท่ */}
                             <path d="M 35 30 Q 50 27 65 30 L 63 35 Q 50 40 37 35 Z" fill="#0f172a" />
                             <path d="M 38 31 L 62 31 L 60 34 L 40 34 Z" fill="#f97316" opacity="0.8"/>
-                            
-                            {/* หนวดเคราจางๆ (ความเท่มาดแมน) */}
                             <path d="M 42 42 Q 50 45 58 42" fill="none" stroke="#334155" strokeWidth="1" opacity="0.5" />
-                            
-                            {/* ปากยิ้มมุมปาก */}
                             <path d="M 47 40 Q 50 42 53 40" fill="none" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" />
-
-                            {/* BIB (เบอร์วิ่ง) เบอร์ 80 */}
                             <g transform={`translate(${50 - 8}, 52)`}>
                                 <rect x="0" y="0" width="16" height="9" fill="#ffffff" rx="1.5" />
                                 <rect x="1" y="1" width="14" height="2" fill="#ef4444" rx="0.5" />
                                 <text x="8" y="7.5" fontSize="4.5" fontWeight="900" fill="#000" textAnchor="middle" fontFamily="sans-serif">80</text>
                             </g>
-
-                            {/* เอฟเฟกต์ไฟลุก (ตอนน้ำหนักเริ่มลดลง/ผอมลง) */}
                             {progress >= 0.6 && (
                                 <g className="text-orange-500" opacity={progress}>
                                     <path d="M 22 25 L 24 30 L 29 32 L 24 34 L 22 39 L 20 34 L 15 32 L 20 30 Z" fill="currentColor" className="animate-pulse"/>
@@ -177,39 +119,25 @@
             );
         };
 
-        // --- หน้า Login ---
         const LoginScreen = ({ onLogin }) => {
             const [name, setName] = useState('');
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                if (name.trim()) onLogin(name.trim());
-            };
-
+            const handleSubmit = (e) => { e.preventDefault(); if (name.trim()) onLogin(name.trim()); };
             return (
                 <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-200 relative overflow-hidden">
                     <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[100px] opacity-20"></div>
                     <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-lime-500 rounded-full blur-[100px] opacity-10"></div>
-                    
                     <div className="w-full max-w-sm z-10">
                         <div className="text-center mb-10">
                             <h2 className="text-lime-400 font-black tracking-[0.3em] text-xs uppercase mb-2 animate-pulse">Training Camp</h2>
                             <h1 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]">PROJECT <span className="text-orange-500">80</span></h1>
                             <div className="h-1 w-20 bg-gradient-to-r from-orange-500 to-lime-400 mx-auto mt-4 rounded-full"></div>
                         </div>
-
                         <div className="bg-zinc-900/80 backdrop-blur-md p-8 rounded-[24px] border border-zinc-800 shadow-2xl shadow-black">
                             <p className="text-xs text-zinc-400 mb-6 font-medium text-center">สแกนชื่อนักวิ่ง เพื่อซิงค์ข้อมูลตารางซ้อมกับศูนย์บัญชาการ (Cloud) แบบ Real-time</p>
                             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-500">🏃‍♂️</div>
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        placeholder="Runner ID (Ex: Peerapong)"
-                                        className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-xl pl-12 pr-4 py-3.5 text-sm font-bold text-white focus:outline-none focus:border-orange-500 transition-colors uppercase placeholder:normal-case"
-                                    />
+                                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Runner ID (Ex: Peerapong)" className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-xl pl-12 pr-4 py-3.5 text-sm font-bold text-white focus:outline-none focus:border-orange-500 transition-colors uppercase placeholder:normal-case" />
                                 </div>
                                 <button type="submit" className="w-full bg-orange-500 hover:bg-orange-400 text-black font-black text-sm py-4 rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.3)] active:scale-95 transition-all uppercase tracking-wider flex items-center justify-center gap-2">
                                     <span>Start Engine</span>
@@ -222,9 +150,11 @@
             );
         }
 
-        // --- หน้า Dashboard หลัก ที่ผูกกับ Firestore ---
         const Dashboard = ({ user, profileName, onLogout }) => {
-            const localCacheKey = `p80_cache_${profileName}`;
+            const normalizedProfileName = profileName.trim().toLowerCase();
+            const displayProfileName = profileName.trim().charAt(0).toUpperCase() + profileName.trim().slice(1).toLowerCase();
+            const localCacheKey = `p80_data_${normalizedProfileName}`;
+            
             const cachedDataStr = window.localStorage.getItem(localCacheKey);
             const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
 
@@ -244,56 +174,44 @@
             };
             
             const [dailyData, setDailyData] = useState(() => {
-                if (cachedData?.records && cachedData.records[dateString]) {
-                    return cachedData.records[dateString];
-                }
+                if (cachedData?.records && cachedData.records[dateString]) return cachedData.records[dateString];
                 return defaultDailyData;
             });
             
-            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profileName);
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', normalizedProfileName);
 
-            // ระบบซิงค์ข้อมูลคลาวด์
             useEffect(() => {
                 if (!user) return;
-
-                const timeoutId = setTimeout(() => {
-                    setLoadingData(false);
-                }, 2000);
+                const timeoutId = setTimeout(() => setLoadingData(false), 2000);
 
                 const unsubscribe = onSnapshot(docRef, (docSnap) => {
                     clearTimeout(timeoutId); 
-                    
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         window.localStorage.setItem(localCacheKey, JSON.stringify(data));
-                        
                         if (data.weight) setWeight(data.weight);
                         if (data.records) setAllRecords(data.records);
-                        
                         if (data.records && data.records[dateString]) {
                             setDailyData(data.records[dateString]);
                         } else {
                             setDailyData(defaultDailyData);
                         }
                     } else {
-                        setDoc(docRef, { weight: 94.0, records: {} }, { merge: true });
+                        const dataToSave = cachedData || { weight: 94.0, records: {} };
+                        setDoc(docRef, dataToSave, { merge: true });
                     }
                     setLoadingData(false);
                 }, (error) => {
-                    console.error("Cloud connection error", error);
+                    console.error("Cloud Error", error);
                     setLoadingData(false);
                 });
 
-                return () => {
-                    clearTimeout(timeoutId);
-                    unsubscribe();
-                };
-            }, [user.uid, profileName, dateString]);
+                return () => { clearTimeout(timeoutId); unsubscribe(); };
+            }, [user.uid, normalizedProfileName, dateString]);
 
             const updateDaily = (key, value) => {
                 const newData = { ...dailyData, [key]: value };
                 setDailyData(newData); 
-                
                 const newRecords = { ...allRecords, [dateString]: newData };
                 setAllRecords(newRecords);
                 window.localStorage.setItem(localCacheKey, JSON.stringify({ weight, records: newRecords }));
@@ -310,7 +228,6 @@
             const initialWeight = 94.0;
             const todayOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const todayStr = new Date().toLocaleDateString('th-TH', todayOptions);
-
             const planStartDate = new Date(2026, 5, 1); 
             const diffTime = new Date().getTime() - planStartDate.getTime();
             const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1); 
@@ -320,58 +237,22 @@
             const getTrainingConfig = (type) => {
                 switch(type) {
                 case 'rest':
-                    return {
-                        id: 'rest', icon: '💤', color: 'blue', title: 'Rest & Recovery',
-                        desc: 'เน้นโปรตีนซ่อมแซมกล้ามเนื้อ ลดคาร์บเพราะไม่ได้ใช้พลังงานหนัก',
-                        water: 10,
+                    return { id: 'rest', icon: '💤', color: 'blue-500', bg: 'blue-500/10', title: 'Rest & Recovery', desc: 'เน้นโปรตีนซ่อมแซมกล้ามเนื้อ ลดคาร์บเพราะไม่ได้ใช้พลังงานหนัก', water: 10,
                         meals: { breakfast: 'ไข่ต้ม 3 ฟอง + นมโปรตีนสูง', lunch: 'เกาเหลาไก่ฉีก', snack: 'ถั่วแระญี่ปุ่น', dinner: 'สเต็กเนื้อ/ไก่ + ผักย่าง' },
-                        exercises: [
-                            { title: 'Foam Rolling (นวดกล้ามเนื้อ)', focus: 'น่องและหน้าขา', detail: 'กลิ้งจุดละ 1-2 นาที คลายกรดแลคติก' },
-                            { title: 'Cat-Cow Stretch', focus: 'กระดูกสันหลัง', detail: 'แอ่นและโก่งหลังช้าๆ 15 ครั้ง คลายปวดหลัง' },
-                            { title: 'Child\'s Pose', focus: 'หลังล่างและไหล่', detail: 'หมอบกราบเหยียดแขนสุด ค้างไว้ 40 วินาที' },
-                            { title: 'Pigeon Pose', focus: 'สะโพก/สลักเพชร', detail: 'พับขาด้านหน้า ค้างไว้ข้างละ 30 วินาที' }
-                        ]
-                    };
+                        exercises: [ { title: 'Foam Rolling', focus: 'น่องและหน้าขา', detail: 'กลิ้งจุดละ 1-2 นาที คลายกรดแลคติก' }, { title: 'Cat-Cow Stretch', focus: 'กระดูกสันหลัง', detail: 'แอ่นและโก่งหลังช้าๆ 15 ครั้ง คลายปวดหลัง' }, { title: 'Child\'s Pose', focus: 'หลังล่างและไหล่', detail: 'หมอบกราบเหยียดแขนสุด ค้างไว้ 40 วินาที' }, { title: 'Pigeon Pose', focus: 'สะโพก/สลักเพชร', detail: 'พับขาด้านหน้า ค้างไว้ข้างละ 30 วินาที' }]};
                 case 'speed':
-                    return {
-                        id: 'speed', icon: '⚡', color: 'orange', title: 'Speed & Interval',
-                        desc: 'เน้นคาร์บย่อยง่ายก่อนซ้อม เพื่อให้มีแรงระเบิดพลังงาน',
-                        water: 12,
+                    return { id: 'speed', icon: '⚡', color: 'orange-500', bg: 'orange-500/10', title: 'Speed & Interval', desc: 'เน้นคาร์บย่อยง่ายก่อนซ้อม เพื่อให้มีแรงระเบิดพลังงาน', water: 12,
                         meals: { breakfast: 'ขนมปังโฮลวีตทาเนยถั่ว', lunch: 'ข้าวกล้อง 1.5 ทัพพี + กะเพราไก่', snack: 'Energy Gel', dinner: 'ข้าว 1 ทัพพี + ปลาเผา' },
-                        exercises: [
-                            { title: 'Push-up (วิดพื้น)', focus: 'อก ไหล่ แขน', detail: 'ทำ 3 เซต เซตละ 10-15 ครั้ง (คุกเข่าได้)' },
-                            { title: 'Forward Lunges', focus: 'ต้นขาด้านหน้า', detail: 'ก้าวสลับซ้ายขวา 3 เซต เซตละ 10 ครั้ง/ข้าง' },
-                            { title: 'Bird-Dog', focus: 'แกนกลางและหลัง', detail: 'ยืดแขนสลับขา 3 เซต เซตละ 15 ครั้ง/ข้าง' },
-                            { title: 'Mountain Climber', focus: 'หน้าท้อง/คาร์ดิโอ', detail: 'แทงเข่าสลับเร็วๆ 3 เซต เซตละ 30 วินาที' }
-                        ]
-                    };
+                        exercises: [ { title: 'Push-up', focus: 'อก ไหล่ แขน', detail: 'ทำ 3 เซต เซตละ 10-15 ครั้ง (คุกเข่าได้)' }, { title: 'Forward Lunges', focus: 'ต้นขาด้านหน้า', detail: 'ก้าวสลับซ้ายขวา 3 เซต เซตละ 10 ครั้ง/ข้าง' }, { title: 'Bird-Dog', focus: 'แกนกลางและหลัง', detail: 'ยืดแขนสลับขา 3 เซต เซตละ 15 ครั้ง/ข้าง' }, { title: 'Mountain Climber', focus: 'หน้าท้อง/คาร์ดิโอ', detail: 'แทงเข่าสลับเร็วๆ 3 เซต เซตละ 30 วินาที' }]};
                 case 'long':
-                    return {
-                        id: 'long', icon: '🔥', color: 'red', title: 'Long Run Sunday',
-                        desc: 'โหลดคาร์บล่วงหน้า ดื่มน้ำให้เยอะ และให้รางวัลตัวเองหลังซ้อม!',
-                        water: 15,
+                    return { id: 'long', icon: '🔥', color: 'red-500', bg: 'red-500/10', title: 'Long Run Sunday', desc: 'โหลดคาร์บล่วงหน้า ดื่มน้ำให้เยอะ และให้รางวัลตัวเองหลังซ้อม!', water: 15,
                         meals: { breakfast: 'โหลดคาร์บ: ข้าวโอ๊ต/ขนมปังแยม', lunch: 'ก๋วยเตี๋ยว 1-2 ชาม', snack: 'แตงโม/เกลือแร่', dinner: 'หมูกระทะ/ชาบู' },
-                        exercises: [
-                            { title: 'Quad Stretch', focus: 'หน้าขา', detail: 'ยืนพับขาไปด้านหลัง ค้างไว้ข้างละ 30 วินาที' },
-                            { title: 'Hamstring Stretch', focus: 'หลังขา', detail: 'ก้มแตะสลับปลายเท้า ค้างไว้ข้างละ 30 วินาที' },
-                            { title: 'นวดคลายฝ่าเท้า', focus: 'ฝ่าเท้า (Plantar)', detail: 'ใช้ลูกเทนนิสเหยียบคลึงเบาๆ ข้างละ 2 นาที' },
-                            { title: 'Legs Up the Wall', focus: 'ลดบวม/คลายเส้น', detail: 'นอนหงายยกขาพาดกำแพง 10-15 นาที' }
-                        ]
-                    };
+                        exercises: [ { title: 'Quad Stretch', focus: 'หน้าขา', detail: 'ยืนพับขาไปด้านหลัง ค้างไว้ข้างละ 30 วินาที' }, { title: 'Hamstring Stretch', focus: 'หลังขา', detail: 'ก้มแตะสลับปลายเท้า ค้างไว้ข้างละ 30 วินาที' }, { title: 'นวดคลายฝ่าเท้า', focus: 'ฝ่าเท้า', detail: 'ใช้ลูกเทนนิสเหยียบคลึงเบาๆ ข้างละ 2 นาที' }, { title: 'Legs Up the Wall', focus: 'ลดบวม/คลายเส้น', detail: 'นอนหงายยกขาพาดกำแพง 10-15 นาที' }]};
                 case 'easy':
                 default:
-                    return {
-                        id: 'easy', icon: '👟', color: 'lime', title: 'Easy Jogging',
-                        desc: 'กินอาหารตามปกติ คุมแคลอรีเพื่อลดไขมัน',
-                        water: 12,
+                    return { id: 'easy', icon: '👟', color: 'lime-400', bg: 'lime-400/10', title: 'Easy Jogging', desc: 'กินอาหารตามปกติ คุมแคลอรีเพื่อลดไขมัน', water: 12,
                         meals: { breakfast: 'แซนวิชโฮลวีตไข่ต้ม', lunch: 'ข้าวกล้อง 1.5 ทัพพี + อกไก่ย่าง', snack: 'กล้วยหอม 1 ลูก', dinner: 'สเต็กปลาแซลมอน' },
-                        exercises: [
-                            { title: 'Plank (แพลงก์)', focus: 'แกนกลางลำตัว', detail: 'เกร็งหน้าท้อง 3 เซต เซตละ 40 วินาที' },
-                            { title: 'Bodyweight Squat', focus: 'ต้นขาและก้น', detail: 'ลงช้าๆ ขึ้นเร็ว 3 เซต เซตละ 15 ครั้ง' },
-                            { title: 'Glute Bridge', focus: 'สะโพก/หลังล่าง', detail: 'นอนหงายยกสะโพกเกร็งก้น 3 เซต เซตละ 15 ครั้ง' },
-                            { title: 'Calf Raises', focus: 'น่องและข้อเท้า', detail: 'ยืนเขย่งปลายเท้า 3 เซต เซตละ 20 ครั้ง' }
-                        ]
-                    };
+                        exercises: [ { title: 'Plank', focus: 'แกนกลางลำตัว', detail: 'เกร็งหน้าท้อง 3 เซต เซตละ 40 วินาที' }, { title: 'Bodyweight Squat', focus: 'ต้นขาและก้น', detail: 'ลงช้าๆ ขึ้นเร็ว 3 เซต เซตละ 15 ครั้ง' }, { title: 'Glute Bridge', focus: 'สะโพก/หลังล่าง', detail: 'นอนหงายยกสะโพกเกร็งก้น 3 เซต เซตละ 15 ครั้ง' }, { title: 'Calf Raises', focus: 'น่องและข้อเท้า', detail: 'ยืนเขย่งปลายเท้า 3 เซต เซตละ 20 ครั้ง' }]};
                 }
             };
 
@@ -382,64 +263,33 @@
             const [waterOpen, setWaterOpen] = useState(true);
             const [exOpen, setExOpen] = useState(true);
 
-            useEffect(() => {
-                const allDone = dailyData.breakfastDone && dailyData.lunchDone && dailyData.snackDone && dailyData.dinnerDone;
-                setMealsOpen(!allDone);
-            }, [dailyData.breakfastDone, dailyData.lunchDone, dailyData.snackDone, dailyData.dinnerDone]);
+            useEffect(() => { const allDone = dailyData.breakfastDone && dailyData.lunchDone && dailyData.snackDone && dailyData.dinnerDone; setMealsOpen(!allDone); }, [dailyData.breakfastDone, dailyData.lunchDone, dailyData.snackDone, dailyData.dinnerDone]);
+            useEffect(() => { setWaterOpen(dailyData.water < currentConfig.water); }, [dailyData.water, currentConfig.water]);
+            useEffect(() => { const completedEx = dailyData.exerciseChecks.filter(Boolean).length; setExOpen(completedEx < currentConfig.exercises.length); }, [dailyData.exerciseChecks, currentConfig.exercises.length]);
 
-            useEffect(() => {
-                setWaterOpen(dailyData.water < currentConfig.water);
-            }, [dailyData.water, currentConfig.water]);
-
-            useEffect(() => {
-                const completedEx = dailyData.exerciseChecks.filter(Boolean).length;
-                setExOpen(completedEx < currentConfig.exercises.length);
-            }, [dailyData.exerciseChecks, currentConfig.exercises.length]);
-
-            // อัปเกรดระบบคะแนน: ถอด IF ออกจาก 100% แล้วเพิ่มคะแนนให้หมวดออกกำลังกาย
             const computeScoreForRecord = (rec) => {
                 if (!rec) return 0;
                 const config = getTrainingConfig(rec.trainingType || 'easy');
                 let s = 0;
-                if (rec.breakfastDone) s += 10;
-                if (rec.lunchDone) s += 10;
-                if (rec.snackDone) s += 10;
-                if (rec.dinnerDone) s += 10;
+                if (rec.breakfastDone) s += 10; if (rec.lunchDone) s += 10; if (rec.snackDone) s += 10; if (rec.dinnerDone) s += 10;
                 if (rec.water >= config.water) s += 20;
-                
                 const exCount = (rec.exerciseChecks || []).filter(Boolean).length;
-                // ให้คะแนนออกกำลังกายท่าละ 10 คะแนน (รวม 4 ท่า = 40 คะแนน)
                 s += (exCount / config.exercises.length) * 40; 
-                
                 return Math.min(Math.round(s), 100);
             };
 
-            const last7Days = Array.from({length: 7}, (_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - 6 + i);
-                return d.toDateString();
-            });
+            const last7Days = Array.from({length: 7}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d.toDateString(); });
 
-            // คำนวณคะแนนของวันนี้
             let dailyScore = 0;
-            if (dailyData.breakfastDone) dailyScore += 10;
-            if (dailyData.lunchDone) dailyScore += 10;
-            if (dailyData.snackDone) dailyScore += 10;
-            if (dailyData.dinnerDone) dailyScore += 10;
+            if (dailyData.breakfastDone) dailyScore += 10; if (dailyData.lunchDone) dailyScore += 10; if (dailyData.snackDone) dailyScore += 10; if (dailyData.dinnerDone) dailyScore += 10;
             if (dailyData.water >= currentConfig.water) dailyScore += 20;
-            
             const completedExercises = dailyData.exerciseChecks.filter(Boolean).length;
-            // ให้คะแนนออกกำลังกาย 40 Pts (จากเดิม 20 Pts)
             dailyScore += (completedExercises / currentConfig.exercises.length) * 40; 
-            
             dailyScore = Math.min(Math.round(dailyScore), 100);
 
             useEffect(() => {
-                if (dailyScore === 100) {
-                    setShowConfetti(true);
-                    const timer = setTimeout(() => setShowConfetti(false), 5000);
-                    return () => clearTimeout(timer);
-                } else setShowConfetti(false);
+                if (dailyScore === 100) { setShowConfetti(true); const timer = setTimeout(() => setShowConfetti(false), 5000); return () => clearTimeout(timer); } 
+                else setShowConfetti(false);
             }, [dailyScore]);
 
             const getMotivationalMessage = () => {
@@ -449,11 +299,7 @@
                 return "พร้อมลุยหรือยังนักวิ่ง? 🏁";
             };
 
-            const rewardsList = [
-                "เบอร์เกอร์เนื้อ/หมู (ชิ้นเด็ดเติมคาร์บ) 1 ชิ้น", "เบียร์เย็นๆ 1 กระป๋อง (ฮีลใจหลังซ้อม Long Run)", "ไก่ทอด Air-fryer (ไร้น้ำมัน) ฟินๆ 3 ชิ้น",
-                "สเต็กเนื้อสันใน (Tenderloin) ย่างหอมๆ เติมโปรตีน", "ซูชิแซลมอนเซ็ตใหญ่ (ดีต่อกล้ามเนื้อ)",
-                "ขนมปังซาวร์โด (Sourdough) ปิ้งทาเนยถั่ว", "หมูกระทะ/ชาบู (เน้นเนื้อไม่ติดมัน ทานฉลองกับทีม)"
-            ];
+            const rewardsList = ["เบอร์เกอร์เนื้อ/หมู (ชิ้นเด็ด) 1 ชิ้น", "เบียร์เย็นๆ 1 กระป๋อง (ฮีลใจ)", "ไก่ทอด Air-fryer ฟินๆ 3 ชิ้น", "สเต็กเนื้อสันใน ย่างหอมๆ", "ซูชิแซลมอนเซ็ตใหญ่", "ขนมปังซาวร์โด ปิ้งทาเนยถั่ว", "หมูกระทะ/ชาบู (เน้นเนื้อล้วน)"];
             const todayReward = rewardsList[diffDays % rewardsList.length];
 
             const waterSchedule = [
@@ -468,7 +314,7 @@
                 return (
                     <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-orange-500">
                         <svg className="w-12 h-12 animate-spin mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        <p className="font-black tracking-widest uppercase text-sm">Warming Up Database...</p>
+                        <p className="font-black tracking-widest uppercase text-sm">Syncing Data...</p>
                     </div>
                 );
             }
@@ -476,8 +322,6 @@
             return (
                 <div className="min-h-screen text-zinc-200 pb-24 selection:bg-orange-500/30 font-sans">
                     {showConfetti && <Confetti />}
-
-                    {/* Header: Racing Banner */}
                     <header className="relative bg-zinc-950 pt-10 pb-16 px-6 border-b border-zinc-800 overflow-hidden shadow-2xl z-10">
                         <div className="absolute inset-0 racing-stripes opacity-20"></div>
                         <div className="absolute top-0 right-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[80px] opacity-20"></div>
@@ -486,7 +330,7 @@
                                 <div>
                                     <p className="text-lime-400 font-black text-[10px] tracking-[0.3em] uppercase mb-1 drop-shadow-md">Road To Bangsaen42</p>
                                     <h1 className="text-5xl font-black tracking-tighter leading-none mb-1 uppercase text-white italic">Project <span className="text-orange-500">80</span></h1>
-                                    <h2 className="text-xs font-bold text-zinc-400 tracking-wider mt-2 uppercase">Runner: <span className="text-white">{profileName}</span></h2>
+                                    <h2 className="text-xs font-bold text-zinc-400 tracking-wider mt-2 uppercase">Runner: <span className="text-white">{displayProfileName}</span></h2>
                                 </div>
                                 <button onClick={onLogout} className="bg-zinc-900 border border-zinc-800 p-2.5 rounded-xl shadow-md flex flex-col items-center hover:bg-zinc-800 transition-colors">
                                     <svg className="w-5 h-5 text-zinc-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -499,24 +343,13 @@
                         </div>
                     </header>
 
-                    {/* Main Content */}
                     <div className="px-5 -mt-8 relative z-20 space-y-5">
-                        
-                        {/* Avatar & Target Card */}
                         <div className="bg-zinc-900/90 backdrop-blur-xl rounded-[24px] p-5 shadow-2xl border border-zinc-800 flex items-center justify-between gap-2 overflow-hidden relative">
-                            {/* Graphic behind avatar */}
                             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-orange-500/10 to-transparent"></div>
-                            
                             <div className="flex flex-col z-10 shrink-0">
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">Target Weight</span>
                                 <div className="flex items-baseline gap-1">
-                                    <input 
-                                        type="number" 
-                                        step="0.1" 
-                                        value={weight} 
-                                        onChange={(e) => updateWeightToCloud(parseFloat(e.target.value) || 0)}
-                                        className="w-24 bg-transparent text-5xl font-black text-white italic tracking-tighter outline-none border-b-4 border-zinc-800 focus:border-lime-400 transition-colors"
-                                    />
+                                    <input type="number" step="0.1" value={weight} onChange={(e) => updateWeightToCloud(parseFloat(e.target.value) || 0)} className="w-24 bg-transparent text-5xl font-black text-white italic tracking-tighter outline-none border-b-4 border-zinc-800 focus:border-lime-400 transition-colors" />
                                     <span className="text-lime-400 font-bold text-sm uppercase tracking-wider">KG</span>
                                 </div>
                                 <div className="flex gap-2 mt-4">
@@ -524,57 +357,39 @@
                                     <button onClick={() => updateWeightToCloud(Math.max(70, Number((weight - 0.1).toFixed(1))))} className="w-10 h-10 bg-orange-500 rounded-lg text-black font-black text-2xl shadow-[0_0_15px_rgba(249,115,22,0.4)] active:scale-95 transition-all">-</button>
                                 </div>
                             </div>
-                            
                             <div className="flex-1 flex justify-end z-10 relative mr-2">
                                 <CoolRunnerAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} />
                             </div>
                         </div>
 
-                        {/* Progress Bar (Track Style) */}
                         <div className="bg-zinc-900 rounded-[20px] p-5 border border-zinc-800 shadow-lg">
                             <div className="flex justify-between items-end mb-3">
                                 <h3 className="font-black text-white text-xs tracking-widest uppercase">Training Progress</h3>
                                 <span className="text-xl font-black italic text-lime-400 leading-none">{overallProgress}%</span>
                             </div>
                             <div className="relative w-full bg-zinc-950 h-4 rounded-full overflow-hidden border border-zinc-800">
-                                {/* Track lines */}
-                                <div className="absolute inset-0 flex flex-col justify-evenly opacity-30">
-                                    <div className="h-[1px] w-full bg-white border-dashed"></div>
-                                    <div className="h-[1px] w-full bg-white border-dashed"></div>
-                                </div>
-                                {/* Fill */}
+                                <div className="absolute inset-0 flex flex-col justify-evenly opacity-30"><div className="h-[1px] w-full bg-white border-dashed"></div><div className="h-[1px] w-full bg-white border-dashed"></div></div>
                                 <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-600 via-orange-500 to-lime-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(204,255,0,0.5)]" style={{ width: `${overallProgress}%` }}></div>
                             </div>
                         </div>
 
-                        {/* Tabs */}
                         <div className="flex gap-2 mt-2">
                             <button onClick={() => setActiveTab('tracker')} className={`flex-1 py-4 px-2 rounded-[16px] font-black text-[11px] uppercase tracking-widest flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === 'tracker' ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>
-                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                PIT STOP
+                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> PIT STOP
                             </button>
                             <button onClick={() => setActiveTab('plan')} className={`flex-1 py-4 px-2 rounded-[16px] font-black text-[11px] uppercase tracking-widest flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === 'plan' ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>
-                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                                PLAYBOOK
+                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg> PLAYBOOK
                             </button>
                             <button onClick={() => setActiveTab('stats')} className={`flex-1 py-4 px-2 rounded-[16px] font-black text-[11px] uppercase tracking-widest flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === 'stats' ? 'bg-orange-500 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>
-                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
-                                DASHBOARD
+                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg> DASHBOARD
                             </button>
                         </div>
                         
-                        {/* Marathon Team Banner */}
                         {activeTab === 'plan' && (
-                            <a href="https://bangsaen42-team.netlify.app/?room=1158ae49" target="_blank" rel="noopener noreferrer"
-                                className="block bg-gradient-to-r from-orange-600 to-red-600 rounded-[20px] p-5 shadow-[0_0_20px_rgba(234,88,12,0.3)] border border-orange-500/50 active:scale-95 transition-transform">
+                            <a href="https://bangsaen42-team.netlify.app/?room=1158ae49" target="_blank" rel="noopener noreferrer" className="block bg-gradient-to-r from-orange-600 to-red-600 rounded-[20px] p-5 shadow-[0_0_20px_rgba(234,88,12,0.3)] border border-orange-500/50 active:scale-95 transition-transform">
                                 <div className="flex items-center justify-between">
-                                    <div>
-                                        <h3 className="text-white font-black text-base italic uppercase tracking-wider drop-shadow-md">Bangsaen42 Team 🔥</h3>
-                                        <p className="text-orange-200 text-xs font-bold mt-1">Tap to check daily mileage goal</p>
-                                    </div>
-                                    <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm text-white">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                    </div>
+                                    <div><h3 className="text-white font-black text-base italic uppercase tracking-wider drop-shadow-md">Bangsaen42 Team 🔥</h3><p className="text-orange-200 text-xs font-bold mt-1">Tap to check daily mileage goal</p></div>
+                                    <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm text-white"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></div>
                                 </div>
                             </a>
                         )}
@@ -582,7 +397,6 @@
                         <div className="space-y-6">
                         {activeTab === 'tracker' ? (
                             <>
-                                {/* Score Dashboard */}
                                 <section className={`rounded-[24px] p-6 border-2 flex items-center justify-between relative overflow-hidden transition-colors duration-500 ${dailyScore === 100 ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_30px_rgba(249,115,22,0.4)]' : 'bg-zinc-900 border-zinc-800 text-white shadow-xl'}`}>
                                     <div className="relative z-10 max-w-[60%]">
                                         <h2 className="font-black text-2xl italic tracking-tighter uppercase mb-1">Energy</h2>
@@ -597,7 +411,6 @@
                                     </div>
                                 </section>
 
-                                {/* กล่องของขวัญ */}
                                 <section className={`rounded-[24px] p-5 border transition-all duration-500 ${dailyScore === 100 ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-zinc-900 border-zinc-800'}`}>
                                     <div className="flex items-center gap-4">
                                         <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 text-2xl transition-all ${dailyScore === 100 ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/50 scale-110' : 'bg-zinc-950 text-zinc-500 border border-zinc-800'}`}>🎁</div>
@@ -608,7 +421,6 @@
                                     </div>
                                 </section>
 
-                                {/* โหมดการซ้อม */}
                                 <section className="bg-zinc-900 rounded-[24px] p-5 border border-zinc-800">
                                     <h2 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 01. Select Pace</h2>
                                     <div className="grid grid-cols-2 gap-3">
@@ -626,7 +438,6 @@
                                     </div>
                                 </section>
 
-                                {/* วินัยการกิน */}
                                 <section className="bg-zinc-900 rounded-[24px] p-5 border border-zinc-800 transition-all duration-500">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setMealsOpen(!mealsOpen)}>
                                         <h2 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 02. Fuel Intake (40 Pts)</h2>
@@ -654,7 +465,6 @@
                                     )}
                                 </section>
 
-                                {/* เติมน้ำ */}
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden transition-all duration-500">
                                     <div className="absolute bottom-0 left-0 right-0 bg-blue-500/10 transition-all duration-700 -z-0" style={{ height: `${Math.min((dailyData.water/targetWater)*100, 100)}%` }}></div>
                                     <div className="relative z-10">
@@ -672,7 +482,6 @@
                                                 <div className="text-6xl transition-all duration-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">💧</div>
                                                 <button onClick={() => updateDaily('water', dailyData.water + 1)} className="w-14 h-14 rounded-full bg-blue-500 text-black text-2xl font-black active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.4)]">+</button>
                                             </div>
-                                            
                                             <div className="pt-4 border-t border-zinc-800/50 space-y-2">
                                                 {waterSchedule.map((item, idx) => (
                                                     <div key={idx} className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl">
@@ -689,7 +498,6 @@
                                     </div>
                                 </section>
 
-                                {/* ภารกิจกล้ามเนื้อ (อัปเกรดโชว์รายละเอียดท่า) */}
                                 <section className="bg-zinc-900 rounded-[24px] p-5 border border-zinc-800 transition-all duration-500">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setExOpen(!exOpen)}>
                                         <h2 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span> 04. Core & Mobility (40 Pts)</h2>
@@ -721,7 +529,6 @@
                                     )}
                                 </section>
 
-                                {/* IF (เปลี่ยนเป็นโบนัส ไม่นำมาคิด 100%) */}
                                 <section onClick={() => updateDaily('fastingSuccess', !dailyData.fastingSuccess)} className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all duration-300 flex items-center justify-between active:scale-95 ${dailyData.fastingSuccess ? 'bg-indigo-900/20 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-zinc-900 border-zinc-800'}`}>
                                     <div className="flex items-center gap-4">
                                         <div className="text-3xl">🌙</div>
@@ -741,12 +548,7 @@
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
                                     <h2 className="font-black text-lg text-white mb-6 uppercase tracking-widest italic">Nutrition Playbook</h2>
                                     <div className="space-y-4 relative z-10">
-                                        {[
-                                            { id: 'B-FAST', desc: currentConfig.meals.breakfast },
-                                            { id: 'LUNCH', desc: currentConfig.meals.lunch },
-                                            { id: 'SNACK', desc: currentConfig.meals.snack },
-                                            { id: 'DINNER', desc: currentConfig.meals.dinner }
-                                        ].map((item, idx) => (
+                                        {[ { id: 'B-FAST', desc: currentConfig.meals.breakfast }, { id: 'LUNCH', desc: currentConfig.meals.lunch }, { id: 'SNACK', desc: currentConfig.meals.snack }, { id: 'DINNER', desc: currentConfig.meals.dinner } ].map((item, idx) => (
                                             <div key={idx} className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800/50">
                                                 <h3 className="font-black text-orange-500 text-xs mb-1.5 uppercase tracking-widest">{item.id}</h3>
                                                 <p className="text-sm font-medium text-zinc-300">{item.desc}</p>
@@ -754,7 +556,6 @@
                                         ))}
                                     </div>
                                 </section>
-
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-lime-400/10 rounded-full blur-2xl"></div>
                                     <div className="mb-6 relative z-10">
@@ -765,10 +566,7 @@
                                         {currentConfig.exercises.map((ex, idx) => (
                                             <div key={idx} className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800/50 flex gap-4">
                                                 <span className="font-black text-lime-400 text-xl italic opacity-50">0{idx+1}</span>
-                                                <div>
-                                                    <span className="text-sm font-bold text-white uppercase tracking-wide block">{ex.title}</span>
-                                                    <span className="text-[11px] text-zinc-400 block mt-1"><strong className="text-lime-400">FOCUS:</strong> {ex.focus} <br/>{ex.detail}</span>
-                                                </div>
+                                                <div><span className="text-sm font-bold text-white uppercase tracking-wide block">{ex.title}</span><span className="text-[11px] text-zinc-400 block mt-1"><strong className="text-lime-400">FOCUS:</strong> {ex.focus} <br/>{ex.detail}</span></div>
                                             </div>
                                         ))}
                                     </div>
@@ -779,7 +577,6 @@
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
                                     <h2 className="font-black text-lg text-white mb-1 uppercase tracking-widest italic">Performance</h2>
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-6">Last 7 Days Record</p>
-                                    
                                     <div className="flex items-end justify-between h-48 gap-2 pt-4 border-t border-zinc-800">
                                         {last7Days.map((dateStr, i) => {
                                             const rec = allRecords[dateStr];
@@ -787,9 +584,7 @@
                                             const dayObj = new Date(dateStr);
                                             const dayName = dayObj.toLocaleDateString('en-US', {weekday: 'short'});
                                             const isToday = dateStr === dateString;
-                                            
                                             const finalScore = isToday ? dailyScore : score;
-                                            
                                             return (
                                                 <div key={dateStr} className="flex flex-col items-center flex-1 gap-2 h-full">
                                                     <span className={`text-[9px] font-black ${finalScore === 100 ? 'text-lime-400' : 'text-zinc-500'}`}>{finalScore}</span>
@@ -802,7 +597,6 @@
                                         })}
                                     </div>
                                 </section>
-
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
                                     <h2 className="font-black text-sm text-zinc-500 uppercase tracking-widest mb-4">Body Stats</h2>
                                     <div className="grid grid-cols-2 gap-4">
@@ -832,33 +626,20 @@
             useEffect(() => {
                 const initAuth = async () => {
                     try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Auth error", error);
-                    }
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+                        else await signInAnonymously(auth);
+                    } catch (error) { console.error("Auth error", error); }
                 };
                 initAuth();
-
-                const unsubscribe = onAuthStateChanged(auth, (u) => {
-                    setUser(u);
-                    setAuthLoading(false);
-                });
+                const unsubscribe = onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); });
                 return () => unsubscribe();
             }, []);
 
-            const handleLogin = (name) => {
-                setCurrentUser(name);
-                window.localStorage.setItem('p80_current_profile', name);
+            const handleLogin = (name) => { 
+                const safeName = name.trim().toLowerCase(); 
+                setCurrentUser(safeName); window.localStorage.setItem('p80_current_profile', safeName); 
             };
-
-            const handleLogout = () => {
-                setCurrentUser(null);
-                window.localStorage.removeItem('p80_current_profile');
-            };
+            const handleLogout = () => { setCurrentUser(null); window.localStorage.removeItem('p80_current_profile'); };
 
             if (authLoading) return <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center"><div className="w-10 h-10 border-4 border-zinc-800 border-t-orange-500 rounded-full animate-spin mb-4"></div><p className="text-zinc-500 font-black tracking-widest text-xs uppercase">CONNECTING...</p></div>;
             if (!user || !currentUser) return <LoginScreen onLogin={handleLogin} />;
