@@ -54,7 +54,7 @@
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'project80_stable_app';
 
-        // --- 2. HELPER FUNCTIONS & LOGIC (สมองกลแยกออกมา) ---
+        // --- 2. HELPER FUNCTIONS & LOGIC ---
         const safeStorage = {
             getItem: (key) => { try { return window.localStorage.getItem(key); } catch(e) { return null; } },
             setItem: (key, val) => { try { window.localStorage.setItem(key, val); } catch(e) {} },
@@ -136,29 +136,47 @@
             else if(currentTargetDist == 10) baseLong = [3,4,5,3, 5,6,7,4, 6,8,9,5, 8,10,6,12, 8,10,6,8, 5,4,3, 10][weekIdx] || 3;
             else baseLong = [2,3,4,2, 3,4,5,3, 4,5,6,3, 4,6,4,7, 5,6,4,5, 3,3,2, 5][weekIdx] || 2; 
 
-            const meals = { b: 'ข้าวโอ๊ต+กล้วยหอม / แซนวิชไข่ต้ม', l: 'ข้าว 1 ทัพพี + เนื้อสัตว์ลีน + ผัก', d: 'สลัดปลา / สุกี้น้ำ (ลดแป้ง)' };
+            let cfg = { id:'rest', name:'Rest Day', desc:'พักฟื้นร่างกาย ยืดเหยียด', pace:'-', hr:'-', meals:{ b: 'ข้าวโอ๊ต+กล้วยหอม / แซนวิชไข่ต้ม', l: 'ข้าว 1 ทัพพี + เนื้อสัตว์ลีน + ผัก', s: 'ถั่วแระญี่ปุ่น / โยเกิร์ต', d: 'สลัดปลา / สุกี้น้ำ (ลดแป้ง)' }, ex:['💤 พักการวิ่ง (Full Rest)','Core Plank 3 เซต','กลิ้ง Foam Roller'] };
 
-            if(isRace) return { id:'long', name:`RACE DAY ${currentTargetDist}K!`, desc:'ถึงเวลาโชว์ผลการซ้อม!', pace:'Target Pace', hr:getHrZone(0.7,0.88, prof.age, prof.rhr), meals:{b:'ขนมปังแยม+กาแฟ',l:'ฉลองหลังเข้าเส้นชัย!',d:'ปาร์ตี้หมูกระทะ'}, ex:['🏃‍♂️ ลุยให้เต็มที่ ดื่มน้ำทุกจุด','แช่น้ำเย็น Recovery','ยืดเหยียดเบาๆ'] };
-            if(dayType === 'long') return { id:'long', name:'Long Run', desc:`วิ่งยาว ${baseLong} กม. เน้นความอึด`, pace:`${pz.lr} - ${pz.ez}`, hr:getHrZone(0.65,0.75, prof.age, prof.rhr), meals:{...meals, b:'โหลดคาร์บ ขนมปัง 2-3 แผ่น'}, ex:[`🏃‍♂️ วิ่งระยะ ${baseLong} กม.`,'ฝึกจิบน้ำ/กินเจลระหว่างวิ่ง','ยืดเหยียดชุดใหญ่'] };
-            if(dayType === 'speed') return { id:'speed', name:'Speed / Tempo', desc:'ฝึกความเร็วรอบขา 30-45 นาที', pace:`${pz.in} - ${pz.tm}`, hr:getHrZone(0.8,0.88, prof.age, prof.rhr), meals, ex:['⚡ วิ่งคอร์ทความเร็ว','ทำ Dynamic Stretch ก่อนวิ่ง','Russian Twist 3 เซต'] };
-            if(dayType === 'rest') return { id:'rest', name:'Rest Day', desc:'พักฟื้นร่างกาย ยืดเหยียด', pace:'-', hr:'-', meals, ex:['💤 พักการวิ่ง (Full Rest)','Core Plank 3 เซต','กลิ้ง Foam Roller'] };
-            return { id:'easy', name:'Easy Run', desc:'วิ่งสบายๆ 45-60 นาที (Base)', pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals, ex:['🏃‍♂️ วิ่ง Easy คุมหัวใจ','ทำ Drills ก่อนวิ่ง','Squats 3 เซต'] };
+            if(isRace) {
+                cfg = { id:'long', name:`RACE DAY ${currentTargetDist}K!`, desc:'ถึงเวลาโชว์ผลการซ้อม!', pace:'Target Pace', hr:getHrZone(0.7,0.88, prof.age, prof.rhr), meals:{b:'ขนมปังแยม+กาแฟ',l:'ฉลองหลังเข้าเส้นชัย!',s:'เกลือแร่',d:'ปาร์ตี้หมูกระทะ'}, ex:['🏃‍♂️ ลุยให้เต็มที่ ดื่มน้ำทุกจุด','แช่น้ำเย็น Recovery','ยืดเหยียดเบาๆ'] };
+            } else if(dayType === 'long') {
+                cfg = { id:'long', name:'Long Run', desc:`วิ่งยาว ${baseLong} กม. เน้นความอึด`, pace:`${pz.lr} - ${pz.ez}`, hr:getHrZone(0.65,0.75, prof.age, prof.rhr), meals:{...cfg.meals, b:'โหลดคาร์บ ขนมปัง 2-3 แผ่น'}, ex:[`🏃‍♂️ วิ่งระยะ ${baseLong} กม.`,'ฝึกจิบน้ำ/กินเจลระหว่างวิ่ง','ยืดเหยียดชุดใหญ่'] };
+            } else if(dayType === 'speed') {
+                cfg = { id:'speed', name:'Speed / Tempo', desc:'ฝึกความเร็วรอบขา 30-45 นาที', pace:`${pz.in} - ${pz.tm}`, hr:getHrZone(0.8,0.88, prof.age, prof.rhr), meals: cfg.meals, ex:['⚡ วิ่งคอร์ทความเร็ว','ทำ Dynamic Stretch ก่อนวิ่ง','Russian Twist 3 เซต'] };
+            } else if(dayType === 'easy') {
+                cfg = { id:'easy', name:'Easy Run', desc:'วิ่งสบายๆ 45-60 นาที (Base)', pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals: cfg.meals, ex:['🏃‍♂️ วิ่ง Easy คุมหัวใจ','ทำ Drills ก่อนวิ่ง','Squats 3 เซต'] };
+            }
+
+            // 🧠 AI INJURY ADAPTATION (ปรับท่าออกกำลังกายตามจุดอ่อน)
+            if (prof.injury === 'knee') {
+                cfg.ex = cfg.ex.map(e => e.includes('Squats') ? 'Glute Bridges 3 เซต (เซฟเข่า)' : e);
+                if (!cfg.ex.some(e => e.includes('ITB')) && dayType !== 'rest') cfg.ex.push('ยืดกล้ามเนื้อ ITB (ป้องกันเจ็บเข่าด้านนอก)');
+            } else if (prof.injury === 'plantar') {
+                if (dayType !== 'rest') cfg.ex.push('เหยียบลูกเทนนิสคลายฝ่าเท้า 5 นาที');
+            } else if (prof.injury === 'shin') {
+                if (dayType !== 'rest') cfg.ex.push('Tibialis Raise 3 เซต (กันเจ็บหน้าแข้ง)');
+            }
+
+            // 🧠 AI LIFESTYLE ADAPTATION (ปรับโภชนาการตามการใช้ชีวิต)
+            if (prof.lifestyle === 'heavy') {
+                cfg.meals.s = 'กล้วยหอม 1 ลูก + เกลือแร่ (ชดเชยเหงื่อจากการทำงาน)';
+            }
+
+            return cfg;
         };
 
-        // --- 3. UI COMPONENTS (แยกชิ้นส่วน) ---
+        const getTargetWater = (lifestyle) => {
+            if (lifestyle === 'heavy') return 12;
+            if (lifestyle === 'active') return 10;
+            return 8; // sedentary
+        };
+
+        // --- 3. UI COMPONENTS ---
         const Confetti = () => (
             <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
                 {Array.from({ length: 50 }).map((_, i) => (
-                    <div key={i} className="absolute top-[-10%]"
-                        style={{
-                            left: `${Math.random() * 100}%`,
-                            width: `${Math.random() * 10 + 5}px`, height: `${Math.random() * 10 + 5}px`,
-                            backgroundColor: ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'][Math.floor(Math.random() * 5)], 
-                            borderRadius: Math.random() > 0.5 ? '50%' : '4px',
-                            animation: `confetti-fall ${Math.random() * 2 + 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`,
-                            animationDelay: `${Math.random() * 0.3}s`
-                        }}
-                    />
+                    <div key={i} className="absolute top-[-10%]" style={{ left: `${Math.random() * 100}%`, width: `${Math.random() * 10 + 5}px`, height: `${Math.random() * 10 + 5}px`, backgroundColor: ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'][Math.floor(Math.random() * 5)], borderRadius: Math.random() > 0.5 ? '50%' : '4px', animation: `confetti-fall ${Math.random() * 2 + 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`, animationDelay: `${Math.random() * 0.3}s` }} />
                 ))}
             </div>
         );
@@ -198,7 +216,7 @@
         };
 
         // --- SUB-TABS COMPONENTS ---
-        const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, saveRun }) => (
+        const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, saveRun, targetWater }) => (
             <React.Fragment>
                 <section className={`p-6 rounded-[24px] border-2 flex items-center justify-between transition-colors ${score===100 ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_30px_rgba(249,115,22,0.4)]' : 'bg-zinc-900 border-zinc-800'}`}>
                     <div><h2 className="text-2xl font-black italic uppercase">SCORE</h2><p className="text-xs font-bold uppercase opacity-80">Daily Mission</p></div>
@@ -213,7 +231,7 @@
                     </div>
                 </section>
                 <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800 flex items-center justify-between">
-                    <div><h3 className="font-black text-sm uppercase text-blue-400">2. Water</h3><p className="text-xs text-zinc-500">Target: 8 แก้ว</p></div>
+                    <div><h3 className="font-black text-sm uppercase text-blue-400">2. Water</h3><p className="text-xs text-zinc-500">Target: {targetWater} แก้ว</p></div>
                     <div className="flex items-center gap-4">
                         <button onClick={()=>updateDaily('w', Math.max(0, daily.w-1))} className="w-12 h-12 bg-zinc-950 border border-zinc-800 rounded-full font-black text-xl">-</button>
                         <span className="text-2xl font-black italic">{daily.w}</span>
@@ -263,7 +281,12 @@
                     </div>
                     <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
                         <p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">NUTRITION</p>
-                        <ul className="text-sm text-zinc-300 space-y-2"><li><span className="text-orange-400 font-bold">เช้า:</span> {cfg.meals.b}</li><li><span className="text-orange-400 font-bold">เที่ยง:</span> {cfg.meals.l}</li><li><span className="text-orange-400 font-bold">เย็น:</span> {cfg.meals.d}</li></ul>
+                        <ul className="text-sm text-zinc-300 space-y-2">
+                            <li><span className="text-orange-400 font-bold">เช้า:</span> {cfg.meals.b}</li>
+                            <li><span className="text-orange-400 font-bold">เที่ยง:</span> {cfg.meals.l}</li>
+                            {cfg.meals.s && <li><span className="text-orange-400 font-bold">ของว่าง:</span> {cfg.meals.s}</li>}
+                            <li><span className="text-orange-400 font-bold">เย็น:</span> {cfg.meals.d}</li>
+                        </ul>
                     </div>
                 </div>
             </section>
@@ -300,6 +323,8 @@
             const vo2ProgressGauge = Math.max(0, Math.min(100, ((vo2Value - 20) / (60 - 20)) * 100)) || 0;
             const safeGaugeOffset = isNaN(126 - (vo2ProgressGauge / 100) * 126) ? 126 : 126 - (vo2ProgressGauge / 100) * 126;
 
+            const bmi = prof.height ? (prof.weight / Math.pow(prof.height/100, 2)).toFixed(1) : '-';
+
             return (
                 <React.Fragment>
                     <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
@@ -329,10 +354,11 @@
                         <div className="w-full bg-zinc-950 h-3 rounded-full overflow-hidden border border-zinc-800"><div className={`h-full rounded-full transition-all duration-1000 ${Math.min((tDist / 500) * 100, 100) >= 80 ? 'bg-red-500' : 'bg-gradient-to-r from-orange-600 to-orange-400'}`} style={{ width: `${Math.min((tDist / 500) * 100, 100)}%` }}></div></div>
                     </section>
                     <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800">
-                        <h2 className="font-black text-xl italic uppercase mb-4 text-white">Body Stats</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-center"><p className="text-[10px] text-zinc-500 font-bold uppercase">Current</p><p className="text-3xl font-black italic mt-1">{prof.weight} <span className="text-sm text-zinc-500 not-italic">KG</span></p></div>
-                            <div className="bg-zinc-950 p-4 rounded-xl border border-orange-500/30 text-center shadow-[0_0_15px_rgba(249,115,22,0.1)]"><p className="text-[10px] text-orange-500 font-bold uppercase">Goal</p><p className="text-3xl font-black text-orange-400 italic mt-1">{prof.targetWeight} <span className="text-sm text-zinc-500 not-italic">KG</span></p></div>
+                        <h2 className="font-black text-xl italic uppercase mb-4 text-white">Body Stats & BMI</h2>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-center"><p className="text-[9px] text-zinc-500 font-bold uppercase">Current</p><p className="text-xl font-black italic mt-1">{prof.weight} <span className="text-[10px] text-zinc-500 not-italic">KG</span></p></div>
+                            <div className="bg-zinc-950 p-4 rounded-xl border border-orange-500/30 text-center shadow-[0_0_15px_rgba(249,115,22,0.1)]"><p className="text-[9px] text-orange-500 font-bold uppercase">Goal</p><p className="text-xl font-black text-orange-400 italic mt-1">{prof.targetWeight} <span className="text-[10px] text-zinc-500 not-italic">KG</span></p></div>
+                            <div className="bg-zinc-950 p-4 rounded-xl border border-blue-500/30 text-center shadow-[0_0_15px_rgba(59,130,246,0.1)]"><p className="text-[9px] text-blue-400 font-bold uppercase">BMI</p><p className="text-xl font-black text-blue-400 italic mt-1">{bmi}</p></div>
                         </div>
                     </section>
                     <button onClick={()=>setShowSetup(true)} className="w-full p-4 border border-zinc-700 rounded-xl text-xs font-bold text-zinc-400 uppercase mt-4 hover:bg-zinc-800 transition-colors">Edit Profile Settings</button>
@@ -343,16 +369,21 @@
         const SetupModal = ({ initialProf, onSave }) => {
             const [setupWeight, setSetupWeight] = useState(initialProf.weight);
             const [setupTarget, setSetupTarget] = useState(initialProf.targetWeight);
+            const [setupHeight, setSetupHeight] = useState(initialProf.height);
+            const [setupGender, setSetupGender] = useState(initialProf.gender);
             const [setupAge, setSetupAge] = useState(initialProf.age);
             const [setupRhr, setSetupRhr] = useState(initialProf.rhr);
             const [setupVcr, setSetupVcr] = useState(initialProf.vcr);
             const [setupDist, setSetupDist] = useState(initialProf.targetDist || 42.195);
+            const [setupInjury, setSetupInjury] = useState(initialProf.injury || 'none');
+            const [setupLifestyle, setSetupLifestyle] = useState(initialProf.lifestyle || 'sedentary');
+            
             const [setupAvail, setSetupAvail] = useState(initialProf.schedule ? {0: initialProf.schedule[0]!=='rest', 1: initialProf.schedule[1]!=='rest', 2: initialProf.schedule[2]!=='rest', 3: initialProf.schedule[3]!=='rest', 4: initialProf.schedule[4]!=='rest', 5: initialProf.schedule[5]!=='rest', 6: initialProf.schedule[6]!=='rest'} : {0:true, 1:false, 2:true, 3:true, 4:false, 5:true, 6:false});
             const [setupLongDay, setSetupLongDay] = useState(initialProf.schedule ? Number(Object.keys(initialProf.schedule).find(key => initialProf.schedule[key] === 'long') || 0) : 0);
             
             const handleSave = () => {
                 const smartSchedule = generateSmartSchedule(setupAvail, setupLongDay);
-                onSave({ weight: setupWeight, targetWeight: setupTarget, age: setupAge, rhr: setupRhr, vcr: setupVcr, targetDist: setupDist, schedule: smartSchedule });
+                onSave({ weight: setupWeight, targetWeight: setupTarget, height: setupHeight, gender: setupGender, age: setupAge, rhr: setupRhr, vcr: setupVcr, targetDist: setupDist, schedule: smartSchedule, injury: setupInjury, lifestyle: setupLifestyle });
             };
 
             const dayLabels = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
@@ -363,46 +394,70 @@
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-1">Race & Profile</h2>
                         <p className="text-sm font-bold text-zinc-500 tracking-wide mb-6">ตั้งเป้าหมายและจัดตารางซ้อม 🎯</p>
                         <div className="space-y-6">
+                            
+                            {/* ข้อมูล 4 Golden Data & พื้นฐาน */}
+                            <div className="border-b border-zinc-800 pb-5">
+                                <label className="text-[10px] font-black text-fuchsia-400 uppercase mb-2 block">A. ข้อมูลสรีระพื้นฐาน (Golden Data)</label>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <input type="number" value={setupWeight} onChange={e=>setSetupWeight(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="น้ำหนักปัจจุบัน (KG)" />
+                                    <input type="number" value={setupTarget} onChange={e=>setSetupTarget(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="เป้าหมาย (KG)" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <input type="number" value={setupHeight} onChange={e=>setSetupHeight(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="ส่วนสูง (CM)" />
+                                    <div className="flex gap-1">
+                                        <button onClick={()=>setSetupGender('male')} className={`flex-1 rounded-xl text-xs font-bold transition-colors ${setupGender==='male' ? 'bg-fuchsia-500 text-black' : 'bg-black border border-zinc-800 text-zinc-500'}`}>ชาย</button>
+                                        <button onClick={()=>setSetupGender('female')} className={`flex-1 rounded-xl text-xs font-bold transition-colors ${setupGender==='female' ? 'bg-fuchsia-500 text-black' : 'bg-black border border-zinc-800 text-zinc-500'}`}>หญิง</button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div><label className="text-[10px] font-black text-zinc-500 uppercase">อายุ (ปี)</label><input type="number" value={setupAge} onChange={e=>setSetupAge(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800 text-sm" /></div>
+                                    <div><label className="text-[10px] font-black text-zinc-500 uppercase">Resting HR</label><input type="number" value={setupRhr} onChange={e=>setSetupRhr(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800 text-sm" /></div>
+                                </div>
+                            </div>
+
+                            <div className="border-b border-zinc-800 pb-5">
+                                <label className="text-[10px] font-black text-blue-400 uppercase mb-2 block">B. ประวัติบาดเจ็บ & ไลฟ์สไตล์ (AI Coach)</label>
+                                <select value={setupInjury} onChange={e=>setSetupInjury(e.target.value)} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm mb-2">
+                                    <option value="none">ไม่เคยบาดเจ็บ (แข็งแรงดี)</option>
+                                    <option value="knee">เจ็บเข่า / ITB</option>
+                                    <option value="plantar">รองช้ำ / เจ็บฝ่าเท้า</option>
+                                    <option value="shin">หน้าแข้ง (Shin Splints)</option>
+                                </select>
+                                <select value={setupLifestyle} onChange={e=>setSetupLifestyle(e.target.value)} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm">
+                                    <option value="sedentary">นั่งทำงานออฟฟิศเป็นหลัก</option>
+                                    <option value="active">เดินบ่อย / ขยับตัวเยอะ</option>
+                                    <option value="heavy">ทำงานใช้แรงงาน / กลางแจ้ง</option>
+                                </select>
+                                <p className="text-[9px] text-zinc-500 mt-1.5">AI จะนำไปปรับเปลี่ยนท่าเวทเทรนนิ่ง และเป้าหมายน้ำดื่มให้เหมาะสม</p>
+                            </div>
+
                             <div>
-                                <label className="text-[10px] font-black text-lime-400 uppercase mb-2 block">1. Target Distance (ระยะลงแข่ง)</label>
-                                <div className="grid grid-cols-4 gap-2">
+                                <label className="text-[10px] font-black text-lime-400 uppercase mb-2 block">C. Target Distance (ระยะลงแข่ง)</label>
+                                <div className="grid grid-cols-4 gap-2 mb-4">
                                     {[ {d:5, l:'5K'}, {d:10, l:'10K'}, {d:21.1, l:'21K'}, {d:42.195, l:'42K'} ].map(dist => (
                                         <button key={dist.d} onClick={() => setSetupDist(dist.d)} className={`py-2 rounded-lg text-xs font-black transition-colors ${setupDist === dist.d ? 'bg-lime-500 text-black' : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'}`}>{dist.l}</button>
                                     ))}
                                 </div>
-                            </div>
-                            <div>
+
+                                <label className="text-[10px] font-black text-cyan-400 uppercase mb-2 block">30-Min VCR Test (ระยะทางที่วิ่งได้) เมตร</label>
+                                <input type="number" value={setupVcr} onChange={e=>setSetupVcr(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mb-4 text-cyan-400 font-bold border border-zinc-800 text-sm" />
+
                                 <label className="text-[10px] font-black text-orange-500 uppercase mb-2 flex justify-between">
-                                    <span>2. Training Days (เลือกวันซ้อม)</span><span>{Object.values(setupAvail).filter(v=>v).length} วัน/สัปดาห์</span>
+                                    <span>Training Days (เลือกวันซ้อม)</span><span>{Object.values(setupAvail).filter(v=>v).length} วัน/สัปดาห์</span>
                                 </label>
-                                <div className="flex justify-between gap-1">
+                                <div className="flex justify-between gap-1 mb-4">
                                     {['อา','จ','อ','พ','พฤ','ศ','ส'].map((day, idx) => (
                                         <button key={idx} onClick={() => setSetupAvail({...setupAvail, [idx]: !setupAvail[idx]})} className={`w-full py-3 rounded-lg text-[10px] font-black flex items-center justify-center transition-colors ${setupAvail[idx] ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50' : 'bg-zinc-950 text-zinc-600 border border-zinc-800'}`}>{day}</button>
                                     ))}
                                 </div>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-cyan-400 uppercase mb-2 block">3. Long Run Day (วันวิ่งยาว)</label>
-                                <select value={setupLongDay} onChange={e => setSetupLongDay(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-cyan-400 font-bold border border-zinc-800 outline-none focus:border-cyan-400">
+
+                                <label className="text-[10px] font-black text-orange-500 uppercase mb-2 block">Long Run Day (วันวิ่งยาว)</label>
+                                <select value={setupLongDay} onChange={e => setSetupLongDay(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-orange-400 font-bold border border-zinc-800 outline-none text-sm">
                                     {Object.keys(setupAvail).filter(k=>setupAvail[k]).map(k => (<option key={k} value={k}>ทุกวัน {dayLabels[k]}</option>))}
                                     {Object.values(setupAvail).filter(v=>v).length === 0 && (<option value={0}>กรุณาเลือกวันซ้อมก่อน</option>)}
                                 </select>
                             </div>
-                            <div className="border-t border-zinc-800 pt-5 mt-2">
-                                <label className="text-[10px] font-black text-zinc-400 uppercase">น้ำหนักปัจจุบัน & เป้าหมาย (KG)</label>
-                                <div className="grid grid-cols-2 gap-2 mt-1">
-                                    <input type="number" value={setupWeight} onChange={e=>setSetupWeight(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800" placeholder="ปัจจุบัน" />
-                                    <input type="number" value={setupTarget} onChange={e=>setSetupTarget(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800" placeholder="เป้าหมาย" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div><label className="text-[10px] font-black text-zinc-400 uppercase">อายุ (ปี)</label><input type="number" value={setupAge} onChange={e=>setSetupAge(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800" /></div>
-                                <div><label className="text-[10px] font-black text-zinc-400 uppercase">Resting HR</label><input type="number" value={setupRhr} onChange={e=>setSetupRhr(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800" /></div>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-zinc-400 uppercase">30-Min VCR Test (เมตร)</label>
-                                <input type="number" value={setupVcr} onChange={e=>setSetupVcr(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800" />
-                            </div>
+
                             <button onClick={handleSave} className="w-full bg-white text-black font-black uppercase tracking-widest py-4 rounded-xl mt-2 active:scale-95 transition-all">Save & Calculate Plan</button>
                         </div>
                     </div>
@@ -427,7 +482,9 @@
 
             const [prof, setProf] = useState(cached || {
                 initialWeight: 90.0, weight: 90.0, targetWeight: 80.0, 
-                age: 35, rhr: 60, vcr: 4500, targetDist: 42.195,
+                height: 183, gender: 'male',
+                age: 44, rhr: 60, vcr: 4500, targetDist: 42.195,
+                injury: 'none', lifestyle: 'sedentary',
                 schedule: {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'},
                 records: {}
             });
@@ -450,7 +507,9 @@
                         const d = snap.data();
                         const safeD = {
                             initialWeight: d.initialWeight || 90.0, weight: d.weight || 90.0, targetWeight: d.targetWeight || 80.0,
-                            age: d.age || 35, rhr: d.rhr || 60, vcr: d.vcr || 4500, targetDist: d.targetDist || 42.195,
+                            height: d.height || 183, gender: d.gender || 'male',
+                            age: d.age || 44, rhr: d.rhr || 60, vcr: d.vcr || 4500, targetDist: d.targetDist || 42.195,
+                            injury: d.injury || 'none', lifestyle: d.lifestyle || 'sedentary',
                             schedule: d.schedule || {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'},
                             records: d.records || {}
                         };
@@ -542,10 +601,12 @@
 
             const vo2Value = calcVO2Max(prof.age, prof.rhr, prof.vcr);
             const cfg = getDayConfig(todayObj, weekIdx, isRace, prof);
+            const targetWater = getTargetWater(prof.lifestyle);
 
             let score = 0;
             if(daily.b) score+=10; if(daily.l) score+=10; if(daily.s) score+=10; if(daily.d) score+=10;
-            if(daily.w >= 8) score+=20;
+            if(daily.w >= targetWater) score+=20;
+            else score += (daily.w / targetWater) * 20;
             score += ((daily.ex||[]).filter(Boolean).length / cfg.ex.length) * 40;
             score = Math.min(Math.round(score), 100);
 
@@ -579,7 +640,7 @@
                     </nav>
 
                     <main className="px-5 mt-6 space-y-6">
-                        {activeTab === 'tracker' && <TabTracker score={score} daily={daily} updateDaily={updateDaily} cfg={cfg} inDist={inDist} setInDist={setInDist} inPace={inPace} setInPace={setInPace} inHr={inHr} setInHr={setInHr} saveRun={saveRun} />}
+                        {activeTab === 'tracker' && <TabTracker score={score} daily={daily} updateDaily={updateDaily} cfg={cfg} inDist={inDist} setInDist={setInDist} inPace={inPace} setInPace={setInPace} inHr={inHr} setInHr={setInHr} saveRun={saveRun} targetWater={targetWater} />}
                         {activeTab === 'plan' && <TabPlan cfg={cfg} />}
                         {activeTab === 'ranking' && <TabRanking leaderboardData={leaderboardData} />}
                         {activeTab === 'stats' && <TabStats prof={prof} vo2Value={vo2Value} tDist={tDist} pTime={pTime} pSource={pSource} isSubTarget={isSubTarget} setShowSetup={setShowSetup} />}
