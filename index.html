@@ -24,6 +24,12 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .gauge-arc { stroke-dasharray: 126; stroke-dashoffset: 126; transition: stroke-dashoffset 1.5s ease-out; }
+        
+        /* Original Avatar Animations */
+        @keyframes sway { 0%, 100% { transform: rotate(3deg); } 50% { transform: rotate(-3deg); } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-3px); } }
+        .anim-sway { animation: sway 4s ease-in-out infinite; }
+        .anim-float { animation: float 2s ease-in-out infinite; }
     </style>
 </head>
 <body>
@@ -104,25 +110,12 @@
             return { s, str: `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}` };
         };
 
-        const calcVO2Max = (age, rhr, vcr) => {
-            const safeAge = isNaN(age) || age <= 0 ? 35 : Number(age);
-            const safeRHR = isNaN(rhr) || rhr < 30 ? 60 : Number(rhr);
-            const maxHR = 220 - safeAge;
-            const vo2 = 15.3 * (maxHR / safeRHR);
-            const safeVcr = isNaN(vcr) || vcr <= 0 ? 4500 : Number(vcr);
-            const vcrSpeed = safeVcr / 1800;
-            const vcrVo2 = (0.2 * (vcrSpeed * 60)) + 3.5;
-            const result = (vo2 + vcrVo2) / 2;
-            return isNaN(result) ? 0 : parseFloat(result.toFixed(1));
-        };
-
         const getHrZone = (min, max, age, rhr) => {
             const maxHr = 220 - (age||35);
             const hrr = maxHr - (rhr||60);
             return `${Math.round(hrr*min)+Number(rhr||60)}-${Math.round(hrr*max)+Number(rhr||60)} bpm`;
         };
 
-        // 🧠 AI Coach: คำนวณ Feedback หลังวิ่ง
         const generateFeedback = (dist, pace, hr, targetPaceStr) => {
             if(!pace || pace === '0:00' || !targetPaceStr || targetPaceStr === '-') return "บันทึกข้อมูลสำเร็จ! รักษาวินัยการซ้อมได้ดีเยี่ยมครับ 🏃‍♂️";
             const pSecs = parsePace(pace);
@@ -137,12 +130,11 @@
             return "เยี่ยมมากครับ! เก็บสะสมไมล์ไปเรื่อยๆ ความฟิตจะตามมาเอง 🏆";
         };
 
-        // 🧠 AI Coach: คำนวณสภาพความฟิต (Performance Condition)
         const calcCondition = (hr, pace) => {
             if(!hr || !pace) return "+0 (ปกติ)";
             const pSecs = parsePace(pace);
             const hrNum = Number(hr);
-            if(hrNum < 140 && pSecs < 420) return "+3 (ฟิตมาก!)"; // HR < 140, Pace < 7:00
+            if(hrNum < 140 && pSecs < 420) return "+3 (ฟิตมาก!)";
             if(hrNum < 150 && pSecs < 450) return "+1 (ร่างกายตอบสนองดี)";
             if(hrNum > 165 && pSecs > 480) return "-2 (มีอาการล้า / พักผ่อนน้อย)";
             return "+0 (ปกติ ทรงตัว)";
@@ -169,30 +161,45 @@
             else if(currentTargetDist == 10) baseLong = [3,4,5,3, 5,6,7,4, 6,8,9,5, 8,10,6,12, 8,10,6,8, 5,4,3, 10][weekIdx] || 3;
             else baseLong = [2,3,4,2, 3,4,5,3, 4,5,6,3, 4,6,4,7, 5,6,4,5, 3,3,2, 5][weekIdx] || 2; 
 
+            // Basic Info
             let cfg = { id:'rest', name:'Rest Day', desc:'พักฟื้นร่างกาย ยืดเหยียด', pace:'-', hr:'-', meals:{ b: 'ข้าวโอ๊ต+กล้วยหอม / แซนวิชไข่ต้ม', l: 'ข้าว 1 ทัพพี + เนื้อสัตว์ลีน + ผัก', s: 'ถั่วแระญี่ปุ่น / โยเกิร์ต', d: 'สลัดปลา / สุกี้น้ำ (ลดแป้ง)' }, ex:['💤 พักการวิ่ง (Full Rest)','Core Plank 3 เซต','กลิ้ง Foam Roller'] };
 
+            cfg.detailedWorkout = { warmup: [], main: '', cooldown: [] };
+            cfg.aiAdvice = '';
+
             if(isRace) {
-                cfg = { id:'long', name:`RACE DAY ${currentTargetDist}K!`, desc:'ถึงเวลาโชว์ผลการซ้อม!', pace:'Target Pace', hr:getHrZone(0.7,0.88, prof.age, prof.rhr), meals:{b:'ขนมปังแยม+กาแฟ',l:'ฉลองหลังเข้าเส้นชัย!',s:'เกลือแร่',d:'ปาร์ตี้หมูกระทะ'}, ex:['🏃‍♂️ ลุยให้เต็มที่ ดื่มน้ำทุกจุด','แช่น้ำเย็น Recovery','ยืดเหยียดเบาๆ'] };
+                cfg = { id:'long', name:`RACE DAY!`, desc:'ถึงเวลาโชว์ผลการซ้อม!', pace:'Target Pace', hr:getHrZone(0.7,0.88, prof.age, prof.rhr), meals:{b:'ขนมปังแยม+กาแฟ',l:'ฉลองหลังเข้าเส้นชัย!',s:'เกลือแร่',d:'ปาร์ตี้หมูกระทะ'}, ex:['🏃‍♂️ ลุยให้เต็มที่ ดื่มน้ำทุกจุด','แช่น้ำเย็น Recovery','ยืดเหยียดเบาๆ'] };
+                cfg.detailedWorkout = { warmup: ['วอร์มอัพเบาๆ 10 นาที', 'เดินเร็ว 3 นาที'], main: `วิ่ง ${currentTargetDist}K อย่างมั่นใจ ตามแผน`, cooldown: ['เดินรับเหรียญ 10 นาที', 'แช่น้ำเย็น'] };
+                cfg.aiAdvice = 'วันแข่งจริง ระวังอย่าวิ่งตามคนอื่นจนเพซพังในช่วงแรก ออกตัวช้าๆ ครับ';
             } else if(dayType === 'long') {
                 cfg = { id:'long', name:'Long Run', desc:`วิ่งยาว ${baseLong} กม. เน้นความอึด`, pace:`${pz.lr} - ${pz.ez}`, hr:getHrZone(0.65,0.75, prof.age, prof.rhr), meals:{...cfg.meals, b:'โหลดคาร์บ ขนมปัง 2-3 แผ่น'}, ex:[`🏃‍♂️ วิ่งระยะ ${baseLong} กม.`,'ฝึกจิบน้ำ/กินเจลระหว่างวิ่ง','ยืดเหยียดชุดใหญ่'] };
+                cfg.detailedWorkout = { warmup: ['เดินเร็ว 5 นาที', 'Drills 5 นาที'], main: `วิ่ง ${baseLong} กม. คุมโซน Z2-Z3`, cooldown: ['เดินคลายกรด 10 นาที', 'Stretching 20 วิ/ท่า'] };
+                cfg.aiAdvice = 'วันวิ่งยาวสร้าง Base Endurance ไม่ต้องสนเพซ เน้นเวลาที่อยู่บนเท้าให้ครบครับ';
             } else if(dayType === 'speed') {
                 cfg = { id:'speed', name:'Speed / Tempo', desc:'ฝึกความเร็วรอบขา 30-45 นาที', pace:`${pz.in} - ${pz.tm}`, hr:getHrZone(0.8,0.88, prof.age, prof.rhr), meals: cfg.meals, ex:['⚡ วิ่งคอร์ทความเร็ว','ทำ Dynamic Stretch ก่อนวิ่ง','Russian Twist 3 เซต'] };
+                cfg.detailedWorkout = { warmup: ['จ๊อกกิ้ง 10-15 นาที', 'Drills ชุดใหญ่'], main: `Tempo/Interval 3-5 เซต เพซ ${cfg.pace}`, cooldown: ['จ๊อกกิ้ง 10 นาที', 'ยืดเหยียดหน้าขา'] };
+                cfg.aiAdvice = 'Speed Work เพิ่ม VCR และขยับเพดาน Lactate Threshold ให้วิ่งทนขึ้น';
             } else if(dayType === 'easy') {
-                cfg = { id:'easy', name:'Easy Run', desc:'วิ่งสบายๆ 45-60 นาที (Base)', pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals: cfg.meals, ex:['🏃‍♂️ วิ่ง Easy คุมหัวใจ','ทำ Drills ก่อนวิ่ง','Squats 3 เซต'] };
+                cfg = { id:'easy', name:'Easy Run ชิลๆ', desc:'วิ่งสบายๆ 45-60 นาที (Base)', pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals: cfg.meals, ex:['🏃‍♂️ วิ่ง Easy คุมหัวใจ','ทำ Drills ก่อนวิ่ง','Squats 3 เซต'] };
+                cfg.detailedWorkout = { warmup: ['หมุนข้อต่อ 3 นาที', 'เดินเร็ว 3 นาที'], main: `วิ่งคุมโซน 2-3 (${cfg.pace}) พูดคุยได้ไม่หอบ`, cooldown: ['เดินช้าลงเรื่อยๆ', 'ยืดเหยียดช่วงล่าง'] };
+                cfg.aiAdvice = 'Easy Run สร้างเส้นเลือดฝอยในกล้ามเนื้อ เป็นรากฐานสำคัญของการวิ่งระยะไกล';
+            } else { 
+                cfg.detailedWorkout = { warmup: ['ยืดเหยียดเบาๆ บนเตียง'], main: 'พักฟื้นร่างกายอย่างเต็มที่', cooldown: ['อาบน้ำอุ่น', 'Foam Roller'] };
+                cfg.aiAdvice = 'การพักผ่อน (Rest) คือช่วงเวลาซ่อมแซมกล้ามเนื้อ ฝืนซ้อมทุกวันจะ Overtraining';
             }
 
-            if (prof.injury === 'knee') {
-                cfg.ex = cfg.ex.map(e => e.includes('Squats') ? 'Glute Bridges 3 เซต (เซฟเข่า)' : e);
-                if (!cfg.ex.some(e => e.includes('ITB')) && dayType !== 'rest') cfg.ex.push('ยืดกล้ามเนื้อ ITB (ป้องกันเจ็บเข่าด้านนอก)');
-            } else if (prof.injury === 'plantar') {
-                if (dayType !== 'rest') cfg.ex.push('เหยียบลูกเทนนิสคลายฝ่าเท้า 5 นาที');
-            } else if (prof.injury === 'shin') {
-                if (dayType !== 'rest') cfg.ex.push('Tibialis Raise 3 เซต (กันเจ็บหน้าแข้ง)');
-            }
-
-            if (prof.lifestyle === 'heavy') {
-                cfg.meals.s = 'กล้วยหอม 1 ลูก + เกลือแร่ (ชดเชยเหงื่อจากการทำงาน)';
-            }
+            // Detailed Meals & Hydration
+            cfg.detailedMeals = {
+                b: { menu: cfg.meals.b, detail: 'คาร์บเชิงซ้อน เติมพลังงาน' },
+                l: { menu: cfg.meals.l, detail: 'เน้นโปรตีนและคาร์บ' },
+                s: cfg.meals.s ? { menu: cfg.meals.s, detail: 'ลดความหิวจัด ป้องกันกินมื้อเย็นเกิน' } : null,
+                d: { menu: cfg.meals.d, detail: 'มื้อเบาๆ ผักและโปรตีนลีน' }
+            };
+            cfg.hydrationSchedule = [
+                { time: "หลังตื่นนอน", amount: "1-2 แก้ว", desc: "กระตุ้นระบบขับถ่าย" },
+                { time: "ระหว่างวัน", amount: "4-5 แก้ว", desc: "จิบทุกๆ 1-2 ชั่วโมง" },
+                { time: "ก่อน/หลังซ้อม", amount: "1-2 แก้ว", desc: "ดื่มก่อนซ้อม 30 นาที และชดเชยหลังซ้อม" }
+            ];
 
             return cfg;
         };
@@ -200,7 +207,7 @@
         const getTargetWater = (lifestyle) => {
             if (lifestyle === 'heavy') return 12;
             if (lifestyle === 'active') return 10;
-            return 8; // sedentary
+            return 8;
         };
 
         // --- 3. UI COMPONENTS ---
@@ -212,148 +219,164 @@
             </div>
         );
 
-        const CoolRunnerAvatar = ({ weight, targetWeight, initialWeight, currentConfig }) => {
-            const progress = (initialWeight - targetWeight) > 0 ? Math.max(0, Math.min(1, (initialWeight - weight) / (initialWeight - targetWeight))) : 0;
-            const bodyWidth = 36 - (12 * progress);
-            const act = currentConfig?.id === 'rest' ? 'stretch' : 'cardio';
-            return (
-                <div className="relative w-36 h-36 flex items-center justify-center mx-2 group">
-                    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl transition-transform duration-300">
-                        <style>{`.anim-float-run { animation: float-run 0.6s ease-in-out infinite; } .anim-run-leg-l { animation: run-leg-l 0.6s infinite; } .anim-run-leg-r { animation: run-leg-r 0.6s infinite; } .anim-run-arm-l { animation: run-arm-l 0.6s infinite; } .anim-run-arm-r { animation: run-arm-r 0.6s infinite; } .anim-sway { animation: sway 4s ease-in-out infinite; } @keyframes float-run { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-3px); } } @keyframes run-leg-l { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-15deg); } } @keyframes run-leg-r { 0%, 100% { transform: translateY(-8px) rotate(-15deg); } 50% { transform: translateY(0px) rotate(0deg); } } @keyframes run-arm-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(30deg); } } @keyframes run-arm-r { 0%, 100% { transform: rotate(30deg); } 50% { transform: rotate(0deg); } } @keyframes sway { 0%, 100% { transform: rotate(3deg); } 50% { transform: rotate(-3deg); } }`}</style>
-                        <g className={act === 'stretch' ? 'anim-sway' : 'anim-float-run'} style={{transformOrigin: '50px 85px'}}>
-                            <path d="M 32 25 Q 50 5 68 25 L 68 35 Q 50 20 32 35 Z" fill="#1e293b" />
-                            <g className={act === 'cardio' ? 'anim-run-leg-l' : ''} style={{transformOrigin: '45px 60px'}}>
-                                <rect x="42" y="60" width="6" height="28" rx="3" fill="#fcd5ce" /><path d="M 41 85 L 48.5 85 L 48.5 94 Q 45 96 41 94 Z" fill="#bef264" /><rect x="42" y="80" width="6" height="5" fill="#3f6212" />
-                            </g>
-                            <g className={act === 'cardio' ? 'anim-run-leg-r' : ''} style={{transformOrigin: '55px 60px'}}>
-                                <rect x="52" y="60" width="6" height="28" rx="3" fill="#fcd5ce" /><path d="M 51.5 85 L 59 85 L 59 94 Q 55 96 51.5 94 Z" fill="#bef264" /><rect x="52" y="80" width="6" height="5" fill="#3f6212" />
-                            </g>
-                            <path d={`M ${50 - bodyWidth/2 - 2} 60 L ${50 + bodyWidth/2 + 2} 60 L ${50 + bodyWidth/2 + 3} 72 L 51 70 L 49 70 L ${50 - bodyWidth/2 - 3} 72 Z`} fill="#111827" />
-                            <g className={act === 'cardio' ? 'anim-run-arm-l' : ''} style={{transformOrigin: '38px 52px'}}>
-                                {act === 'stretch' ? <line x1="38" y1="52" x2="25" y2="20" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" /> : <path d={`M ${50 - bodyWidth/2 + 2} 52 Q 35 65 38 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />}
-                            </g>
-                            <rect x={50 - bodyWidth/2} y="50" width={bodyWidth} height="15" rx="3" fill="#f97316" className="transition-all duration-700 ease-out" />
-                            <g transform={`translate(42, 52)`}><rect x="0" y="0" width="16" height="9" fill="#ffffff" rx="1.5" /><text x="8" y="7.5" fontSize="4.5" fontWeight="900" fill="#000" textAnchor="middle">80</text></g>
-                            <g className={act === 'cardio' ? 'anim-run-arm-r' : ''} style={{transformOrigin: '62px 52px'}}>
-                                {act === 'stretch' ? <line x1="62" y1="52" x2="75" y2="20" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" /> : <path d={`M ${50 + bodyWidth/2 - 2} 52 Q 65 65 62 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />}
-                            </g>
-                            <rect x="46" y="44" width="8" height="6" fill="#fcd5ce" /><circle cx="50" cy="32" r="14.5" fill="#fcd5ce" />
-                            <path d="M 35 25 Q 50 10 65 25 Q 50 18 35 25" fill="#1e293b" /><path d="M 40 20 L 45 8 L 50 16 L 56 10 L 60 20 Z" fill="#1e293b" />
-                            {act === 'cardio' ? <g><path d="M 42 29 Q 44 28 46 29" fill="none" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" /><path d="M 54 29 Q 56 28 58 29" fill="none" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" /></g> : <g><circle cx="44" cy="29" r="2.5" fill="#1e293b" /><circle cx="56" cy="29" r="2.5" fill="#1e293b" /></g>}
+        // SVG Avatar ออริจินัล (Original Screenshot Version)
+        const OriginalAvatar = () => (
+            <div className="w-[120px] h-[160px] relative anim-float flex items-end justify-center pb-4">
+                <svg viewBox="0 0 100 150" className="w-full h-full drop-shadow-2xl">
+                    <g transform="translate(50, 75)">
+                        {/* Legs & Socks */}
+                        <g className="anim-sway" transform="translate(0, -20)">
+                            {/* Left Leg */}
+                            <path d="M -12,40 L -15,70 L -5,70 L -2,40 Z" fill="#fcd5ce" />
+                            <path d="M -15,55 L -16,75 L -4,75 L -5,55 Z" fill="#a3e635" /> {/* Green Sock */}
+                            
+                            {/* Right Leg */}
+                            <path d="M 12,40 L 15,70 L 5,70 L 2,40 Z" fill="#fcd5ce" />
+                            <path d="M 15,55 L 16,75 L 4,75 L 5,55 Z" fill="#a3e635" /> {/* Green Sock */}
                         </g>
-                    </svg>
-                </div>
-            );
-        };
+
+                        {/* Arms (behind) */}
+                        <path d="M -22,-10 Q -35,15 -25,45 Q -22,48 -20,45 Q -25,20 -15,-5 Z" fill="#fcd5ce" />
+                        <path d="M 22,-10 Q 35,15 25,45 Q 22,48 20,45 Q 25,20 15,-5 Z" fill="#fcd5ce" />
+
+                        {/* Body (Orange Shirt) */}
+                        <path d="M -25,-15 L 25,-15 L 20,40 L -20,40 Z" fill="#f97316" />
+                        {/* Number 80 Block */}
+                        <rect x="-12" y="5" width="24" height="14" fill="#ffffff" rx="2" />
+                        <text x="0" y="15" fontSize="10" fontWeight="900" fill="#000" textAnchor="middle">80</text>
+                        {/* Shirt Sleeves */}
+                        <path d="M -25,-15 L -35,5 L -25,10 Z" fill="#ea580c" />
+                        <path d="M 25,-15 L 35,5 L 25,10 Z" fill="#ea580c" />
+
+                        {/* Head & Face */}
+                        {/* Pointy Hair (Dark Blue/Black) */}
+                        <path d="M -20,-15 L -25,-55 L 0,-40 L 25,-55 L 20,-15 Z" fill="#0f172a" />
+                        {/* Face */}
+                        <circle cx="0" cy="-25" r="18" fill="#fcd5ce" />
+                        
+                        {/* Glasses (Orange Visor) */}
+                        <rect x="-18" y="-35" width="36" height="12" rx="4" fill="#f97316" />
+                        <rect x="-18" y="-35" width="36" height="4" rx="2" fill="#ea580c" />
+                        
+                        {/* Mouth */}
+                        <circle cx="0" cy="-15" r="2.5" fill="#0f172a" />
+                    </g>
+                </svg>
+            </div>
+        );
 
         // --- SUB-TABS COMPONENTS ---
         const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, saveRun, targetWater }) => (
-            <React.Fragment>
-                <section className={`p-6 rounded-[24px] border-2 flex items-center justify-between transition-colors ${score===100 ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_30px_rgba(249,115,22,0.4)]' : 'bg-zinc-900 border-zinc-800'}`}>
-                    <div><h2 className="text-2xl font-black italic uppercase">SCORE</h2><p className="text-xs font-bold uppercase opacity-80">Daily Mission</p></div>
-                    <div className="text-5xl font-black italic">{score}</div>
+            <div className="space-y-4">
+                <section className="bg-[#1a1a1a] p-5 rounded-[20px] flex items-center justify-between border border-zinc-800">
+                    <div><h2 className="text-xl font-black italic uppercase">MISSION SCORE</h2><p className="text-[10px] font-bold uppercase text-zinc-500">Daily Objective</p></div>
+                    <div className="text-4xl font-black italic text-orange-500">{score}</div>
                 </section>
-                <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800">
-                    <h3 className="font-black text-sm uppercase text-orange-400 mb-4">1. Fuel (Meals)</h3>
+                
+                <section className="bg-[#1a1a1a] p-5 rounded-[20px] border border-zinc-800">
+                    <h3 className="font-black text-xs uppercase text-orange-400 mb-4 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"></path></svg> Meals (มื้ออาหาร)</h3>
                     <div className="grid grid-cols-2 gap-3">
                         {[ {k:'b',l:'Breakfast'}, {k:'l',l:'Lunch'}, {k:'s',l:'Snack'}, {k:'d',l:'Dinner'} ].map(m => (
-                            <button key={m.k} onClick={()=>updateDaily(m.k, !daily[m.k])} className={`p-4 rounded-xl text-xs font-bold uppercase transition-all ${daily[m.k] ? 'bg-lime-500/20 text-lime-400 border border-lime-500/50' : 'bg-zinc-950 text-zinc-400 border border-zinc-800'}`}>{m.l}</button>
+                            <button key={m.k} onClick={()=>updateDaily(m.k, !daily[m.k])} className={`p-4 rounded-xl text-xs font-bold uppercase transition-all ${daily[m.k] ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>{m.l}</button>
                         ))}
                     </div>
                 </section>
-                <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800 flex items-center justify-between">
-                    <div><h3 className="font-black text-sm uppercase text-blue-400">2. Water</h3><p className="text-xs text-zinc-500">Target: {targetWater} แก้ว</p></div>
+
+                <section className="bg-[#1a1a1a] p-5 rounded-[20px] border border-zinc-800 flex items-center justify-between">
+                    <div><h3 className="font-black text-xs uppercase text-blue-400 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg> Water</h3><p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">Target: {targetWater} แก้ว</p></div>
                     <div className="flex items-center gap-4">
-                        <button onClick={()=>updateDaily('w', Math.max(0, daily.w-1))} className="w-12 h-12 bg-zinc-950 border border-zinc-800 rounded-full font-black text-xl">-</button>
+                        <button onClick={()=>updateDaily('w', Math.max(0, daily.w-1))} className="w-10 h-10 bg-zinc-900 border border-zinc-700 rounded-xl font-black text-lg text-white">-</button>
                         <span className="text-2xl font-black italic">{daily.w}</span>
-                        <button onClick={()=>updateDaily('w', daily.w+1)} className="w-12 h-12 bg-blue-500 text-black rounded-full font-black text-xl">+</button>
+                        <button onClick={()=>updateDaily('w', daily.w+1)} className="w-10 h-10 bg-blue-500 text-black rounded-xl font-black text-lg">+</button>
                     </div>
                 </section>
-                <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800">
-                    <h3 className="font-black text-sm uppercase text-lime-400 mb-2">3. Workout: {cfg.name}</h3>
-                    <p className="text-xs text-zinc-400 mb-4">{cfg.desc}</p>
-                    <div className="space-y-2 mb-6">
+
+                <section className="bg-[#1a1a1a] p-5 rounded-[20px] border border-zinc-800">
+                    <h3 className="font-black text-xs uppercase text-lime-400 mb-2">🏃‍♂️ Workout: {cfg.name}</h3>
+                    <p className="text-[10px] text-zinc-400 mb-4">{cfg.desc}</p>
+                    <div className="space-y-2 mb-5">
                         {cfg.ex.map((ex, i) => (
-                            <div key={i} onClick={()=>{let nx=[...(daily.ex||[false,false,false])]; nx[i]=!nx[i]; updateDaily('ex', nx);}} className={`p-3 rounded-lg border text-sm font-bold cursor-pointer flex items-center gap-3 ${daily.ex?.[i] ? 'bg-lime-500/20 border-lime-500 text-lime-400' : 'bg-zinc-950 border-zinc-800'}`}>
-                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${daily.ex?.[i] ? 'bg-lime-500 border-lime-500 text-black' : 'border-zinc-600'}`}>{daily.ex?.[i] ? '✓' : ''}</div>{ex}
+                            <div key={i} onClick={()=>{let nx=[...(daily.ex||[false,false,false])]; nx[i]=!nx[i]; updateDaily('ex', nx);}} className={`p-3 rounded-xl border text-xs font-bold cursor-pointer flex items-center gap-3 transition-colors ${daily.ex?.[i] ? 'bg-lime-500/20 border-lime-500 text-lime-400' : 'bg-zinc-900 border-zinc-800'}`}>
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${daily.ex?.[i] ? 'bg-lime-500 border-lime-500 text-black' : 'border-zinc-600'}`}>{daily.ex?.[i] ? '✓' : ''}</div>{ex}
                             </div>
                         ))}
                     </div>
                     {cfg.id !== 'rest' && !daily.rLog && (
-                        <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3">
-                            <p className="text-xs font-bold text-red-400 uppercase">Run Logger</p>
+                        <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-3">
+                            <p className="text-[10px] font-bold text-zinc-500 uppercase">Run Logger</p>
                             <div className="grid grid-cols-3 gap-2">
-                                <input type="number" placeholder="KM" value={inDist} onChange={e=>setInDist(e.target.value)} className="bg-black p-3 rounded text-center font-bold text-sm border border-zinc-800 focus:border-orange-500 outline-none" />
-                                <input type="text" placeholder="Pace" value={inPace} onChange={e=>setInPace(e.target.value)} className="bg-black p-3 rounded text-center font-bold text-sm border border-zinc-800 focus:border-orange-500 outline-none" />
-                                <input type="number" placeholder="HR" value={inHr} onChange={e=>setInHr(e.target.value)} className="bg-black p-3 rounded text-center font-bold text-sm border border-zinc-800 focus:border-orange-500 outline-none" />
+                                <input type="number" placeholder="KM" value={inDist} onChange={e=>setInDist(e.target.value)} className="bg-black p-3 rounded-lg text-center font-bold text-xs border border-zinc-800 focus:border-orange-500 outline-none" />
+                                <input type="text" placeholder="Pace" value={inPace} onChange={e=>setInPace(e.target.value)} className="bg-black p-3 rounded-lg text-center font-bold text-xs border border-zinc-800 focus:border-orange-500 outline-none" />
+                                <input type="number" placeholder="HR" value={inHr} onChange={e=>setInHr(e.target.value)} className="bg-black p-3 rounded-lg text-center font-bold text-xs border border-zinc-800 focus:border-orange-500 outline-none" />
                             </div>
-                            <button onClick={saveRun} disabled={!inDist || !inPace} className="w-full py-3 bg-orange-500 text-black rounded-lg font-black uppercase tracking-widest disabled:opacity-50">Save Run</button>
+                            <button onClick={saveRun} disabled={!inDist || !inPace} className="w-full py-3 bg-orange-500 text-black rounded-lg font-black uppercase text-xs tracking-widest disabled:opacity-50 mt-2">Save Run</button>
                         </div>
                     )}
                     {daily.rLog && (
-                        <div className="bg-zinc-950 p-4 rounded-xl border border-lime-500/30">
+                        <div className="bg-zinc-900 p-4 rounded-xl border border-lime-500/30">
                             <div className="flex justify-between items-start mb-2">
-                                <div><p className="text-lime-400 font-bold text-sm uppercase">✅ Run Saved!</p><p className="text-xs text-zinc-300 mt-1">Dist: {daily.rDist} km | Pace: {daily.rPace} | HR: {daily.rHr}</p></div>
+                                <div><p className="text-lime-400 font-bold text-xs uppercase">✅ Run Saved!</p><p className="text-[10px] text-zinc-400 mt-1">Dist: {daily.rDist} km | Pace: {daily.rPace} | HR: {daily.rHr}</p></div>
                                 <button onClick={()=>updateDaily('rLog', false)} className="text-[10px] text-zinc-500 underline">Edit</button>
                             </div>
-                            {/* 🔥 AI Coach Feedback Section */}
                             <div className="pt-3 border-t border-zinc-800 mt-3">
-                                <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">🤖 AI Coach Feedback</h4>
-                                <p className="text-sm font-medium text-zinc-300 leading-relaxed mb-3">{daily.aiFeedback}</p>
-                                <div className="inline-block bg-zinc-900 border border-zinc-700 px-3 py-1.5 rounded-lg">
-                                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-0.5">Performance Condition</span>
-                                    <span className="text-xs font-black text-blue-400 uppercase">{daily.perfCondition}</span>
-                                </div>
-                                {daily.vcrUpgraded && (
-                                    <div className="mt-3 bg-fuchsia-500/10 border border-fuchsia-500/50 p-3 rounded-lg text-center">
-                                        <p className="text-xs font-bold text-fuchsia-400 uppercase tracking-widest">🎉 VCR Level Up!</p>
-                                        <p className="text-[10px] text-fuchsia-300 mt-1">สถิติดีขึ้น! AI อัปเกรด VCR ให้เป็น {daily.newVcrVal} ม. แล้ว</p>
-                                    </div>
-                                )}
+                                <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">🤖 AI Feedback</h4>
+                                <p className="text-[11px] text-zinc-300 mb-2">{daily.aiFeedback}</p>
+                                <span className="text-[10px] font-black text-cyan-400 uppercase bg-cyan-400/10 px-2 py-1 rounded">{daily.perfCondition}</span>
                             </div>
                         </div>
                     )}
                 </section>
-            </React.Fragment>
+            </div>
         );
 
         const TabPlan = ({ cfg }) => (
-            <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800">
-                <h2 className="font-black text-xl italic uppercase mb-4 text-white">Today's Playbook</h2>
+            <section className="bg-[#1a1a1a] p-5 rounded-[20px] border border-zinc-800">
+                <h2 className="font-black text-lg italic uppercase mb-1 text-white">PLAYBOOK</h2>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase mb-4 tracking-widest">แผนการฝึกซ้อมและโภชนาการแบบเจาะลึก</p>
+                
                 <div className="space-y-4">
-                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase">WORKOUT</p>
-                        <p className="text-lg font-black text-lime-400">{cfg.name}</p>
-                        <p className="text-sm text-zinc-400 mt-1">{cfg.desc}</p>
-                        <div className="flex gap-2 mt-3"><span className="bg-zinc-800 px-2 py-1 rounded text-cyan-400 font-bold text-[10px]">PACE: {cfg.pace}</span><span className="bg-zinc-800 px-2 py-1 rounded text-red-400 font-bold text-[10px]">HR: {cfg.hr}</span></div>
+                    <div className="bg-orange-500/10 p-4 rounded-xl border border-orange-500/30">
+                        <p className="text-[10px] text-orange-400 font-black uppercase tracking-widest mb-1">💬 AI Coach Briefing</p>
+                        <p className="text-xs text-orange-100 font-medium leading-relaxed">{cfg.aiAdvice}</p>
                     </div>
-                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">NUTRITION</p>
-                        <ul className="text-sm text-zinc-300 space-y-2">
-                            <li><span className="text-orange-400 font-bold">เช้า:</span> {cfg.meals.b}</li>
-                            <li><span className="text-orange-400 font-bold">เที่ยง:</span> {cfg.meals.l}</li>
-                            {cfg.meals.s && <li><span className="text-orange-400 font-bold">ของว่าง:</span> {cfg.meals.s}</li>}
-                            <li><span className="text-orange-400 font-bold">เย็น:</span> {cfg.meals.d}</li>
-                        </ul>
+
+                    <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                        <div className="mb-3 border-b border-zinc-800 pb-3">
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Workout Phase</p>
+                            <p className="text-lg font-black text-lime-400">{cfg.name}</p>
+                        </div>
+                        <div className="space-y-3">
+                            <div><h4 className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">🔥 Warm-up</h4><ul className="list-disc list-inside text-[11px] text-zinc-300">{cfg.detailedWorkout.warmup.map((i, idx)=><li key={idx}>{i}</li>)}</ul></div>
+                            <div><h4 className="text-[10px] font-black text-lime-400 uppercase tracking-widest mb-1">🏃‍♂️ Main Set</h4><p className="text-[11px] text-white font-bold bg-black p-2 rounded border border-zinc-800">{cfg.detailedWorkout.main}</p></div>
+                            <div><h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">❄️ Cool-down</h4><ul className="list-disc list-inside text-[11px] text-zinc-300">{cfg.detailedWorkout.cooldown.map((i, idx)=><li key={idx}>{i}</li>)}</ul></div>
+                        </div>
+                    </div>
+
+                    <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">🥑 Detailed Nutrition</p>
+                        <div className="space-y-3">
+                            {[ {k:'b', t:'Breakfast', c:'text-yellow-400'}, {k:'l', t:'Lunch', c:'text-orange-400'}, {k:'s', t:'Snack', c:'text-fuchsia-400'}, {k:'d', t:'Dinner', c:'text-blue-400'} ].map(m => {
+                                const d = cfg.detailedMeals[m.k]; if(!d) return null;
+                                return (<div key={m.k} className="border-l-2 border-zinc-700 pl-2"><p className={`text-[10px] font-black uppercase ${m.c}`}>{m.t}</p><p className="text-xs text-white font-bold">{d.menu}</p></div>)
+                            })}
+                        </div>
                     </div>
                 </div>
             </section>
         );
 
         const TabRanking = ({ leaderboardData }) => (
-            <section className="space-y-6 pb-10">
-                <div className="text-center mb-6 pt-4"><h2 className="text-4xl font-black text-white italic uppercase tracking-tighter drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]">THE ELITE<br/>LEADERBOARD</h2><p className="text-xs font-bold text-orange-400 uppercase tracking-widest mt-2">ระยะวิ่งสะสม 7 วันย้อนหลัง</p></div>
-                <div className="space-y-4">
-                    {leaderboardData.length === 0 ? <div className="text-center p-8 bg-zinc-900 rounded-2xl border border-zinc-800 text-zinc-500 font-bold">ไม่มีข้อมูลสถิติ หรือกำลังโหลดข้อมูลชมรม... ⏳</div> : 
+            <section className="space-y-4">
+                <div className="text-center mb-4 pt-2"><h2 className="text-3xl font-black text-white italic uppercase tracking-tighter drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]">LEADERBOARD</h2></div>
+                <div className="space-y-3">
+                    {leaderboardData.length === 0 ? <div className="text-center p-6 bg-[#1a1a1a] rounded-[20px] text-zinc-500 font-bold">กำลังโหลดข้อมูล... ⏳</div> : 
                         leaderboardData.map((runner, idx) => {
-                            let badge = '', bgStyle = 'bg-zinc-900 border-zinc-800', textStyle = 'text-white';
-                            if (idx === 0) { badge = '👑'; bgStyle = 'bg-gradient-to-r from-orange-900/40 to-yellow-900/40 border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.2)]'; textStyle = 'text-yellow-400'; }
-                            else if (idx === 1) { badge = '🥈'; bgStyle = 'bg-zinc-900 border-zinc-400/50'; textStyle = 'text-zinc-300'; }
-                            else if (idx === 2) { badge = '🥉'; bgStyle = 'bg-zinc-900 border-orange-800/50'; textStyle = 'text-orange-300'; }
+                            let bg = 'bg-[#1a1a1a] border-zinc-800', txt = 'text-white';
+                            if (idx === 0) { bg = 'bg-orange-900/20 border-orange-500/50 shadow-lg'; txt = 'text-orange-400'; }
                             return (
-                                <div key={idx} className={`p-5 rounded-[20px] border flex items-center justify-between transition-all ${bgStyle}`}>
-                                    <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl bg-zinc-950 border-2 ${idx === 0 ? 'border-yellow-400' : 'border-zinc-800'}`}>{idx === 0 ? '1' : idx + 1}</div><div><div className="flex items-center gap-2"><h3 className={`font-black text-lg uppercase tracking-wider ${textStyle}`}>{runner.name}</h3><span className="text-xl">{badge}</span></div><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Total All-Time: {runner.tKm.toFixed(1)} KM</p></div></div>
-                                    <div className="text-right"><p className={`text-3xl font-black italic ${idx === 0 ? 'text-white' : 'text-zinc-300'}`}>{runner.wKm.toFixed(1)}</p><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">KM (7 Days)</p></div>
+                                <div key={idx} className={`p-4 rounded-[20px] border flex items-center justify-between ${bg}`}>
+                                    <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg bg-black border ${idx===0?'border-orange-400':'border-zinc-800'}`}>{idx + 1}</div><div><h3 className={`font-black text-base uppercase tracking-wider ${txt}`}>{runner.name}</h3><p className="text-[9px] text-zinc-500 font-bold uppercase mt-0.5">All-Time: {runner.tKm.toFixed(1)} KM</p></div></div>
+                                    <div className="text-right"><p className={`text-2xl font-black italic ${idx===0?'text-white':'text-zinc-300'}`}>{runner.wKm.toFixed(1)}</p><p className="text-[9px] text-zinc-500 font-bold uppercase">KM (7 Days)</p></div>
                                 </div>
                             )
                         })
@@ -362,67 +385,33 @@
             </section>
         );
 
-        const TabStats = ({ prof, vo2Value, bestSpeedMin, tDist, pTime, pSource, isSubTarget, setShowSetup, fastest5kSecs, fastest10kSecs, longestRun }) => {
-            let vo2Color = "text-red-500", vo2Label = "POOR", gaugeColor = "#ef4444";
-            if (vo2Value >= 35) { vo2Color = "text-orange-500"; vo2Label = "FAIR"; gaugeColor = "#f97316"; }
-            if (vo2Value >= 40) { vo2Color = "text-lime-400"; vo2Label = "GOOD"; gaugeColor = "#a3e635"; }
-            if (vo2Value >= 45) { vo2Color = "text-blue-400"; vo2Label = "EXCELLENT"; gaugeColor = "#60a5fa"; }
-            if (vo2Value >= 50) { vo2Color = "text-fuchsia-400"; vo2Label = "SUPERIOR"; gaugeColor = "#e879f9"; }
-            const vo2ProgressGauge = Math.max(0, Math.min(100, ((vo2Value - 20) / (60 - 20)) * 100)) || 0;
-            const safeGaugeOffset = isNaN(126 - (vo2ProgressGauge / 100) * 126) ? 126 : 126 - (vo2ProgressGauge / 100) * 126;
-
+        const TabStats = ({ prof, vo2Value, tDist, pTime, pSource, fastest5kSecs, fastest10kSecs, longestRun }) => {
             const bmi = prof.height ? (prof.weight / Math.pow(prof.height/100, 2)).toFixed(1) : '-';
-
             return (
-                <React.Fragment>
-                    <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
-                        <div className="flex items-center justify-between mb-2"><h2 className="font-black text-xl text-white uppercase tracking-widest italic">PEAK VO2 MAX</h2><span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${vo2Color} border-current bg-zinc-950`}>{vo2Label}</span></div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-6">สมรรถภาพทางกายเทียบกับอายุ</p>
-                        <div className="flex justify-center my-6">
-                            <div className="relative w-48 h-24 overflow-hidden">
-                                <svg className="w-full h-full" viewBox="0 0 100 50">
-                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#27272a" strokeWidth="8" strokeLinecap="round" />
-                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={gaugeColor} strokeWidth="8" strokeLinecap="round" className="gauge-arc" style={{strokeDashoffset: safeGaugeOffset}} />
-                                    <circle cx="10" cy="50" r="1.5" fill="#18181b" /><circle cx="21" cy="22" r="1.5" fill="#18181b" /><circle cx="50" cy="10" r="1.5" fill="#18181b" /><circle cx="79" cy="22" r="1.5" fill="#18181b" /><circle cx="90" cy="50" r="1.5" fill="#18181b" />
-                                </svg>
-                                <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center"><span className={`text-4xl font-black italic tracking-tighter ${vo2Color}`}>{vo2Value}</span></div>
-                            </div>
-                        </div>
-                        <div className="text-center mt-2 p-3 bg-zinc-950 rounded-xl border border-zinc-800"><p className="text-[10px] text-zinc-500 font-bold leading-relaxed">คำนวณจาก VCR Test และสถิติวิ่งที่ดีที่สุดของคุณ<br/>(อ้างอิงความเร็ว: {formatPace(1000/bestSpeedMin)})</p></div>
+                <div className="space-y-4">
+                    <section className="bg-[#1a1a1a] rounded-[20px] p-5 border border-zinc-800 text-center">
+                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-1">PEAK VO2 MAX</h2>
+                        <p className="text-4xl font-black italic text-cyan-400 my-2">{vo2Value}</p>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase">อ้างอิงจาก VCR และสถิติที่ดีที่สุด</p>
                     </section>
-
-                    <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
-                        <h2 className="font-black text-xl text-white mb-6 uppercase tracking-widest italic">Personal Bests</h2>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center"><span className="text-2xl mb-2">🏅</span><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Fastest 5K</span><span className="text-white font-black text-lg italic">{formatPace(fastest5kSecs)}</span></div>
-                            <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center"><span className="text-2xl mb-2">🏆</span><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Fastest 10K</span><span className="text-white font-black text-lg italic">{formatPace(fastest10kSecs)}</span></div>
-                            <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center"><span className="text-2xl mb-2">🔥</span><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Longest Run</span><span className="text-white font-black text-lg italic">{longestRun.toFixed(1)}<span className="text-[10px] ml-1">KM</span></span></div>
+                    <section className="bg-[#1a1a1a] rounded-[20px] p-5 border border-zinc-800">
+                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-3 text-center">Personal Bests</h2>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-zinc-900 p-3 rounded-xl"><p className="text-[9px] text-zinc-500 font-bold uppercase mb-1">Fastest 5K</p><p className="text-white font-black text-sm italic">{formatPace(fastest5kSecs)}</p></div>
+                            <div className="bg-zinc-900 p-3 rounded-xl"><p className="text-[9px] text-zinc-500 font-bold uppercase mb-1">Fastest 10K</p><p className="text-white font-black text-sm italic">{formatPace(fastest10kSecs)}</p></div>
+                            <div className="bg-zinc-900 p-3 rounded-xl"><p className="text-[9px] text-zinc-500 font-bold uppercase mb-1">Longest Run</p><p className="text-white font-black text-sm italic">{longestRun.toFixed(1)} <span className="text-[9px]">KM</span></p></div>
                         </div>
                     </section>
-
-                    <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800">
-                        <h2 className="font-black text-xl italic uppercase mb-2 text-white">AI Predictor</h2><p className="text-xs text-zinc-500 font-bold uppercase mb-4">คาดการณ์เวลาจบ ({prof.targetDist||42.195}K)</p>
-                        <div className={`p-5 rounded-xl text-center border ${isSubTarget ? 'bg-lime-400/10 border-lime-400/30' : 'bg-zinc-950 border-zinc-800'}`}>
-                            <p className={`text-[10px] font-bold uppercase mb-1 ${isSubTarget ? 'text-lime-400' : 'text-zinc-500'}`}>Estimated Time</p>
-                            <p className={`text-4xl font-black italic ${isSubTarget ? 'text-white' : 'text-zinc-300'}`}>{pTime}</p><p className="text-[10px] text-zinc-500 font-bold mt-2 uppercase">{pSource}</p>
-                        </div>
+                    <section className="bg-[#1a1a1a] rounded-[20px] p-5 border border-zinc-800 text-center">
+                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-3">AI Predictor (Finish Time)</h2>
+                        <p className="text-3xl font-black italic text-lime-400">{pTime}</p>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">{pSource}</p>
                     </section>
-
-                    <section className="bg-zinc-900 p-6 rounded-[24px] border border-zinc-800">
-                        <h2 className="font-black text-xl italic uppercase mb-4 text-white">Body Stats & BMI</h2>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-center"><p className="text-[9px] text-zinc-500 font-bold uppercase">Current</p><p className="text-xl font-black italic mt-1">{prof.weight} <span className="text-[10px] text-zinc-500 not-italic">KG</span></p></div>
-                            <div className="bg-zinc-950 p-4 rounded-xl border border-orange-500/30 text-center shadow-[0_0_15px_rgba(249,115,22,0.1)]"><p className="text-[9px] text-orange-500 font-bold uppercase">Goal</p><p className="text-xl font-black text-orange-400 italic mt-1">{prof.targetWeight} <span className="text-[10px] text-zinc-500 not-italic">KG</span></p></div>
-                            <div className="bg-zinc-950 p-4 rounded-xl border border-blue-500/30 text-center shadow-[0_0_15px_rgba(59,130,246,0.1)]"><p className="text-[9px] text-blue-400 font-bold uppercase">BMI</p><p className="text-xl font-black text-blue-400 italic mt-1">{bmi}</p></div>
-                        </div>
-                    </section>
-
-                    <button onClick={()=>setShowSetup(true)} className="w-full p-4 border border-zinc-700 rounded-xl text-xs font-bold text-zinc-400 uppercase mt-4 hover:bg-zinc-800 transition-colors">Edit Profile Settings</button>
-                </React.Fragment>
+                </div>
             );
         };
 
-        const SetupModal = ({ initialProf, onSave }) => {
+        const SetupModal = ({ initialProf, onSave, onCancel }) => {
             const [setupWeight, setSetupWeight] = useState(initialProf.weight);
             const [setupTarget, setSetupTarget] = useState(initialProf.targetWeight);
             const [setupHeight, setSetupHeight] = useState(initialProf.height);
@@ -441,92 +430,59 @@
                 const smartSchedule = generateSmartSchedule(setupAvail, setupLongDay);
                 onSave({ weight: setupWeight, targetWeight: setupTarget, height: setupHeight, gender: setupGender, age: setupAge, rhr: setupRhr, vcr: setupVcr, targetDist: setupDist, schedule: smartSchedule, injury: setupInjury, lifestyle: setupLifestyle });
             };
-
             const dayLabels = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
 
             return (
-                <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 z-50 overflow-y-auto">
-                    <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[24px] shadow-2xl w-full max-w-sm my-10">
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-1">Race & Profile</h2>
-                        <p className="text-sm font-bold text-zinc-500 tracking-wide mb-6">ตั้งเป้าหมายและจัดตารางซ้อม 🎯</p>
+                <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-start p-6 z-50 overflow-y-auto">
+                    <div className="bg-[#1a1a1a] border border-zinc-800 p-6 rounded-[24px] shadow-2xl w-full max-w-sm my-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Settings</h2>
+                            {initialProf.initialWeight && <button onClick={onCancel} className="text-zinc-500 font-bold text-xs uppercase">Close</button>}
+                        </div>
                         <div className="space-y-6">
-                            
-                            {/* ข้อมูล 4 Golden Data & พื้นฐาน */}
                             <div className="border-b border-zinc-800 pb-5">
-                                <label className="text-[10px] font-black text-fuchsia-400 uppercase mb-2 block">A. ข้อมูลสรีระพื้นฐาน (Golden Data)</label>
                                 <div className="grid grid-cols-2 gap-2 mb-2">
-                                    <input type="number" value={setupWeight} onChange={e=>setSetupWeight(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="น้ำหนักปัจจุบัน (KG)" />
-                                    <input type="number" value={setupTarget} onChange={e=>setSetupTarget(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="เป้าหมาย (KG)" />
+                                    <input type="number" value={setupWeight} onChange={e=>setSetupWeight(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="Current KG" />
+                                    <input type="number" value={setupTarget} onChange={e=>setSetupTarget(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="Target KG" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 mb-2">
-                                    <input type="number" value={setupHeight} onChange={e=>setSetupHeight(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="ส่วนสูง (CM)" />
+                                    <input type="number" value={setupHeight} onChange={e=>setSetupHeight(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 text-sm" placeholder="Height CM" />
                                     <div className="flex gap-1">
-                                        <button onClick={()=>setSetupGender('male')} className={`flex-1 rounded-xl text-xs font-bold transition-colors ${setupGender==='male' ? 'bg-fuchsia-500 text-black' : 'bg-black border border-zinc-800 text-zinc-500'}`}>ชาย</button>
-                                        <button onClick={()=>setSetupGender('female')} className={`flex-1 rounded-xl text-xs font-bold transition-colors ${setupGender==='female' ? 'bg-fuchsia-500 text-black' : 'bg-black border border-zinc-800 text-zinc-500'}`}>หญิง</button>
+                                        <button onClick={()=>setSetupGender('male')} className={`flex-1 rounded-xl text-xs font-bold transition-colors ${setupGender==='male' ? 'bg-orange-500 text-black' : 'bg-black border border-zinc-800 text-zinc-500'}`}>Male</button>
+                                        <button onClick={()=>setSetupGender('female')} className={`flex-1 rounded-xl text-xs font-bold transition-colors ${setupGender==='female' ? 'bg-orange-500 text-black' : 'bg-black border border-zinc-800 text-zinc-500'}`}>Female</button>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div><label className="text-[10px] font-black text-zinc-500 uppercase">อายุ (ปี)</label><input type="number" value={setupAge} onChange={e=>setSetupAge(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800 text-sm" /></div>
+                                    <div><label className="text-[10px] font-black text-zinc-500 uppercase">Age</label><input type="number" value={setupAge} onChange={e=>setSetupAge(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800 text-sm" /></div>
                                     <div><label className="text-[10px] font-black text-zinc-500 uppercase">Resting HR</label><input type="number" value={setupRhr} onChange={e=>setSetupRhr(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl mt-1 text-white font-bold border border-zinc-800 text-sm" /></div>
                                 </div>
                             </div>
-
                             <div className="border-b border-zinc-800 pb-5">
-                                <label className="text-[10px] font-black text-blue-400 uppercase mb-2 block">B. ประวัติบาดเจ็บ & ไลฟ์สไตล์ (AI Coach)</label>
-                                <select value={setupInjury} onChange={e=>setSetupInjury(e.target.value)} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm mb-2">
-                                    <option value="none">ไม่เคยบาดเจ็บ (แข็งแรงดี)</option>
-                                    <option value="knee">เจ็บเข่า / ITB</option>
-                                    <option value="plantar">รองช้ำ / เจ็บฝ่าเท้า</option>
-                                    <option value="shin">หน้าแข้ง (Shin Splints)</option>
-                                </select>
-                                <select value={setupLifestyle} onChange={e=>setSetupLifestyle(e.target.value)} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm">
-                                    <option value="sedentary">นั่งทำงานออฟฟิศเป็นหลัก</option>
-                                    <option value="active">เดินบ่อย / ขยับตัวเยอะ</option>
-                                    <option value="heavy">ทำงานใช้แรงงาน / กลางแจ้ง</option>
-                                </select>
-                                <p className="text-[9px] text-zinc-500 mt-1.5">AI จะนำไปปรับเปลี่ยนท่าเวทเทรนนิ่ง และเป้าหมายน้ำดื่มให้เหมาะสม</p>
+                                <label className="text-[10px] font-black text-blue-400 uppercase mb-2 block">Injury & Lifestyle</label>
+                                <select value={setupInjury} onChange={e=>setSetupInjury(e.target.value)} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm mb-2"><option value="none">ไม่เคยบาดเจ็บ (แข็งแรงดี)</option><option value="knee">เจ็บเข่า / ITB</option><option value="plantar">รองช้ำ / เจ็บฝ่าเท้า</option><option value="shin">หน้าแข้ง (Shin Splints)</option></select>
+                                <select value={setupLifestyle} onChange={e=>setSetupLifestyle(e.target.value)} className="w-full bg-black p-3 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm"><option value="sedentary">นั่งทำงานออฟฟิศเป็นหลัก</option><option value="active">เดินบ่อย / ขยับตัวเยอะ</option><option value="heavy">ทำงานใช้แรงงาน / กลางแจ้ง</option></select>
                             </div>
-
                             <div>
-                                <label className="text-[10px] font-black text-lime-400 uppercase mb-2 block">C. Target Distance (ระยะลงแข่ง)</label>
+                                <label className="text-[10px] font-black text-lime-400 uppercase mb-2 block">Race Target</label>
                                 <div className="grid grid-cols-4 gap-2 mb-4">
-                                    {[ {d:5, l:'5K'}, {d:10, l:'10K'}, {d:21.1, l:'21K'}, {d:42.195, l:'42K'} ].map(dist => (
-                                        <button key={dist.d} onClick={() => setSetupDist(dist.d)} className={`py-2 rounded-lg text-xs font-black transition-colors ${setupDist === dist.d ? 'bg-lime-500 text-black' : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'}`}>{dist.l}</button>
-                                    ))}
+                                    {[ {d:5, l:'5K'}, {d:10, l:'10K'}, {d:21.1, l:'21K'}, {d:42.195, l:'42K'} ].map(dist => (<button key={dist.d} onClick={() => setSetupDist(dist.d)} className={`py-2 rounded-lg text-xs font-black transition-colors ${setupDist === dist.d ? 'bg-lime-500 text-black' : 'bg-black border border-zinc-800 text-zinc-500'}`}>{dist.l}</button>))}
                                 </div>
-
-                                <div className="bg-zinc-950 p-4 rounded-xl border border-cyan-500/30 mb-4 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-                                    <label className="text-[10px] font-black text-cyan-400 uppercase mb-2 block">30-Min VCR Test (ระยะที่วิ่งได้ใน 30 นาที)</label>
-                                    <div className="bg-zinc-900 p-2 rounded-lg mb-3 border border-zinc-800">
-                                        <ul className="text-[9px] text-zinc-400 space-y-1">
-                                            <li className="flex justify-between"><span>🔴 ระดับเริ่มต้น (Pace > 7:30)</span><span>&lt; 4,000 ม.</span></li>
-                                            <li className="flex justify-between"><span>🟡 ระดับกลาง (Pace 6:00 - 7:30)</span><span>4,000 - 5,000 ม.</span></li>
-                                            <li className="flex justify-between"><span>🟢 ระดับสูง (Pace &lt; 6:00)</span><span>&gt; 5,000 ม.</span></li>
-                                        </ul>
-                                    </div>
-                                    <div className="flex items-baseline gap-2">
-                                        <input type="number" value={setupVcr} onChange={e=>setSetupVcr(Number(e.target.value))} className="flex-1 bg-black p-3 rounded-xl text-cyan-400 font-black border border-zinc-800 text-center text-xl" />
-                                        <span className="text-cyan-500 font-bold text-xs">เมตร</span>
-                                    </div>
-                                </div>
-
+                                <label className="text-[10px] font-black text-cyan-400 uppercase mb-1 block">30-Min VCR Test (Meters)</label>
+                                <input type="number" value={setupVcr} onChange={e=>setSetupVcr(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-cyan-400 font-black border border-zinc-800 text-center text-lg mb-4" />
+                                
                                 <label className="text-[10px] font-black text-orange-500 uppercase mb-2 flex justify-between">
                                     <span>Training Days (เลือกวันซ้อม)</span><span>{Object.values(setupAvail).filter(v=>v).length} วัน/สัปดาห์</span>
                                 </label>
                                 <div className="flex justify-between gap-1 mb-4">
-                                    {['อา','จ','อ','พ','พฤ','ศ','ส'].map((day, idx) => (
-                                        <button key={idx} onClick={() => setSetupAvail({...setupAvail, [idx]: !setupAvail[idx]})} className={`w-full py-3 rounded-lg text-[10px] font-black flex items-center justify-center transition-colors ${setupAvail[idx] ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50' : 'bg-zinc-950 text-zinc-600 border border-zinc-800'}`}>{day}</button>
-                                    ))}
+                                    {['อา','จ','อ','พ','พฤ','ศ','ส'].map((day, idx) => (<button key={idx} onClick={() => setSetupAvail({...setupAvail, [idx]: !setupAvail[idx]})} className={`w-full py-2.5 rounded-lg text-[10px] font-black flex items-center justify-center transition-colors ${setupAvail[idx] ? 'bg-orange-500 text-black' : 'bg-black text-zinc-600 border border-zinc-800'}`}>{day}</button>))}
                                 </div>
-
-                                <label className="text-[10px] font-black text-orange-500 uppercase mb-2 block">Long Run Day (วันวิ่งยาว)</label>
+                                <label className="text-[10px] font-black text-orange-500 uppercase mb-2 block">Long Run Day</label>
                                 <select value={setupLongDay} onChange={e => setSetupLongDay(Number(e.target.value))} className="w-full bg-black p-3 rounded-xl text-orange-400 font-bold border border-zinc-800 outline-none text-sm">
                                     {Object.keys(setupAvail).filter(k=>setupAvail[k]).map(k => (<option key={k} value={k}>ทุกวัน {dayLabels[k]}</option>))}
                                     {Object.values(setupAvail).filter(v=>v).length === 0 && (<option value={0}>กรุณาเลือกวันซ้อมก่อน</option>)}
                                 </select>
                             </div>
-
-                            <button onClick={handleSave} className="w-full bg-white text-black font-black uppercase tracking-widest py-4 rounded-xl mt-2 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">Save & Calculate Plan</button>
+                            <button onClick={handleSave} className="w-full bg-white text-black font-black uppercase tracking-widest py-4 rounded-xl mt-2 active:scale-95 transition-all">Save Config</button>
                         </div>
                     </div>
                 </div>
@@ -540,7 +496,6 @@
             const localKey = `p80_v9_${safeProfileName}`; 
             
             const cached = JSON.parse(safeStorage.getItem(localKey) || 'null');
-            
             const [loading, setLoading] = useState(!cached);
             const [activeTab, setActiveTab] = useState('tracker');
             const [dbError, setDbError] = useState(null);
@@ -550,11 +505,8 @@
 
             const [prof, setProf] = useState(cached || {
                 initialWeight: 90.0, weight: 90.0, targetWeight: 80.0, 
-                height: 183, gender: 'male',
-                age: 44, rhr: 60, vcr: 4500, targetDist: 42.195,
-                injury: 'none', lifestyle: 'sedentary',
-                schedule: {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'},
-                records: {}
+                height: 183, gender: 'male', age: 44, rhr: 60, vcr: 4500, targetDist: 42.195,
+                injury: 'none', lifestyle: 'sedentary', schedule: {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'}, records: {}
             });
 
             const todayStr = new Date().toDateString();
@@ -573,14 +525,7 @@
                     setDbError(null);
                     if(snap.exists()) {
                         const d = snap.data();
-                        const safeD = {
-                            initialWeight: d.initialWeight || 90.0, weight: d.weight || 90.0, targetWeight: d.targetWeight || 80.0,
-                            height: d.height || 183, gender: d.gender || 'male',
-                            age: d.age || 44, rhr: d.rhr || 60, vcr: d.vcr || 4500, targetDist: d.targetDist || 42.195,
-                            injury: d.injury || 'none', lifestyle: d.lifestyle || 'sedentary',
-                            schedule: d.schedule || {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'},
-                            records: d.records || {}
-                        };
+                        const safeD = { ...prof, ...d, records: d.records || {} };
                         setProf(safeD);
                         if (!d.initialWeight || !d.vcr) setShowSetup(true);
                         
@@ -615,22 +560,16 @@
             const handleSaveSetup = (newConfig) => {
                 const data = { ...prof, ...newConfig };
                 if(!prof.initialWeight) data.initialWeight = newConfig.weight; 
-                setProf(data);
-                safeStorage.setItem(localKey, JSON.stringify(data));
-                setDoc(docRef, data, {merge:true});
+                setProf(data); safeStorage.setItem(localKey, JSON.stringify(data)); setDoc(docRef, data, {merge:true});
                 setShowSetup(false);
             };
-
             const updateDaily = (key, val) => {
-                const nd = {...daily, [key]:val}; setDaily(nd);
-                const nProf = {...prof, records: {...prof.records, [todayStr]: nd}}; setProf(nProf);
+                const nd = {...daily, [key]:val}; setDaily(nd); const nProf = {...prof, records: {...prof.records, [todayStr]: nd}}; setProf(nProf);
                 safeStorage.setItem(localKey, JSON.stringify(nProf)); setDoc(docRef, { records: { [todayStr]: nd } }, {merge:true});
             };
-
-            const updateWeight = (w) => {
-                if(w<30 || w>200) return;
-                const nProf = {...prof, weight: w}; setProf(nProf);
-                safeStorage.setItem(localKey, JSON.stringify(nProf)); setDoc(docRef, { weight: w }, {merge:true});
+            const updateWeight = (amt) => {
+                const w = Number((prof.weight + amt).toFixed(1)); if(w<30 || w>200) return;
+                const nProf = {...prof, weight: w}; setProf(nProf); safeStorage.setItem(localKey, JSON.stringify(nProf)); setDoc(docRef, { weight: w }, {merge:true});
             };
 
             // Calculate Progress & Data
@@ -642,6 +581,13 @@
             if(diffDays < 0) diffDays = 0; if(diffDays > totalDays) diffDays = totalDays;
             const weekIdx = diffDays > 0 ? Math.min(23, Math.ceil(diffDays/7)-1) : 0;
             const isRace = diffDays === totalDays;
+            const marathonPercent = Math.round((diffDays / totalDays) * 100);
+
+            // Phase String Logic
+            let phaseStr = "BASE PHASE (สร้างฐานความฟิต)";
+            if (weekIdx >= 8 && weekIdx < 16) phaseStr = "BUILD PHASE (เพิ่มความเข้มข้น)";
+            else if (weekIdx >= 16 && weekIdx < 21) phaseStr = "PEAK PHASE (รีดศักยภาพสูงสุด)";
+            else if (weekIdx >= 21) phaseStr = "TAPER PHASE (พักฟื้นก่อนแข่ง)";
 
             let tDist = 0, tSecs = 0, f5k = Infinity, f10k = Infinity, longestRun = 0;
             Object.values(prof.records).forEach(r => {
@@ -650,99 +596,143 @@
                     if(!isNaN(d) && isFinite(s)) {
                         tDist += d; tSecs += (s*d);
                         if(d>=5 && s<f5k) f5k = s; if(d>=10 && s<f10k) f10k = s;
-                        if(d > longestRun) longestRun = d; // Fixed missing longestRun assignment
+                        if(d > longestRun) longestRun = d; 
                     }
                 }
             });
 
             const cfg = getDayConfig(todayObj, weekIdx, isRace, prof);
 
-            // 🔥 Save Run + AI Feature
             const saveRun = () => {
-                const runPaceSecs = parsePace(inPace);
-                const distNum = parseFloat(inDist);
-                let currentVcr = prof.vcr || 4500;
-                let vcrUpgraded = false;
-
-                // 1. Auto-Leveling VCR
+                const runPaceSecs = parsePace(inPace); const distNum = parseFloat(inDist);
+                let currentVcr = prof.vcr || 4500; let vcrUpgraded = false;
                 if (runPaceSecs !== Infinity && distNum >= 3) {
                     const equivalentVcr = (1800 / runPaceSecs) * 1000;
-                    if (equivalentVcr > currentVcr + 100) {
-                        currentVcr = Math.round(equivalentVcr);
-                        vcrUpgraded = true;
-                    }
+                    if (equivalentVcr > currentVcr + 100) { currentVcr = Math.round(equivalentVcr); vcrUpgraded = true; }
                 }
-
-                // 2. Post-Run Feedback
                 const aiMsg = generateFeedback(distNum, inPace, inHr, cfg.pace);
                 const condMsg = calcCondition(inHr, inPace);
-
-                const nd = {...daily, rLog: true, rDist: inDist, rPace: inPace, rHr: inHr, aiFeedback: aiMsg, perfCondition: condMsg, vcrUpgraded: vcrUpgraded, newVcrVal: currentVcr}; 
-                setDaily(nd);
-                
-                const nProf = {...prof, vcr: currentVcr, records: {...prof.records, [todayStr]: nd}}; 
-                setProf(nProf);
-                safeStorage.setItem(localKey, JSON.stringify(nProf)); 
-                setDoc(docRef, { vcr: currentVcr, records: { [todayStr]: nd } }, {merge:true});
+                const nd = {...daily, rLog: true, rDist: inDist, rPace: inPace, rHr: inHr, aiFeedback: aiMsg, perfCondition: condMsg, vcrUpgraded, newVcrVal: currentVcr}; 
+                setDaily(nd); const nProf = {...prof, vcr: currentVcr, records: {...prof.records, [todayStr]: nd}}; setProf(nProf);
+                safeStorage.setItem(localKey, JSON.stringify(nProf)); setDoc(docRef, { vcr: currentVcr, records: { [todayStr]: nd } }, {merge:true});
             };
 
-            // AI Predictor
-            let pTime = "NEED MORE DATA", pSource = `วิ่งสะสมระยะให้ครบ 5K`, isSubTarget = false;
+            let pTime = "NEED MORE DATA", pSource = `วิ่งสะสมระยะให้ครบ 5K`;
             const targetD = prof.targetDist || 42.195;
-            if(isFinite(f10k)) { const res = calcPredictor(f10k*10, 10, targetD); pTime = res.str; pSource = "คำนวณจากสถิติ Fastest 10K ล่าสุด"; } 
-            else if(isFinite(f5k)) { const res = calcPredictor(f5k*5, 5, targetD); pTime = res.str; pSource = "คำนวณจากสถิติ Fastest 5K ล่าสุด"; } 
-            else if(tDist >= 5) { const res = calcPredictor((tSecs/tDist)*tDist, tDist, targetD); pTime = res.str; pSource = "คำนวณจากเพซเฉลี่ยรวม (เผื่อความล้า 5%)"; }
+            if(isFinite(f10k)) { const res = calcPredictor(f10k*10, 10, targetD); pTime = res.str; pSource = "Fastest 10K"; } 
+            else if(isFinite(f5k)) { const res = calcPredictor(f5k*5, 5, targetD); pTime = res.str; pSource = "Fastest 5K"; } 
+            else if(tDist >= 5) { const res = calcPredictor((tSecs/tDist)*tDist, tDist, targetD); pTime = res.str; pSource = "Average Pace"; }
 
-            // Peak VO2 Max
-            let bestSpeedMin = (prof.vcr || 4500) / 30; // speed in meters per min
+            let bestSpeedMin = (prof.vcr || 4500) / 30; 
             if (f5k !== Infinity) bestSpeedMin = Math.max(bestSpeedMin, 5000 / (f5k / 60));
             if (f10k !== Infinity) bestSpeedMin = Math.max(bestSpeedMin, 10000 / (f10k / 60));
-            let vo2Value = ((bestSpeedMin * 0.2) + 3.5).toFixed(1);
-            if (isNaN(vo2Value) || vo2Value <= 0) vo2Value = 0;
+            let vo2Value = ((bestSpeedMin * 0.2) + 3.5).toFixed(1); if (isNaN(vo2Value) || vo2Value <= 0) vo2Value = 0;
 
             const targetWater = getTargetWater(prof.lifestyle);
-
             let score = 0;
             if(daily.b) score+=10; if(daily.l) score+=10; if(daily.s) score+=10; if(daily.d) score+=10;
-            if(daily.w >= targetWater) score+=20;
-            else score += (daily.w / targetWater) * 20;
+            if(daily.w >= targetWater) score+=20; else score += (daily.w / targetWater) * 20;
             score += ((daily.ex||[]).filter(Boolean).length / cfg.ex.length) * 40;
             score = Math.min(Math.round(score), 100);
 
             useEffect(() => { if (score === 100) { setShowConfetti(true); const timer = setTimeout(() => setShowConfetti(false), 5000); return () => clearTimeout(timer); } }, [score]);
 
-            if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-orange-500 font-bold tracking-widest">LOADING...</div>;
-            if (showSetup) return <SetupModal initialProf={prof} onSave={handleSaveSetup} />;
+            if (loading) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-orange-500 font-bold tracking-widest">LOADING...</div>;
+
+            // Navigation Tabs Config
+            const navTabs = [
+                { id: 'tracker', label: 'PIT STOP', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+                { id: 'plan', label: 'PLAYBOOK', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /> },
+                { id: 'ranking', label: 'RANKING', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /> },
+                { id: 'stats', label: 'STATS', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /> }
+            ];
 
             return (
-                <div className="min-h-screen bg-zinc-950 text-white pb-24 relative">
+                <div className="min-h-screen bg-[#0d0d0d] text-white p-5 pb-24 relative overflow-x-hidden font-['Prompt']">
                     {showConfetti && <Confetti />}
-                    <header className="p-6 bg-zinc-900 border-b border-zinc-800">
-                        <div className="flex justify-between items-start">
-                            <div><h1 className="text-4xl font-black italic uppercase">PRO <span className="text-orange-500">80</span></h1><p className="text-xs font-bold text-zinc-400 mt-1">RUNNER: <span className="text-white">{displayProfileName}</span></p>{dbError && <p className="text-[10px] text-red-400 mt-1">{dbError}</p>}</div>
-                            <button onClick={onLogout} className="bg-zinc-800 px-3 py-2 rounded-lg text-[10px] font-bold uppercase text-zinc-400">Logout</button>
+                    {showSetup && <SetupModal initialProf={prof} onSave={handleSaveSetup} onCancel={() => setShowSetup(false)} />}
+                    
+                    {/* Header: Exactly like the screenshot */}
+                    <header className="flex justify-between items-start mb-6 pt-2">
+                        <div>
+                            <h2 className="text-lime-400 font-black text-[10px] tracking-widest uppercase mb-0.5">ROAD TO BANGSAEN42</h2>
+                            <h1 className="text-4xl font-black italic uppercase tracking-tight">PROJECT <span className="text-orange-500">80</span></h1>
+                            <p className="text-xs font-bold text-zinc-500 mt-2 tracking-wide">RUNNER: <span className="text-white">{displayProfileName}</span></p>
                         </div>
-                        <div className="mt-4 flex items-center justify-between"><span className="bg-orange-500/20 text-orange-500 px-3 py-1 rounded font-black text-xs uppercase border border-orange-500/50">WEEK {weekIdx+1}/24</span><span className="bg-lime-500/20 text-lime-400 px-3 py-1 rounded font-black text-xs uppercase border border-lime-500/50">TARGET: {targetD}K</span></div>
+                        <button onClick={onLogout} className="bg-[#1a1a1a] p-3 rounded-[16px] border border-zinc-800 flex flex-col items-center justify-center gap-1.5 w-16 h-16 shrink-0 active:scale-95 transition-transform">
+                            <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">LOG OUT</span>
+                        </button>
                     </header>
 
-                    <div className="px-5 -mt-4 relative z-20">
-                        <div className="bg-zinc-800 p-5 rounded-[20px] border border-zinc-700 shadow-xl flex items-center justify-between">
-                            <div><p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Current Weight</p><div className="flex items-baseline gap-1 mt-1"><span className="text-4xl font-black italic">{prof.weight}</span><span className="text-sm font-bold text-zinc-500">KG</span></div><div className="flex gap-2 mt-2"><button onClick={()=>updateWeight(Number((prof.weight+0.1).toFixed(1)))} className="w-8 h-8 bg-zinc-700 rounded text-zinc-300 font-black">+</button><button onClick={()=>updateWeight(Number((prof.weight-0.1).toFixed(1)))} className="w-8 h-8 bg-orange-500 rounded text-black font-black">-</button></div></div>
-                            <div className="shrink-0"><CoolRunnerAvatar weight={prof.weight} targetWeight={prof.targetWeight} initialWeight={prof.initialWeight} currentConfig={cfg} /></div>
+                    {/* Progress Info */}
+                    <div className="mb-6">
+                        <div className="inline-block border border-orange-500/50 bg-orange-500/10 px-4 py-1.5 rounded-full mb-3">
+                            <span className="text-orange-400 font-bold text-[11px] tracking-widest">DAY {diffDays} / {totalDays}</span>
+                        </div>
+                        <p className="text-lime-400 font-black text-xs uppercase tracking-wider">WEEK {weekIdx+1}/24 : {phaseStr}</p>
+                    </div>
+
+                    {/* Target Weight & Avatar Card */}
+                    <div className="bg-[#1a1a1a] rounded-[24px] p-5 relative overflow-hidden mb-5 border border-zinc-800/50 min-h-[180px]">
+                        <div className="flex justify-between items-start relative z-10">
+                            <div>
+                                <button onClick={() => setShowSetup(true)} className="flex items-center gap-1.5 mb-2 group">
+                                    <span className="text-zinc-400 font-black text-[11px] tracking-widest uppercase group-hover:text-white transition-colors">TARGET WEIGHT</span>
+                                    <svg className="w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                </button>
+                                <div className="flex items-end gap-2 border-b-2 border-zinc-700 pb-1 mb-5 w-[110px]">
+                                    <span className="text-[52px] font-black italic text-white leading-none tracking-tighter">{prof.weight}</span>
+                                    <span className="text-lime-400 font-bold text-sm mb-2">KG</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={()=>updateWeight(0.1)} className="w-[50px] h-[50px] bg-[#2a2a2a] rounded-xl text-white font-black text-2xl flex items-center justify-center active:scale-95 transition-transform">+</button>
+                                    <button onClick={()=>updateWeight(-0.1)} className="w-[50px] h-[50px] bg-orange-500 rounded-xl text-black font-black text-3xl flex items-center justify-center active:scale-95 transition-transform leading-none pb-1">-</button>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Config Label Top Right */}
+                        <div className="absolute top-4 right-4 z-20">
+                            <div className="bg-orange-500 px-3 py-1.5 rounded-full flex items-center gap-1 shadow-[0_0_15px_rgba(249,115,22,0.4)]">
+                                <span className="text-black font-black text-[10px] uppercase tracking-wider">{cfg.name}</span>
+                            </div>
+                        </div>
+                        {/* Original Avatar Placed Bottom Right */}
+                        <div className="absolute bottom-[-15px] right-2 z-0">
+                            <OriginalAvatar />
                         </div>
                     </div>
 
-                    <nav className="flex gap-2 p-5 pb-0">
-                        {['tracker', 'plan', 'ranking', 'stats'].map(t => (
-                            <button key={t} onClick={()=>setActiveTab(t)} className={`flex-1 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors ${activeTab===t ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'}`}>{t}</button>
+                    {/* Marathon Countdown Card */}
+                    <div className="bg-[#1a1a1a] rounded-[24px] p-5 mb-6 border border-zinc-800/50">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-white font-black text-[11px] tracking-widest uppercase">Marathon Countdown</span>
+                            <span className="text-lime-400 font-black text-xl">{marathonPercent}%</span>
+                        </div>
+                        <div className="h-[10px] w-full bg-black rounded-full border border-zinc-800 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-500 to-lime-400 transition-all duration-1000 ease-out" style={{width: `${marathonPercent}%`}}>
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(163,230,53,0.8)] opacity-50"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Nav Tabs (Square-ish style as screenshot) */}
+                    <nav className="flex gap-2 mb-6">
+                        {navTabs.map(tab => (
+                            <button key={tab.id} onClick={()=>setActiveTab(tab.id)}
+                                    className={`flex-1 aspect-[4/3] flex flex-col items-center justify-center rounded-2xl gap-2 transition-all ${activeTab === tab.id ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-[#1a1a1a] text-zinc-500 border border-zinc-800/50'}`}>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">{tab.icon}</svg>
+                                <span className="text-[9px] font-black tracking-widest uppercase">{tab.label}</span>
+                            </button>
                         ))}
                     </nav>
 
-                    <main className="px-5 mt-6 space-y-6">
+                    {/* Main Content Area */}
+                    <main className="space-y-6">
                         {activeTab === 'tracker' && <TabTracker score={score} daily={daily} updateDaily={updateDaily} cfg={cfg} inDist={inDist} setInDist={setInDist} inPace={inPace} setInPace={setInPace} inHr={inHr} setInHr={setInHr} saveRun={saveRun} targetWater={targetWater} />}
                         {activeTab === 'plan' && <TabPlan cfg={cfg} />}
                         {activeTab === 'ranking' && <TabRanking leaderboardData={leaderboardData} />}
-                        {activeTab === 'stats' && <TabStats prof={prof} vo2Value={vo2Value} bestSpeedMin={bestSpeedMin} tDist={tDist} pTime={pTime} pSource={pSource} isSubTarget={isSubTarget} setShowSetup={setShowSetup} fastest5kSecs={f5k} fastest10kSecs={f10k} longestRun={longestRun} />}
+                        {activeTab === 'stats' && <TabStats prof={prof} vo2Value={vo2Value} tDist={tDist} pTime={pTime} pSource={pSource} fastest5kSecs={f5k} fastest10kSecs={f10k} longestRun={longestRun} />}
                     </main>
                 </div>
             );
@@ -751,9 +741,8 @@
         class ErrorBoundary extends React.Component {
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            componentDidCatch(error, errorInfo) { console.error("App crashed:", error, errorInfo); }
             render() {
-                if (this.state.hasError) return ( <div className="min-h-screen bg-red-950 flex flex-col items-center justify-center p-6 text-center"><h2 className="text-red-500 font-black text-2xl mb-2">🚨 เกิดข้อผิดพลาด</h2><p className="text-zinc-400 text-sm mb-6">{this.state.error?.toString()}</p><button onClick={() => window.location.reload()} className="bg-red-500 text-white font-bold py-3 px-6 rounded-xl">โหลดหน้าเว็บใหม่</button></div> );
+                if (this.state.hasError) return ( <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-center"><h2 className="text-red-500 font-black text-2xl mb-2">🚨 เกิดข้อผิดพลาด</h2><p className="text-zinc-400 text-sm mb-6">{this.state.error?.toString()}</p><button onClick={() => window.location.reload()} className="bg-orange-500 text-black font-black py-3 px-6 rounded-xl">โหลดหน้าเว็บใหม่</button></div> );
                 return this.props.children;
             }
         }
@@ -762,9 +751,21 @@
             const [name, setName] = useState('');
             const handleSubmit = (e) => { e.preventDefault(); if (name.trim()) onLogin(name.trim()); };
             return (
-                <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-                    <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[100px] opacity-20"></div><div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-lime-500 rounded-full blur-[100px] opacity-10"></div>
-                    <div className="w-full max-w-sm bg-zinc-900/80 backdrop-blur-md p-8 rounded-[24px] border border-zinc-800 shadow-2xl z-10"><div className="text-center mb-8"><h2 className="text-lime-400 font-black tracking-widest text-sm mb-2 uppercase">Training Camp</h2><h1 className="text-5xl font-black text-white italic uppercase">PRO <span className="text-orange-500">80</span></h1><p className="text-orange-300 text-xs font-bold tracking-widest mt-2 uppercase">Your Personal Marathon Plan</p></div><form onSubmit={handleSubmit} className="flex flex-col gap-4"><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="ใส่ชื่อนักวิ่ง (Runner ID)" className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-xl p-4 text-center font-bold text-white focus:border-orange-500 outline-none uppercase" /><button type="submit" className="w-full bg-orange-500 hover:bg-orange-400 text-black font-black py-4 rounded-xl uppercase tracking-widest transition-colors">Start Engine</button></form></div>
+                <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center p-6 relative overflow-hidden font-['Prompt']">
+                    <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[100px] opacity-20"></div>
+                    <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-lime-500 rounded-full blur-[100px] opacity-10"></div>
+                    
+                    <div className="w-full max-w-sm bg-[#1a1a1a]/80 backdrop-blur-md p-8 rounded-[24px] border border-zinc-800 shadow-2xl z-10">
+                        <div className="text-center mb-8">
+                            <h2 className="text-lime-400 font-black tracking-widest text-[10px] mb-2 uppercase">ROAD TO BANGSAEN42</h2>
+                            <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter">PROJECT <span className="text-orange-500">80</span></h1>
+                            <p className="text-zinc-400 text-[10px] font-bold tracking-widest mt-3 uppercase">Enter Runner ID</p>
+                        </div>
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="เช่น: PEERAPONG" className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-center font-bold text-white focus:border-orange-500 outline-none uppercase tracking-widest" />
+                            <button type="submit" className="w-full bg-orange-500 active:bg-orange-400 text-black font-black py-4 rounded-xl uppercase tracking-widest transition-colors mt-2">Start Engine</button>
+                        </form>
+                    </div>
                 </div>
             );
         };
@@ -778,7 +779,7 @@
             const handleLogin = (name) => { setCurrentUser(name); safeStorage.setItem('p80_current_user_v9', name); };
             const handleLogout = () => { setCurrentUser(null); safeStorage.removeItem('p80_current_user_v9'); };
 
-            if (authLoading) return <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center"><p className="text-orange-500 font-black tracking-widest text-sm uppercase">CONNECTING...</p></div>;
+            if (authLoading) return <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center"><p className="text-orange-500 font-black tracking-widest text-sm uppercase">CONNECTING...</p></div>;
             if (!user || !currentUser) return <LoginScreen onLogin={handleLogin} />;
             return <Dashboard user={user} profileName={currentUser} onLogout={handleLogout} />;
         };
