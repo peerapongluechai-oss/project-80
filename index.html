@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Project 80: Road To Bangsaen42</title>
     
-    <!-- PWA: โค้ดทำแอปเต็มจอมือถือ -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
@@ -39,54 +38,59 @@
         const { useState, useEffect } = React;
 
         const getFirebaseConfig = () => {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                return JSON.parse(__firebase_config);
-            }
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) return JSON.parse(__firebase_config);
             return {
                 apiKey: "AIzaSyAmQFwL7zniKTnT2INt93iHOlCuT97hC7g",
                 authDomain: "myfamilyproject-ecff4.firebaseapp.com",
                 projectId: "myfamilyproject-ecff4",
                 storageBucket: "myfamilyproject-ecff4.firebasestorage.app",
                 messagingSenderId: "714527535272",
-                appId: "1:714527535272:web:fefa9679e822d31e52529d",
-                measurementId: "G-ED3NCQF2CD"
+                appId: "1:714527535272:web:fefa9679e822d31e52529d"
             };
         };
 
         const app = initializeApp(getFirebaseConfig());
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'project80_github_app';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'project80_dynamic_app';
 
-        const Confetti = () => {
-            return (
-                <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-                {Array.from({ length: 50 }).map((_, i) => {
-                    const colors = ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'];
-                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                    const isCircle = Math.random() > 0.5;
-                    return (
-                    <div key={i} className="absolute top-[-10%]"
-                        style={{
-                        left: `${Math.random() * 100}%`,
-                        width: `${Math.random() * 10 + 5}px`, height: `${Math.random() * 10 + 5}px`,
-                        backgroundColor: randomColor, borderRadius: isCircle ? '50%' : '4px',
-                        animation: `confetti-fall ${Math.random() * 2 + 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`,
-                        animationDelay: `${Math.random() * 0.3}s`,
-                        }}
-                    />
-                    );
-                })}
-                </div>
-            );
+        // 🧠 AI ประมวลผลตารางซ้อมจากวันว่าง
+        const generateSmartSchedule = (availObj, longDay) => {
+            let newSched = { 0:'rest', 1:'rest', 2:'rest', 3:'rest', 4:'rest', 5:'rest', 6:'rest' };
+            let trainingDays = [];
+            Object.keys(availObj).forEach(k => { if (availObj[k]) trainingDays.push(Number(k)); });
+            if (trainingDays.length === 0) return newSched;
+
+            if (trainingDays.includes(Number(longDay))) { newSched[longDay] = 'long'; } 
+            else { newSched[trainingDays[0]] = 'long'; longDay = trainingDays[0]; }
+
+            if (trainingDays.length > 1) {
+                let speedDay = -1, maxDist = -1;
+                trainingDays.forEach(day => {
+                    if (day !== Number(longDay)) {
+                        let dist = Math.abs(day - Number(longDay));
+                        if (dist > 3) dist = 7 - dist; 
+                        if (dist > maxDist) { maxDist = dist; speedDay = day; }
+                    }
+                });
+                if (speedDay !== -1) newSched[speedDay] = 'speed';
+            }
+            trainingDays.forEach(day => { if (newSched[day] === 'rest') newSched[day] = 'easy'; });
+            return newSched;
         };
+
+        const Confetti = () => (
+            <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+                {Array.from({ length: 50 }).map((_, i) => (
+                    <div key={i} className="absolute top-[-10%]" style={{ left: `${Math.random() * 100}%`, width: `${Math.random() * 10 + 5}px`, height: `${Math.random() * 10 + 5}px`, backgroundColor: ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'][Math.floor(Math.random() * 5)], borderRadius: Math.random() > 0.5 ? '50%' : '4px', animation: `confetti-fall ${Math.random() * 2 + 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`, animationDelay: `${Math.random() * 0.3}s` }} />
+                ))}
+            </div>
+        );
 
         const CoolRunnerAvatar = ({ weight, targetWeight, initialWeight, currentConfig }) => {
             const weightDiff = initialWeight - targetWeight;
             const progress = weightDiff > 0 ? Math.max(0, Math.min(1, (initialWeight - weight) / weightDiff)) : 0;
             const bodyWidth = 36 - (12 * progress);
-            const faceY = 32;
-
             const act = currentConfig?.id === 'rest' ? 'stretch' : 'cardio';
 
             let statusText = '';
@@ -94,110 +98,37 @@
             else if (currentConfig?.id === 'long') statusText = 'Long Run ลุย! 🔥';
             else if (currentConfig?.id === 'speed') statusText = 'อัดเพซให้ยับ! ⚡';
             else if (currentConfig?.id === 'easy') statusText = 'Easy Run ชิลๆ 👟';
-            else if (currentConfig?.id === 'rest') statusText = 'พักผ่อน ยืดเหยียด 🧘‍♂️';
-            else statusText = 'ลุยกันเลยลูกพี่! 🏁';
+            else statusText = 'พักผ่อน ยืดเหยียด 🧘‍♂️';
 
             return (
                 <div className="relative w-36 h-36 flex items-center justify-center mx-2 group">
-                    <div className="absolute -top-3 whitespace-nowrap bg-orange-500 text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-[0_0_10px_rgba(249,115,22,0.5)] z-20 transition-all duration-500 transform group-hover:-translate-y-1 animate-bounce">
-                        {statusText}
-                    </div>
+                    <div className="absolute -top-3 whitespace-nowrap bg-orange-500 text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-[0_0_10px_rgba(249,115,22,0.5)] z-20 animate-bounce">{statusText}</div>
                     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl transition-transform duration-300">
                         <style>{`
-                            .origin-hip-l { transform-origin: 45px 60px; }
-                            .origin-hip-r { transform-origin: 55px 60px; }
-                            .origin-shoulder-l { transform-origin: 38px 52px; }
-                            .origin-shoulder-r { transform-origin: 62px 52px; }
-                            .origin-bottom { transform-origin: 50px 85px; }
-
                             @keyframes float-run { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-3px); } }
                             @keyframes run-leg-l { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-15deg); } }
                             @keyframes run-leg-r { 0%, 100% { transform: translateY(-8px) rotate(-15deg); } 50% { transform: translateY(0px) rotate(0deg); } }
                             @keyframes run-arm-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(30deg); } }
                             @keyframes run-arm-r { 0%, 100% { transform: rotate(30deg); } 50% { transform: rotate(0deg); } }
                             @keyframes sway { 0%, 100% { transform: rotate(3deg); } 50% { transform: rotate(-3deg); } }
-
                             .anim-float-run { animation: float-run 0.6s ease-in-out infinite; }
-                            .anim-run-leg-l { animation: run-leg-l 0.6s infinite; }
-                            .anim-run-leg-r { animation: run-leg-r 0.6s infinite; }
-                            .anim-run-arm-l { animation: run-arm-l 0.6s infinite; }
-                            .anim-run-arm-r { animation: run-arm-r 0.6s infinite; }
-                            .anim-sway { animation: sway 4s ease-in-out infinite; }
+                            .anim-run-leg-l { animation: run-leg-l 0.6s infinite; transform-origin: 45px 60px; }
+                            .anim-run-leg-r { animation: run-leg-r 0.6s infinite; transform-origin: 55px 60px; }
+                            .anim-run-arm-l { animation: run-arm-l 0.6s infinite; transform-origin: 38px 52px; }
+                            .anim-run-arm-r { animation: run-arm-r 0.6s infinite; transform-origin: 62px 52px; }
+                            .anim-sway { animation: sway 4s ease-in-out infinite; transform-origin: 50px 85px; }
                         `}</style>
-                        
-                        <g className={act === 'stretch' ? 'anim-sway origin-bottom' : 'anim-float-run'}>
+                        <g className={act === 'stretch' ? 'anim-sway' : 'anim-float-run'}>
                             <path d="M 32 25 Q 50 5 68 25 L 68 35 Q 50 20 32 35 Z" fill="#1e293b" />
-                            
-                            <g className={`origin-hip-l ${act === 'cardio' ? 'anim-run-leg-l' : ''}`}>
-                                <rect x="42" y="60" width="6" height="28" rx="3" fill="#fcd5ce" />
-                                <path d="M 41 85 L 48.5 85 L 48.5 94 Q 45 96 41 94 Z" fill="#bef264" /> 
-                                <rect x="42" y="80" width="6" height="5" fill="#3f6212" /> 
-                            </g>
-
-                            <g className={`origin-hip-r ${act === 'cardio' ? 'anim-run-leg-r' : ''}`}>
-                                <rect x="52" y="60" width="6" height="28" rx="3" fill="#fcd5ce" />
-                                <path d="M 51.5 85 L 59 85 L 59 94 Q 55 96 51.5 94 Z" fill="#bef264" /> 
-                                <rect x="52" y="80" width="6" height="5" fill="#3f6212" /> 
-                            </g>
-
+                            <g className={act === 'cardio' ? 'anim-run-leg-l' : ''}><rect x="42" y="60" width="6" height="28" rx="3" fill="#fcd5ce" /><path d="M 41 85 L 48.5 85 L 48.5 94 Q 45 96 41 94 Z" fill="#bef264" /><rect x="42" y="80" width="6" height="5" fill="#3f6212" /></g>
+                            <g className={act === 'cardio' ? 'anim-run-leg-r' : ''}><rect x="52" y="60" width="6" height="28" rx="3" fill="#fcd5ce" /><path d="M 51.5 85 L 59 85 L 59 94 Q 55 96 51.5 94 Z" fill="#bef264" /><rect x="52" y="80" width="6" height="5" fill="#3f6212" /></g>
                             <path d={`M ${50 - bodyWidth/2 - 2} 60 L ${50 + bodyWidth/2 + 2} 60 L ${50 + bodyWidth/2 + 3} 72 L 51 70 L 49 70 L ${50 - bodyWidth/2 - 3} 72 Z`} fill="#111827" />
-
-                            <g className={`origin-shoulder-l ${act === 'cardio' ? 'anim-run-arm-l' : ''}`}>
-                                {act === 'stretch' ? (
-                                    <line x1="38" y1="52" x2="25" y2="20" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />
-                                ) : (
-                                    <path d={`M ${50 - bodyWidth/2 + 2} 52 Q 35 65 38 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />
-                                )}
-                            </g>
-
+                            <g className={act === 'cardio' ? 'anim-run-arm-l' : ''}>{act === 'stretch' ? <line x1="38" y1="52" x2="25" y2="20" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" /> : <path d={`M ${50 - bodyWidth/2 + 2} 52 Q 35 65 38 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />}</g>
                             <rect x={50 - bodyWidth/2} y="50" width={bodyWidth} height="15" rx="3" fill="#f97316" className="transition-all duration-700 ease-out" />
-                            <path d={`M ${50 - bodyWidth/2} 50 L ${50 - bodyWidth/2 + 4} 43 L ${50 - bodyWidth/2 + 8} 50 Z`} fill="#f97316" className="transition-all duration-700 ease-out"/>
-                            <path d={`M ${50 + bodyWidth/2} 50 L ${50 + bodyWidth/2 - 4} 43 L ${50 + bodyWidth/2 - 8} 50 Z`} fill="#f97316" className="transition-all duration-700 ease-out"/>
-
-                            <g transform={`translate(${50 - 8}, 52)`}>
-                                <rect x="0" y="0" width="16" height="9" fill="#ffffff" rx="1.5" />
-                                <rect x="1" y="1" width="14" height="2" fill="#ef4444" rx="0.5" />
-                                <text x="8" y="7.5" fontSize="4.5" fontWeight="900" fill="#000" textAnchor="middle" fontFamily="sans-serif">80</text>
-                            </g>
-
-                            <g className={`origin-shoulder-r ${act === 'cardio' ? 'anim-run-arm-r' : ''}`}>
-                                {act === 'stretch' ? (
-                                    <line x1="62" y1="52" x2="75" y2="20" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />
-                                ) : (
-                                    <path d={`M ${50 + bodyWidth/2 - 2} 52 Q 65 65 62 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />
-                                )}
-                            </g>
-
-                            <rect x="46" y={faceY + 12} width="8" height="6" fill="#fcd5ce" />
-                            <circle cx="50" cy={faceY} r="14.5" fill="#fcd5ce" />
-                            <path d="M 35 25 Q 50 10 65 25 Q 50 18 35 25" fill="#1e293b" />
-                            <path d="M 40 20 L 45 8 L 50 16 L 56 10 L 60 20 Z" fill="#1e293b" />
-                            <path d="M 35 30 Q 50 27 65 30 L 63 35 Q 50 40 37 35 Z" fill="#0f172a" />
-                            
-                            <path d="M 38 31 L 62 31 L 60 34 L 40 34 Z" fill="#f97316" opacity="0.8"/>
-
-                            {act === 'cardio' ? (
-                                <g>
-                                    <path d="M 42 29 Q 44 28 46 29" fill="none" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                                    <path d="M 54 29 Q 56 28 58 29" fill="none" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                                    <circle cx="50" cy="40" r="2" fill="#0f172a" /> 
-                                </g>
-                            ) : (
-                                <g>
-                                    <circle cx="44" cy="29" r="2.5" fill="#1e293b" />
-                                    <circle cx="56" cy="29" r="2.5" fill="#1e293b" />
-                                    <circle cx="44.5" cy="28.5" r="1" fill="#ffffff" />
-                                    <circle cx="56.5" cy="28.5" r="1" fill="#ffffff" />
-                                    <path d="M 47 40 Q 50 42 53 40" fill="none" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" />
-                                </g>
-                            )}
-
-                            {progress >= 0.6 && (
-                                <g className="text-orange-500" opacity={progress}>
-                                    <path d="M 22 25 L 24 30 L 29 32 L 24 34 L 22 39 L 20 34 L 15 32 L 20 30 Z" fill="currentColor" className="animate-pulse"/>
-                                    <path d="M 78 45 L 79 48 L 82 49 L 79 50 L 78 53 L 77 50 L 74 49 L 77 48 Z" fill="currentColor" className="animate-pulse" style={{animationDelay: '0.5s'}}/>
-                                </g>
-                            )}
+                            <g transform={`translate(${50 - 8}, 52)`}><rect x="0" y="0" width="16" height="9" fill="#ffffff" rx="1.5" /><rect x="1" y="1" width="14" height="2" fill="#ef4444" rx="0.5" /><text x="8" y="7.5" fontSize="4.5" fontWeight="900" fill="#000" textAnchor="middle" fontFamily="sans-serif">80</text></g>
+                            <g className={act === 'cardio' ? 'anim-run-arm-r' : ''}>{act === 'stretch' ? <line x1="62" y1="52" x2="75" y2="20" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" /> : <path d={`M ${50 + bodyWidth/2 - 2} 52 Q 65 65 62 75`} fill="none" stroke="#fcd5ce" strokeWidth="5.5" strokeLinecap="round" />}</g>
+                            <rect x="46" y="44" width="8" height="6" fill="#fcd5ce" /><circle cx="50" cy="32" r="14.5" fill="#fcd5ce" /><path d="M 35 25 Q 50 10 65 25 Q 50 18 35 25" fill="#1e293b" /><path d="M 40 20 L 45 8 L 50 16 L 56 10 L 60 20 Z" fill="#1e293b" /><path d="M 35 30 Q 50 27 65 30 L 63 35 Q 50 40 37 35 Z" fill="#0f172a" /><path d="M 38 31 L 62 31 L 60 34 L 40 34 Z" fill="#f97316" opacity="0.8"/>
+                            {act === 'cardio' ? <g><path d="M 42 29 Q 44 28 46 29" fill="none" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" /><path d="M 54 29 Q 56 28 58 29" fill="none" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" /><circle cx="50" cy="40" r="2" fill="#0f172a" /></g> : <g><circle cx="44" cy="29" r="2.5" fill="#1e293b" /><circle cx="56" cy="29" r="2.5" fill="#1e293b" /><circle cx="44.5" cy="28.5" r="1" fill="#ffffff" /><circle cx="56.5" cy="28.5" r="1" fill="#ffffff" /><path d="M 47 40 Q 50 42 53 40" fill="none" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" /></g>}
                         </g>
                     </svg>
                 </div>
@@ -206,7 +137,6 @@
 
         const LoginScreen = ({ onLogin }) => {
             const [name, setName] = useState('');
-            const handleSubmit = (e) => { e.preventDefault(); if (name.trim()) onLogin(name.trim()); };
             return (
                 <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-200 relative overflow-hidden">
                     <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[100px] opacity-20"></div>
@@ -219,16 +149,12 @@
                             <div className="h-1 w-20 bg-gradient-to-r from-orange-500 to-lime-400 mx-auto mt-4 rounded-full"></div>
                         </div>
                         <div className="bg-zinc-900/80 backdrop-blur-md p-8 rounded-[24px] border border-zinc-800 shadow-2xl shadow-black">
-                            <p className="text-sm text-zinc-400 mb-6 font-medium text-center">สแกนชื่อนักวิ่ง เพื่อซิงค์ข้อมูลตารางซ้อมมาราธอน (24 สัปดาห์) กับ Cloud</p>
-                            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                            <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) onLogin(name.trim()); }} className="flex flex-col gap-5">
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-500">🏃‍♂️</div>
-                                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Runner ID (Ex: Peerapong)" className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-xl pl-12 pr-4 py-4 text-base font-bold text-white focus:outline-none focus:border-orange-500 transition-colors uppercase placeholder:normal-case" />
+                                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Runner ID" className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-xl pl-12 pr-4 py-4 text-base font-bold text-white focus:outline-none focus:border-orange-500 transition-colors uppercase" />
                                 </div>
-                                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-400 text-black font-black text-base py-4 rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.3)] active:scale-95 transition-all uppercase tracking-wider flex items-center justify-center gap-2">
-                                    <span>Start Engine</span>
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                </button>
+                                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-400 text-black font-black text-base py-4 rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.3)] active:scale-95 transition-all uppercase">Start Engine</button>
                             </form>
                         </div>
                     </div>
@@ -239,146 +165,106 @@
         const Dashboard = ({ user, profileName, onLogout }) => {
             const normalizedProfileName = profileName.trim().toLowerCase();
             const displayProfileName = profileName.trim().charAt(0).toUpperCase() + profileName.trim().slice(1).toLowerCase();
-            const localCacheKey = `p80_data_${normalizedProfileName}`;
             
+            // 🔥 ใช้ Key ใหม่ล่าสุด v6 เพื่อบังคับเคลียร์ค่าเดิมให้ขึ้นหน้า Setup 100%
+            const localCacheKey = `p80_data_v6_${normalizedProfileName}`;
             const cachedDataStr = window.localStorage.getItem(localCacheKey);
             const cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
 
             const [loadingData, setLoadingData] = useState(!cachedData);
             const [activeTab, setActiveTab] = useState('tracker'); 
             const [showConfetti, setShowConfetti] = useState(false);
-            
             const dateString = new Date().toDateString(); 
 
-            // State สำหรับ Profile
+            // State Data
             const [initialWeight, setInitialWeight] = useState(cachedData?.initialWeight || 90.0);
             const [targetWeight, setTargetWeight] = useState(cachedData?.targetWeight || 80.0);
             const [weight, setWeight] = useState(cachedData?.weight || 90.0);
-            
-            const [showSetup, setShowSetup] = useState(false);
+            const [targetDist, setTargetDist] = useState(cachedData?.targetDist || 42.195);
+            const [schedule, setSchedule] = useState(cachedData?.schedule || {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'easy', 5:'easy', 6:'rest'});
+
+            // State ควบคุมหน้า Setup
+            const [showSetup, setShowSetup] = useState(!cachedData); 
             const [setupInitWeight, setSetupInitWeight] = useState(initialWeight);
             const [setupTargetWeight, setSetupTargetWeight] = useState(targetWeight);
+            const [setupDist, setSetupDist] = useState(targetDist);
+            const [setupAvail, setSetupAvail] = useState({0: schedule[0]!=='rest', 1: schedule[1]!=='rest', 2: schedule[2]!=='rest', 3: schedule[3]!=='rest', 4: schedule[4]!=='rest', 5: schedule[5]!=='rest', 6: schedule[6]!=='rest'});
+            const [setupLongDay, setSetupLongDay] = useState(Number(Object.keys(schedule).find(key => schedule[key] === 'long') || 0));
 
             const [allRecords, setAllRecords] = useState(cachedData?.records || {});
             const [leaderboardData, setLeaderboardData] = useState([]); 
             
-            const defaultDailyData = {
-                water: 0, breakfastDone: false, lunchDone: false, snackDone: false, dinnerDone: false,
-                exerciseChecks: [false, false, false, false], fastingSuccess: false,
-                runLogged: false, runDistance: '', runPace: '', runHR: '',
-                sleepDuration: '', bodyStatus: '' 
-            };
+            const defaultDailyData = { water: 0, breakfastDone: false, lunchDone: false, snackDone: false, dinnerDone: false, exerciseChecks: [false, false, false, false], runLogged: false, runDistance: '', runPace: '', runHR: '' };
+            const [dailyData, setDailyData] = useState(cachedData?.records?.[dateString] || defaultDailyData);
             
-            const [dailyData, setDailyData] = useState(() => {
-                if (cachedData?.records && cachedData.records[dateString]) {
-                    return { ...defaultDailyData, ...cachedData.records[dateString] };
-                }
-                return defaultDailyData;
-            });
-
             const [distanceInput, setDistanceInput] = useState(dailyData.runDistance || '');
             const [paceInput, setPaceInput] = useState(dailyData.runPace || '');
             const [hrInput, setHrInput] = useState(dailyData.runHR || '');
 
-            useEffect(() => {
-                setDistanceInput(dailyData.runDistance || '');
-                setPaceInput(dailyData.runPace || '');
-                setHrInput(dailyData.runHR || '');
-            }, [dailyData.runDistance, dailyData.runPace, dailyData.runHR]);
+            useEffect(() => { setDistanceInput(dailyData.runDistance || ''); setPaceInput(dailyData.runPace || ''); setHrInput(dailyData.runHR || ''); }, [dailyData]);
 
-            const saveRunLog = () => {
-                const newData = { ...dailyData, runDistance: distanceInput, runPace: paceInput, runHR: hrInput, runLogged: true };
-                setDailyData(newData);
-                const newRecords = { ...allRecords, [dateString]: newData };
-                setAllRecords(newRecords);
-                window.localStorage.setItem(localCacheKey, JSON.stringify({ initialWeight, targetWeight, weight, records: newRecords }));
-                setDoc(docRef, { records: { [dateString]: newData } }, { merge: true });
-            };
-            
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', normalizedProfileName);
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles_v6', normalizedProfileName);
 
-            // 🔥 โหลดข้อมูลส่วนตัว + ดึงข้อมูล Leaderboard ของทุกคนแบบ Real-time
             useEffect(() => {
                 if (!user) return;
                 const timeoutId = setTimeout(() => setLoadingData(false), 2000);
-
-                // ดึงข้อมูลส่วนตัว
                 const unsubscribeUser = onSnapshot(docRef, (docSnap) => {
                     clearTimeout(timeoutId); 
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        if (!data.initialWeight || !data.targetWeight) setShowSetup(true);
-                        else { setInitialWeight(data.initialWeight); setTargetWeight(data.targetWeight); }
-                        if (data.weight) setWeight(data.weight);
-                        if (data.records) setAllRecords(data.records);
-                        if (data.records && data.records[dateString]) setDailyData({ ...defaultDailyData, ...data.records[dateString] });
-                        else setDailyData(defaultDailyData);
+                        if (!data.initialWeight || !data.targetDist) {
+                            setShowSetup(true);
+                        } else { 
+                            setInitialWeight(data.initialWeight); setTargetWeight(data.targetWeight); setWeight(data.weight || data.initialWeight); 
+                            setTargetDist(data.targetDist); setSchedule(data.schedule); setAllRecords(data.records || {});
+                            setDailyData(data.records?.[dateString] || defaultDailyData);
+                            setShowSetup(false);
+                        }
                         window.localStorage.setItem(localCacheKey, JSON.stringify(data));
-                    } else setShowSetup(true);
+                    } else {
+                        setShowSetup(true);
+                    }
                     setLoadingData(false);
-                }, (error) => { console.error("Cloud Error", error); setLoadingData(false); });
+                }, () => setLoadingData(false));
 
-                // 🔥 ดึงข้อมูลนักวิ่งทุกคนในชมรมเพื่อทำ Leaderboard
-                const profilesRef = collection(db, 'artifacts', appId, 'public', 'data', 'profiles');
+                const profilesRef = collection(db, 'artifacts', appId, 'public', 'data', 'profiles_v6');
                 const unsubscribeLeaderboard = onSnapshot(profilesRef, (snapshot) => {
                     const usersArray = [];
-                    // หาวันที่ 7 วันย้อนหลัง
                     const last7 = Array.from({length: 7}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d.toDateString(); });
-                    
                     snapshot.forEach((docSnap) => {
-                        const data = docSnap.data();
-                        const userName = docSnap.id; 
-                        let weeklyTotal = 0;
-                        let allTimeTotal = 0;
-
+                        const data = docSnap.data(); const userName = docSnap.id; 
+                        let wKm = 0, tKm = 0;
                         if (data.records) {
-                            // คำนวณรายสัปดาห์
-                            last7.forEach(dateStr => {
-                                if (data.records[dateStr]?.runLogged && data.records[dateStr]?.runDistance) {
-                                    weeklyTotal += parseFloat(data.records[dateStr].runDistance);
-                                }
-                            });
-                            // คำนวณสะสมทั้งหมด
-                            Object.values(data.records).forEach(rec => {
-                                if (rec.runLogged && rec.runDistance) {
-                                    allTimeTotal += parseFloat(rec.runDistance);
-                                }
-                            });
+                            last7.forEach(d => { if (data.records[d]?.runLogged) wKm += parseFloat(data.records[d].runDistance||0); });
+                            Object.values(data.records).forEach(r => { if (r.runLogged) tKm += parseFloat(r.runDistance||0); });
                         }
-                        usersArray.push({ 
-                            name: userName.charAt(0).toUpperCase() + userName.slice(1), 
-                            weeklyKM: weeklyTotal, 
-                            totalKM: allTimeTotal 
-                        });
+                        usersArray.push({ name: userName.charAt(0).toUpperCase() + userName.slice(1), weeklyKM: wKm, totalKM: tKm });
                     });
-                    
-                    // จัดอันดับเรียงจากคนวิ่งเยอะสุดในสัปดาห์นี้
                     usersArray.sort((a, b) => b.weeklyKM - a.weeklyKM);
                     setLeaderboardData(usersArray);
                 });
-
                 return () => { clearTimeout(timeoutId); unsubscribeUser(); unsubscribeLeaderboard(); };
             }, [user.uid, normalizedProfileName, dateString]);
 
             const saveProfileSetup = () => {
-                const dataToSave = { initialWeight: setupInitWeight, targetWeight: setupTargetWeight, weight: setupInitWeight, records: allRecords };
+                const smartSchedule = generateSmartSchedule(setupAvail, setupLongDay);
+                const dataToSave = { initialWeight: setupInitWeight, targetWeight: setupTargetWeight, weight: setupInitWeight, targetDist: setupDist, schedule: smartSchedule, records: allRecords };
                 setInitialWeight(setupInitWeight); setTargetWeight(setupTargetWeight); setWeight(setupInitWeight);
+                setTargetDist(setupDist); setSchedule(smartSchedule);
                 window.localStorage.setItem(localCacheKey, JSON.stringify(dataToSave));
-                setDoc(docRef, dataToSave, { merge: true }); setShowSetup(false);
+                setDoc(docRef, dataToSave, { merge: true }); 
+                setShowSetup(false);
             };
 
             const updateDaily = (key, value) => {
                 const newData = { ...dailyData, [key]: value }; setDailyData(newData); 
                 const newRecords = { ...allRecords, [dateString]: newData }; setAllRecords(newRecords);
-                window.localStorage.setItem(localCacheKey, JSON.stringify({ initialWeight, targetWeight, weight, records: newRecords }));
+                window.localStorage.setItem(localCacheKey, JSON.stringify({ initialWeight, targetWeight, weight, targetDist, schedule, records: newRecords }));
                 setDoc(docRef, { records: { [dateString]: newData } }, { merge: true });
             };
 
-            const updateWeightToCloud = (newWeight) => {
-                setWeight(newWeight);
-                window.localStorage.setItem(localCacheKey, JSON.stringify({ initialWeight, targetWeight, weight: newWeight, records: allRecords }));
-                setDoc(docRef, { weight: newWeight }, { merge: true });
-            };
+            const saveRunLog = () => { updateDaily('runLogged', true); updateDaily('runDistance', distanceInput); updateDaily('runPace', paceInput); updateDaily('runHR', hrInput); };
+            const updateWeightToCloud = (newWeight) => { setWeight(newWeight); window.localStorage.setItem(localCacheKey, JSON.stringify({ initialWeight, targetWeight, weight: newWeight, targetDist, schedule, records: allRecords })); setDoc(docRef, { weight: newWeight }, { merge: true }); };
 
             const todayObj = new Date();
             const planStartDate = new Date(2026, 5, 1); planStartDate.setHours(0,0,0,0);
@@ -387,44 +273,51 @@
             
             const totalDuration = raceDate.getTime() - planStartDate.getTime();
             const totalDays = Math.floor(totalDuration / (1000 * 60 * 60 * 24)) + 1; 
-            let diffDays = 0;
-            if (todayMidnight.getTime() >= planStartDate.getTime()) {
-                const diffTime = todayMidnight.getTime() - planStartDate.getTime();
-                diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                if(diffDays > totalDays) diffDays = totalDays; 
-            }
-            
+            const diffDays = Math.max(0, Math.min(Math.floor((todayMidnight.getTime() - planStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1, totalDays));
             const overallProgress = diffDays > 0 ? Math.min(Math.round((diffDays / totalDays) * 100), 100) : 0;
             const currentWeekIndex = diffDays > 0 ? Math.min(23, Math.ceil(diffDays / 7) - 1) : 0;
-            
-            let phaseName = ""; let phaseColor = "";
-            if(diffDays <= 0) { phaseName = "PRE-SEASON (เตรียมความพร้อม)"; phaseColor = "text-zinc-400"; }
-            else if(currentWeekIndex < 4) { phaseName = "BASE PHASE (สร้างฐานความฟิต)"; phaseColor = "text-lime-400"; }
-            else if(currentWeekIndex < 12) { phaseName = "BUILD PHASE (เพิ่มความอึด)"; phaseColor = "text-blue-400"; }
-            else if(currentWeekIndex < 20) { phaseName = "PEAK PHASE (ซ้อมหนักที่สุด)"; phaseColor = "text-orange-500"; }
-            else if(currentWeekIndex < 23) { phaseName = "TAPER PHASE (ลดระยะพักฟื้น)"; phaseColor = "text-yellow-400"; }
-            else { phaseName = "RACE WEEK! (พร้อมลุย)"; phaseColor = "text-red-500"; }
+            const isRaceDay = diffDays === totalDays;
 
-            const getTrainingConfig = (dayIndex, weekIndex, isRaceDay) => {
+            // 🔥 AI จัดการดึง Detail คงเดิมมารวมกับตัวเลือกวัน/ระยะ
+            const getTrainingConfig = (dayIndex, weekIndex, isRace) => {
+                const dayType = schedule[dayIndex] || 'rest';
                 const longRunDistances = [ 10, 12, 14, 10, 16, 18, 20, 15, 22, 24, 26, 18, 28, 30, 21, 32, 25, 35, 25, 30, 21, 15, 10, 42.195 ];
-                const sundayDistance = longRunDistances[weekIndex] || 10;
+                let sundayDistance = longRunDistances[weekIndex] || 10;
+                if(targetDist == 21.1) sundayDistance = [5,6,7,5,8,10,12,8,14,16,18,10,15,18,12,20,15,21.1,12,15,10,8,5,21.1][weekIndex] || 5;
+                else if(targetDist == 10) sundayDistance = [3,4,5,3,5,6,7,4,6,8,9,5,8,10,6,12,8,10,6,8,5,4,3,10][weekIndex] || 3;
+                else if(targetDist == 5) sundayDistance = [2,3,4,2,3,4,5,3,4,5,6,3,4,6,4,7,5,6,4,5,3,3,2,5][weekIndex] || 2;
+
                 const genericMeals = { breakfast: 'แซนวิชขนมปังโฮลวีตไข่ต้ม 2 ฟอง + กาแฟดำ', lunch: 'ข้าวกล้อง 1.5 ทัพพี + อกไก่ย่าง/ไก่อบ + ผักต้ม', snack: 'ถั่วแระญี่ปุ่น หรือ กล้วยหอม 1 ลูก', dinner: 'สเต็กปลาแซลมอน/ปลาดอลลี่ ย่าง + สลัดผักชามใหญ่' };
 
-                const schedules = {
-                    0: { id: 'long', icon: isRaceDay ? '🏆' : '🔥', color: isRaceDay ? 'yellow-400' : 'red-500', bg: isRaceDay ? 'yellow-400/20' : 'red-500/10', title: isRaceDay ? 'BANGSAEN42 RACE DAY!' : `Sub 5: Long Run ${sundayDistance} KM`, desc: isRaceDay ? 'ถึงเวลาโชว์ผลการซ้อมตลอด 168 วัน!' : 'ฝึกความทนทานของกล้ามเนื้อและหัวใจ คุมเพซให้คงที่', pace: isRaceDay ? '7:05 (Sub 5 Pace)' : '7:45 - 8:15', hr: isRaceDay ? 'ZONE 3-4 (145-165 bpm)' : 'ZONE 2-3 (130-150 bpm)', waterModifier: 4, meals: { breakfast: isRaceDay ? 'ขนมปังแยม 2 แผ่น + กาแฟดำ (ทานก่อนแข่ง 2 ชม.)' : 'โหลดคาร์บ: ข้าวโอ๊ต/ขนมปังแยม + กาแฟดำ', lunch: isRaceDay ? 'อาหารหลังเข้าเส้นชัย (กินให้เต็มที่!)' : 'ก๋วยเตี๋ยวเส้นหมี่/เส้นเล็ก 1-2 ชาม (เติมคาร์บ)', snack: isRaceDay ? 'เบียร์เย็นๆ 1 กระป๋องฉลองชัยชนะ 🍻' : 'แตงโมฉ่ำๆ หรือ เกลือแร่ (ฟื้นฟูหลังวิ่ง)', dinner: isRaceDay ? 'ชาบู/หมูกระทะ ปาร์ตี้ฉลองเหรียญ!' : 'หมูกระทะ/ชาบู (เน้นเนื้อโปรตีน รางวัลหลังวิ่งยาว!)' }, exercises: isRaceDay ? [ { title: '🏃‍♂️ RACE: BANGSAEN42 (42.195 KM)', focus: 'หัวใจนักสู้', detail: 'คุมเพซช่วงแรกให้ดี อย่าวิ่งตามคนอื่น ดื่มน้ำทุกจุด จบ Sub 5 แน่นอน!' }, { title: 'รับเหรียญ & ถ่ายรูป', focus: 'ความภูมิใจ', detail: 'คุณคือ Elite Runner แล้ว!' }, { title: 'ยืดเหยียดหลังแข่ง', focus: 'ป้องกันบาดเจ็บ', detail: 'ยืดเหยียดช้าๆ อย่าฝืนนวดแรง' }, { title: 'แช่น้ำเย็น (Ice bath)', focus: 'Recovery', detail: 'แช่เท้า 15 นาที ลดการอักเสบระดับเซลล์' } ] : [ { title: `🏃‍♂️ วิ่ง Long Run ระยะ ${sundayDistance} กม.`, focus: 'ความทนทาน', detail: 'รักษาระดับหัวใจไม่ให้เกินโซน 3 ห้ามวิ่งเร็วกว่ากำหนด' }, { title: 'ทาครีมกันเสียดสี/เตรียมเจล', focus: 'การเตรียมตัว', detail: 'ฝึกกินเจลทุกๆ 45 นาทีให้ร่างกายชินระบบย่อย' }, { title: 'Quad & Hamstring Stretch', focus: 'กล้ามเนื้อขา', detail: 'ยืดเหยียดชุดใหญ่หลังวิ่งจบ ป้องกันอาการบาดเจ็บ' }, { title: 'แช่น้ำเย็น (Ice bath)', focus: 'การฟื้นฟู (Recovery)', detail: 'แช่เท้าและน่อง 10-15 นาที ลดการอักเสบ' } ] },
-                    1: { id: 'rest', icon: '💤', color: 'blue-500', bg: 'blue-500/10', title: 'Sub 5: Rest & Recovery', desc: 'วันพักผ่อน ฟื้นฟูกล้ามเนื้อหลังผ่านการวิ่งยาว', pace: 'พักวิ่ง', hr: 'REST', waterModifier: 0, meals: { breakfast: 'ไข่ต้ม 3 ฟอง + นมโปรตีนสูง (ลดคาร์บ)', lunch: 'เกาเหลาไก่ฉีก หรือ สลัดปลาแซลมอน', snack: 'ถั่วแระญี่ปุ่น หรือ กรีกโยเกิร์ต', dinner: 'สเต็กเนื้อ/ไก่ + ผักย่าง (ลดแป้งมื้อเย็น)' }, exercises: [ { title: '💤 พักการวิ่ง 1 วัน (Full Rest)', focus: 'กล้ามเนื้อขา', detail: 'งดวิ่งเด็ดขาด เพื่อให้ร่างกายได้ซ่อมแซมจากการวิ่งยาว' }, { title: 'Core Plank', focus: 'แกนกลางลำตัว (Core)', detail: 'ทำ 3 เซต เซตละ 40 วินาที ช่วยให้ฟอร์มไม่ตกตอนเหนื่อย' }, { title: 'Legs Up the Wall', focus: 'การไหลเวียนเลือด', detail: 'นอนเอาขาพาดกำแพง 10 นาที ลดอาการเมื่อยล้าที่น่อง' }, { title: 'Foam Rolling (กลิ้งโฟม)', focus: 'น่องและหน้าขา', detail: 'กลิ้งจุดละ 1-2 นาที คลายกรดแลคติกที่สะสม' } ] },
-                    2: { id: 'easy', icon: '👟', color: 'lime-400', bg: 'lime-400/10', title: 'Sub 5: Easy Run (Base Run)', desc: 'วิ่งสบายๆ สร้างฐานความฟิต (Aerobic Base)', pace: '7:00 - 7:20', hr: 'ZONE 2 (125-140 bpm)', waterModifier: 1, meals: genericMeals, exercises: [ { title: `🏃‍♂️ วิ่ง Easy Run ${weekIndex < 8 ? '5' : '8'} กม.`, focus: 'ระบบหายใจ', detail: 'คุมหัวใจให้อยู่แค่โซน 2 (วิ่งไปคุยไปได้สบายๆ)' }, { title: 'A-Skip & High Knees', focus: 'ฟอร์มการวิ่ง', detail: 'ทำ Drills กระตุ้นกล้ามเนื้อก่อนวิ่ง 5 นาที' }, { title: 'Bodyweight Squats', focus: 'กล้ามเนื้อหน้าขา', detail: 'ทำหลังวิ่งจบ 3 เซต เซตละ 15 ครั้ง' }, { title: 'Calf Raises', focus: 'น่องและข้อเท้า', detail: 'ยืนเขย่งปลายเท้า 3 เซต เซตละ 20 ครั้ง ป้องกันตะคริว' } ] },
-                    3: { id: 'speed', icon: '⚡', color: 'orange-500', bg: 'orange-500/10', title: 'Sub 5: Speed Work / Tempo', desc: 'ซ้อมความเร็วรอบขา ฝึกให้หัวใจทนต่อความเหนื่อย (Lactate Threshold)', pace: '6:20 - 6:40', hr: 'ZONE 4 (155-170 bpm)', waterModifier: 2, meals: { breakfast: 'ขนมปังโฮลวีตทาเนยถั่ว + กล้วยหอม + กาแฟดำ', lunch: 'ข้าวกล้อง 1.5 ทัพพี + กะเพราไก่ (ไม่มัน) + ไข่ดาว', snack: 'ผลไม้สด หรือ Energy Gel (ก่อนซ้อม 30 นาที)', dinner: 'ข้าว 1 ทัพพี + ปลาเผา/ปลาย่าง + ผักต้ม (เติมไกลโคเจน)' }, exercises: [ { title: '⚡ วิ่ง Tempo / Interval', focus: 'ความเร็ว (Pace)', detail: 'วอร์มอัพ 2k -> วิ่งเพซ 6:20-6:40 (ระยะตามคอร์ท) -> คูลดาวน์ 2k' }, { title: 'Dynamic Stretching', focus: 'ยืดเหยียดแบบเคลื่อนไหว', detail: 'เตะขาไปมา หมุนข้อต่อ ก่อนลงคอร์ทวิ่งเร็ว' }, { title: 'Forward Lunges', focus: 'ต้นขาด้านหน้าและก้น', detail: 'ก้าวสลับซ้ายขวา 3 เซต เซตละ 10 ครั้ง/ข้าง' }, { title: 'Russian Twist', focus: 'หน้าท้องด้านข้าง', detail: 'นั่งบิดเอว 3 เซต เซตละ 20 ครั้ง' } ] },
-                    4: { id: 'easy', icon: '👟', color: 'lime-400', bg: 'lime-400/10', title: 'Sub 5: Recovery Run', desc: 'วิ่งจ๊อกกิ้งเบาๆ คลายกรดแลคติกที่ค้างจากการลงคอร์ทเมื่อวาน', pace: '7:30 - 8:00', hr: 'ZONE 1-2 (110-130 bpm)', waterModifier: 1, meals: genericMeals, exercises: [ { title: '🏃‍♂️ วิ่ง Recovery Run 5 กม.', focus: 'ฟื้นฟูกล้ามเนื้อ', detail: 'วิ่งช้ามากๆ โซน 1-2 ไม่ต้องสนใจเพซ แค่ขยับขา' }, { title: 'Glute Bridge', focus: 'สะโพกและหลังล่าง', detail: 'นอนหงายยกสะโพกเกร็งก้น 3 เซต เซตละ 15 ครั้ง' }, { title: 'Leg Swings', focus: 'ข้อต่อสะโพก', detail: 'แกว่งขาไปมา หน้า-หลัง และ ซ้าย-ขวา' }, { title: 'Bird-Dog', focus: 'หลังและแกนกลาง', detail: 'ยืดแขนสลับขา 3 เซต เซตละ 15 ครั้ง/ข้าง' } ] },
-                    5: { id: 'easy', icon: '👟', color: 'lime-400', bg: 'lime-400/10', title: 'Sub 5: Aerobic Base', desc: 'วิ่งสบายๆ สะสมระยะ เคาะสนิมก่อนวันหยุดยาวพรุ่งนี้', pace: '7:00 - 7:30', hr: 'ZONE 2 (125-140 bpm)', waterModifier: 1, meals: genericMeals, exercises: [ { title: '🏃‍♂️ วิ่ง Aerobic 4-6 กม.', focus: 'ความทนทานพื้นฐาน', detail: 'วิ่งคุมโซน 2 รักษาจังหวะการหายใจให้สม่ำเสมอ' }, { title: 'Butt Kicks & High Knees', focus: 'ฟอร์มการวิ่ง', detail: 'ทำ Drills กระตุ้นกล้ามเนื้อก่อนวิ่ง 5 นาที' }, { title: 'Calf Stretch', focus: 'ยืดเหยียดน่อง', detail: 'ดันกำแพงยืดน่อง ค้างไว้ข้างละ 30 วินาที' }, { title: 'Static Stretching', focus: 'ความยืดหยุ่น', detail: 'ยืดเหยียดทั่วร่างกายหลังวิ่งเสร็จ' } ] },
-                    6: { id: 'rest', icon: '🧘‍♂️', color: 'blue-500', bg: 'blue-500/10', title: 'Sub 5: Rest & Carbo Load', desc: 'วันพักเต็มรูปแบบ ยืดเส้นเตรียมความพร้อมก่อนวิ่งยาวพรุ่งนี้', pace: 'พักวิ่ง', hr: 'REST', waterModifier: 3, meals: { breakfast: 'แซนวิชโฮลวีตไข่ต้ม', lunch: 'ข้าวกล้อง 1.5 ทัพพี + อกไก่ย่าง', snack: 'กล้วยหอม 1 ลูก', dinner: 'พาสต้า หรือ ข้าวหน้าเนื้อ (โหลดคาร์บเตรียมวิ่งยาว!)' }, exercises: [ { title: '💤 พักการวิ่ง 1 วัน (Full Rest)', focus: 'พักผ่อน', detail: 'เก็บแรงและเติมคาร์บเตรียมพร้อมสำหรับวันอาทิตย์' }, { title: 'Yoga for Runners', focus: 'ความยืดหยุ่น', detail: 'ทำท่า Cat-Cow, Downward Dog คลายแผ่นหลังและน่อง' }, { title: 'Pigeon Pose', focus: 'สลักเพชรและสะโพก', detail: 'พับขาด้านหน้า ค้างไว้ข้างละ 45 วินาที ลดอาการตึงรั้ง' }, { title: 'เตรียมอุปกรณ์วิ่ง', focus: 'วินัย', detail: 'ชาร์จนาฬิกา เตรียมเจล ชุดวิ่ง และรองเท้าให้พร้อม' } ] }
+                const templates = {
+                    long: isRace ? {
+                        id: 'long', icon: '🏆', color: 'yellow-400', bg: 'yellow-400/20', title: `RACE DAY! ${targetDist}KM`, desc: 'ถึงเวลาโชว์ผลการซ้อมตลอดระยะเวลาที่ผ่านมา!', pace: 'Target Pace', hr: 'ZONE 3-4 (145-165 bpm)', waterModifier: 4,
+                        meals: { breakfast: 'ขนมปังแยม 2 แผ่น + กาแฟดำ (ทานก่อนแข่ง 2 ชม.)', lunch: 'อาหารหลังเข้าเส้นชัย (กินให้เต็มที่!)', snack: 'เบียร์เย็นๆ 1 กระป๋องฉลองชัยชนะ 🍻', dinner: 'ชาบู/หมูกระทะ ปาร์ตี้ฉลองเหรียญ!' },
+                        exercises: [ { title: `🏃‍♂️ RACE: ${targetDist} KM`, focus: 'หัวใจนักสู้', detail: 'คุมเพซช่วงแรกให้ดี อย่าวิ่งตามคนอื่น ดื่มน้ำทุกจุด!' }, { title: 'รับเหรียญ & ถ่ายรูป', focus: 'ความภูมิใจ', detail: 'คุณคือ Elite Runner แล้ว!' }, { title: 'ยืดเหยียดหลังแข่ง', focus: 'ป้องกันบาดเจ็บ', detail: 'ยืดเหยียดช้าๆ อย่าฝืนนวดแรง' }, { title: 'แช่น้ำเย็น (Ice bath)', focus: 'Recovery', detail: 'แช่เท้า 15 นาที ลดการอักเสบระดับเซลล์' } ]
+                    } : {
+                        id: 'long', icon: '🔥', color: 'red-500', bg: 'red-500/10', title: `Long Run ${sundayDistance} KM`, desc: 'ฝึกความทนทานของกล้ามเนื้อและหัวใจ คุมเพซให้คงที่', pace: '7:45 - 8:15', hr: 'ZONE 2-3 (130-150 bpm)', waterModifier: 4,
+                        meals: { ...genericMeals, breakfast: 'โหลดคาร์บ: ข้าวโอ๊ต/ขนมปังแยม + กาแฟดำ', dinner: 'หมูกระทะ/ชาบู (เน้นเนื้อโปรตีน รางวัลหลังวิ่งยาว!)' },
+                        exercises: [ { title: `🏃‍♂️ วิ่ง Long Run ระยะ ${sundayDistance} กม.`, focus: 'ความทนทาน', detail: 'รักษาระดับหัวใจไม่ให้เกินโซน 3 ห้ามวิ่งเร็วกว่ากำหนด' }, { title: 'ทาครีมกันเสียดสี/เตรียมเจล', focus: 'การเตรียมตัว', detail: 'ฝึกกินเจลทุกๆ 45 นาทีให้ร่างกายชินระบบย่อย' }, { title: 'Quad & Hamstring Stretch', focus: 'กล้ามเนื้อขา', detail: 'ยืดเหยียดชุดใหญ่หลังวิ่งจบ ป้องกันอาการบาดเจ็บ' }, { title: 'แช่น้ำเย็น (Ice bath)', focus: 'การฟื้นฟู (Recovery)', detail: 'แช่เท้าและน่อง 10-15 นาที ลดการอักเสบ' } ]
+                    },
+                    rest: {
+                        id: 'rest', icon: '💤', color: 'blue-500', bg: 'blue-500/10', title: 'Rest & Recovery', desc: 'วันพักผ่อน ฟื้นฟูกล้ามเนื้อหลังผ่านการซ้อม', pace: 'พักวิ่ง', hr: 'REST', waterModifier: 0,
+                        meals: { breakfast: 'ไข่ต้ม 3 ฟอง + นมโปรตีนสูง (ลดคาร์บ)', lunch: 'เกาเหลาไก่ฉีก หรือ สลัดปลาแซลมอน', snack: 'ถั่วแระญี่ปุ่น หรือ กรีกโยเกิร์ต', dinner: 'สเต็กเนื้อ/ไก่ + ผักย่าง (ลดแป้งมื้อเย็น)' },
+                        exercises: [ { title: '💤 พักการวิ่ง 1 วัน (Full Rest)', focus: 'กล้ามเนื้อขา', detail: 'งดวิ่งเด็ดขาด เพื่อให้ร่างกายได้ซ่อมแซม' }, { title: 'Core Plank', focus: 'แกนกลางลำตัว (Core)', detail: 'ทำ 3 เซต เซตละ 40 วินาที ช่วยให้ฟอร์มไม่ตกตอนเหนื่อย' }, { title: 'Legs Up the Wall', focus: 'การไหลเวียนเลือด', detail: 'นอนเอาขาพาดกำแพง 10 นาที ลดอาการเมื่อยล้าที่น่อง' }, { title: 'Foam Rolling (กลิ้งโฟม)', focus: 'น่องและหน้าขา', detail: 'กลิ้งจุดละ 1-2 นาที คลายกรดแลคติกที่สะสม' } ]
+                    },
+                    easy: {
+                        id: 'easy', icon: '👟', color: 'lime-400', bg: 'lime-400/10', title: 'Easy Run (Base Run)', desc: 'วิ่งสบายๆ สร้างฐานความฟิต (Aerobic Base)', pace: '7:00 - 7:20', hr: 'ZONE 2 (125-140 bpm)', waterModifier: 1, meals: genericMeals,
+                        exercises: [ { title: `🏃‍♂️ วิ่ง Easy Run ${weekIndex < 8 ? '5' : '8'} กม.`, focus: 'ระบบหายใจ', detail: 'คุมหัวใจให้อยู่แค่โซน 2 (วิ่งไปคุยไปได้สบายๆ)' }, { title: 'A-Skip & High Knees', focus: 'ฟอร์มการวิ่ง', detail: 'ทำ Drills กระตุ้นกล้ามเนื้อก่อนวิ่ง 5 นาที' }, { title: 'Bodyweight Squats', focus: 'กล้ามเนื้อหน้าขา', detail: 'ทำหลังวิ่งจบ 3 เซต เซตละ 15 ครั้ง' }, { title: 'Calf Raises', focus: 'น่องและข้อเท้า', detail: 'ยืนเขย่งปลายเท้า 3 เซต เซตละ 20 ครั้ง ป้องกันตะคริว' } ]
+                    },
+                    speed: {
+                        id: 'speed', icon: '⚡', color: 'orange-500', bg: 'orange-500/10', title: 'Speed Work / Tempo', desc: 'ซ้อมความเร็วรอบขา ฝึกให้หัวใจทนต่อความเหนื่อย (Lactate Threshold)', pace: '6:20 - 6:40', hr: 'ZONE 4 (155-170 bpm)', waterModifier: 2,
+                        meals: { breakfast: 'ขนมปังโฮลวีตทาเนยถั่ว + กล้วยหอม + กาแฟดำ', lunch: 'ข้าวกล้อง 1.5 ทัพพี + กะเพราไก่ (ไม่มัน) + ไข่ดาว', snack: 'ผลไม้สด หรือ Energy Gel (ก่อนซ้อม 30 นาที)', dinner: 'ข้าว 1 ทัพพี + ปลาเผา/ปลาย่าง + ผักต้ม (เติมไกลโคเจน)' },
+                        exercises: [ { title: '⚡ วิ่ง Tempo / Interval', focus: 'ความเร็ว (Pace)', detail: 'วอร์มอัพ 2k -> วิ่งเพซ 6:20-6:40 (ระยะตามคอร์ท) -> คูลดาวน์ 2k' }, { title: 'Dynamic Stretching', focus: 'ยืดเหยียดแบบเคลื่อนไหว', detail: 'เตะขาไปมา หมุนข้อต่อ ก่อนลงคอร์ทวิ่งเร็ว' }, { title: 'Forward Lunges', focus: 'ต้นขาด้านหน้าและก้น', detail: 'ก้าวสลับซ้ายขวา 3 เซต เซตละ 10 ครั้ง/ข้าง' }, { title: 'Russian Twist', focus: 'หน้าท้องด้านข้าง', detail: 'นั่งบิดเอว 3 เซต เซตละ 20 ครั้ง' } ]
+                    }
                 };
-                return schedules[dayIndex];
+                return templates[dayType] || templates['rest'];
             };
 
-            const isRaceDay = diffDays === totalDays && todayObj.getDay() === 0;
             const currentConfig = getTrainingConfig(todayObj.getDay(), currentWeekIndex, isRaceDay);
-            
             const baseWaterGlasses = Math.ceil((weight * 33) / 250);
             const targetWater = Math.max(8, baseWaterGlasses + currentConfig.waterModifier);
 
@@ -432,99 +325,6 @@
             const [waterOpen, setWaterOpen] = useState(true);
             const [exOpen, setExOpen] = useState(true);
             const [loggerOpen, setLoggerOpen] = useState(true); 
-            const [batteryOpen, setBatteryOpen] = useState(true); 
-
-            useEffect(() => { const allDone = dailyData.breakfastDone && dailyData.lunchDone && dailyData.snackDone && dailyData.dinnerDone; setMealsOpen(!allDone); }, [dailyData.breakfastDone, dailyData.lunchDone, dailyData.snackDone, dailyData.dinnerDone]);
-            useEffect(() => { setWaterOpen(targetWater > dailyData.water); }, [dailyData.water, targetWater]);
-            useEffect(() => { const completedEx = dailyData.exerciseChecks.filter(Boolean).length; setExOpen(currentConfig.exercises.length > completedEx); }, [dailyData.exerciseChecks, currentConfig.exercises.length]);
-
-            const computeScoreForRecord = (rec) => {
-                if (!rec) return 0;
-                let s = 0;
-                if (rec.breakfastDone) s += 10; if (rec.lunchDone) s += 10; if (rec.snackDone) s += 10; if (rec.dinnerDone) s += 10;
-                if (rec.water >= 10) s += 20; 
-                const exCount = (rec.exerciseChecks || []).filter(Boolean).length;
-                s += (exCount / 4) * 40; 
-                return Math.min(Math.round(s), 100);
-            };
-
-            const last7Days = Array.from({length: 7}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d.toDateString(); });
-
-            const weeklyMileage = last7Days.reduce((total, dateStr) => {
-                const rec = allRecords[dateStr];
-                if (rec && rec.runLogged && rec.runDistance) return total + parseFloat(rec.runDistance);
-                return total;
-            }, 0);
-
-            // คำนวณ PB, Achievements และ AI Predictor
-            let totalDistanceAllTime = 0;
-            let totalSecondsAllTime = 0;
-            let longestRun = 0;
-            let fastest5kSecs = Infinity;
-            let fastest10kSecs = Infinity;
-            let streakCount = 0;
-            let maxStreakCount = 0;
-            let aquaCount = 0;
-            let maxAquaCount = 0;
-
-            const parsePace = (pace) => {
-                if (!pace) return Infinity;
-                const parts = pace.split(':');
-                return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : Infinity;
-            }
-            const formatPace = (secs) => {
-                if (secs === Infinity) return '--:--';
-                const m = Math.floor(secs / 60);
-                const s = Math.floor(secs % 60);
-                return `${m}:${s.toString().padStart(2, '0')}`;
-            }
-
-            const sortedDates = Object.keys(allRecords).sort((a, b) => new Date(a) - new Date(b));
-
-            sortedDates.forEach(date => {
-                const rec = allRecords[date];
-                if (rec.runLogged && rec.runDistance && rec.runPace) {
-                    const dist = parseFloat(rec.runDistance);
-                    const pSecs = parsePace(rec.runPace);
-                    if (pSecs !== Infinity) {
-                        totalDistanceAllTime += dist; 
-                        totalSecondsAllTime += (pSecs * dist);
-                        
-                        if (dist > longestRun) longestRun = dist;
-                        if (dist >= 5 && pSecs < fastest5kSecs) fastest5kSecs = pSecs;
-                        if (dist >= 10 && pSecs < fastest10kSecs) fastest10kSecs = pSecs;
-                    }
-                    streakCount++;
-                } else {
-                    streakCount = 0;
-                }
-                if (streakCount > maxStreakCount) maxStreakCount = streakCount;
-
-                if (rec.water >= 8) aquaCount++; else aquaCount = 0;
-                if (aquaCount > maxAquaCount) maxAquaCount = aquaCount;
-            });
-
-            const achievements = {
-                halfMarathon: longestRun >= 21.1,
-                streakMaster: maxStreakCount >= 7,
-                aquaMan: maxAquaCount >= 3
-            };
-
-            const shoeMileage = totalDistanceAllTime;
-            const shoeProgress = Math.min((shoeMileage / 500) * 100, 100);
-            
-            const virtualMapGoal = 600;
-            const virtualMapProgress = Math.min((totalDistanceAllTime / virtualMapGoal) * 100, 100);
-
-            let predictedTimeStr = "NEED MORE DATA";
-            let isSub5 = false;
-            if (totalDistanceAllTime >= 10) { 
-                const avgPaceSecs = totalSecondsAllTime / totalDistanceAllTime;
-                const predictedSecs = avgPaceSecs * 42.195 * 1.05; 
-                const h = Math.floor(predictedSecs / 3600); const m = Math.floor((predictedSecs % 3600) / 60); const s = Math.floor(predictedSecs % 60);
-                predictedTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                isSub5 = predictedSecs < (5 * 3600);
-            }
 
             let dailyScore = 0;
             if (dailyData.breakfastDone) dailyScore += 10; if (dailyData.lunchDone) dailyScore += 10; if (dailyData.snackDone) dailyScore += 10; if (dailyData.dinnerDone) dailyScore += 10;
@@ -533,251 +333,168 @@
             dailyScore += (completedExercises / currentConfig.exercises.length) * 40; 
             dailyScore = Math.min(Math.round(dailyScore), 100);
 
-            useEffect(() => {
-                if (dailyScore === 100) { setShowConfetti(true); const timer = setTimeout(() => setShowConfetti(false), 5000); return () => clearTimeout(timer); } 
-                else setShowConfetti(false);
-            }, [dailyScore]);
+            useEffect(() => { if (dailyScore === 100) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 5000); } else setShowConfetti(false); }, [dailyScore]);
 
-            const getMotivationalMessage = () => {
-                if (dailyScore === 100) return "PERFECT RUN! รับรางวัลเลย ⚡";
-                if (dailyScore >= 70) return "เครื่องร้อนแล้ว อัดให้สุด! 🔥";
-                if (dailyScore >= 40) return "รักษาเพซไว้ อย่าเพิ่งแผ่ว! 🏃‍♂️";
-                return "พร้อมลุยหรือยังนักวิ่ง? 🏁";
-            };
+            if (loadingData) return <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-orange-500"><div className="w-12 h-12 border-4 border-zinc-800 border-t-orange-500 rounded-full animate-spin mb-4"></div></div>;
 
-            const rewardsList = ["เบอร์เกอร์เนื้อ/หมู (ชิ้นเด็ด) 1 ชิ้น", "เบียร์เย็นๆ 1 กระป๋อง (ฮีลใจ)", "ไก่ทอด Air-fryer ฟินๆ 3 ชิ้น", "สเต็กเนื้อสันใน ย่างหอมๆ", "ซูชิแซลมอนเซ็ตใหญ่", "ขนมปังซาวร์โด ปิ้งทาเนยถั่ว", "หมูกระทะ/ชาบู (เน้นเนื้อล้วน)"];
-            const todayReward = isRaceDay ? "เบียร์ 1 ลัง + ชาบูชุดใหญ่ฉลองเหรียญ!! 🏆" : rewardsList[todayObj.getDate() % rewardsList.length]; 
-
-            const waterSchedule = [
-                { time: '06:00 - 08:00', desc: 'ตื่นนอน (กระตุ้นระบบเผาผลาญ)', amount: Math.floor(targetWater*0.2) },
-                { time: '09:00 - 12:00', desc: 'สาย-เที่ยง (จิบเรื่อยๆ ลดหิว)', amount: Math.ceil(targetWater*0.3) },
-                { time: '13:00 - 16:00', desc: 'ช่วงบ่าย (เติมความสดชื่น)', amount: Math.ceil(targetWater*0.2) },
-                { time: '17:00 - 19:00', desc: 'ช่วงเย็น/ซ้อมวิ่ง (ชดเชยเหงื่อ)', amount: Math.ceil(targetWater*0.2) },
-                { time: '20:00 - 22:00', desc: 'ก่อนนอน (กันตะคริวกลางคืน)', amount: targetWater - Math.floor(targetWater*0.2) - Math.ceil(targetWater*0.3) - Math.ceil(targetWater*0.2) - Math.ceil(targetWater*0.2) > 0 ? targetWater - Math.floor(targetWater*0.2) - Math.ceil(targetWater*0.3) - Math.ceil(targetWater*0.2) - Math.ceil(targetWater*0.2) : 1 },
-            ];
-
-            if (loadingData) {
-                return (
-                    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-orange-500">
-                        <svg className="w-12 h-12 animate-spin mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        <p className="font-black tracking-widest uppercase text-base">Syncing Data...</p>
-                    </div>
-                );
-            }
-
+            // --- 🛑 UI หน้าจอตั้งค่า (Setup Modal) ให้เลือกระยะ/วัน ---
             if (showSetup) {
                 return (
-                    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-200 relative overflow-hidden z-50">
-                        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[100px] opacity-20"></div>
-                        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[24px] shadow-2xl shadow-black w-full max-w-sm relative z-10">
-                            <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-1">Runner Profile</h2>
-                            <p className="text-sm font-bold text-zinc-500 tracking-wide mb-8">ตั้งค่าเป้าหมายส่วนตัวของคุณ 🎯</p>
+                    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 z-50 overflow-y-auto">
+                        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[24px] shadow-2xl w-full max-w-sm my-10 relative">
+                            <h2 className="text-3xl font-black text-white italic uppercase mb-1">Runner Profile</h2>
+                            <p className="text-sm font-bold text-zinc-500 mb-8">ตั้งเป้าหมายและจัดตารางส่วนตัว 🎯</p>
+                            
                             <div className="space-y-6">
-                                <div>
-                                    <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Starting Weight (น้ำหนักเริ่มต้น) KG</label>
-                                    <input type="number" step="0.1" value={setupInitWeight} onChange={e=>setSetupInitWeight(Number(e.target.value))} className="w-full bg-zinc-950 border-b-2 border-zinc-800 p-4 text-center text-white font-black text-4xl italic outline-none focus:border-orange-500 transition-colors"/>
+                                {/* ส่วนที่ 1: เลือกระยะเป้าหมาย */}
+                                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                                    <label className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-3 block">Target Distance (เลือกระยะเป้าหมาย)</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[ {d:5, l:'5K'}, {d:10, l:'10K'}, {d:21.1, l:'21K'}, {d:42.195, l:'42K'} ].map(dist => (
+                                            <button key={dist.d} onClick={() => setSetupDist(dist.d)} className={`py-3 rounded-lg text-xs font-black transition-colors ${setupDist === dist.d ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'}`}>{dist.l}</button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-lime-400 uppercase tracking-widest mb-2 block">Target Goal (เป้าหมายน้ำหนัก) KG</label>
-                                    <input type="number" step="0.1" value={setupTargetWeight} onChange={e=>setSetupTargetWeight(Number(e.target.value))} className="w-full bg-zinc-950 border-b-2 border-zinc-800 p-4 text-center text-white font-black text-4xl italic outline-none focus:border-lime-400 transition-colors"/>
+
+                                {/* ส่วนที่ 2: เลือกวันซ้อม */}
+                                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                                    <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex justify-between"><span>Training Days (เลือกวันซ้อม)</span><span className="text-white">{Object.values(setupAvail).filter(Boolean).length} วัน</span></label>
+                                    <div className="flex justify-between gap-1">
+                                        {['อา','จ','อ','พ','พฤ','ศ','ส'].map((day, idx) => (
+                                            <button key={idx} onClick={() => setSetupAvail({...setupAvail, [idx]: !setupAvail[idx]})} className={`w-full py-3 rounded-lg text-[10px] font-black transition-colors ${setupAvail[idx] ? 'bg-blue-500 text-black shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-zinc-900 text-zinc-600 hover:bg-zinc-800'}`}>{day}</button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <button onClick={saveProfileSetup} className="w-full bg-orange-500 hover:bg-orange-400 text-black font-black uppercase tracking-widest py-4 rounded-xl mt-4 active:scale-95 transition-all shadow-[0_0_15px_rgba(249,115,22,0.3)]">
-                                    Save Config
-                                </button>
+
+                                {/* ส่วนที่ 3: เลือกวันวิ่งยาว */}
+                                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                                    <label className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-2 block">Long Run Day (เลือกวันวิ่งยาว)</label>
+                                    <select value={setupLongDay} onChange={e => setSetupLongDay(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-lg text-white font-bold text-sm outline-none focus:border-red-500 transition-colors cursor-pointer">
+                                        {Object.keys(setupAvail).filter(k=>setupAvail[k]).map(k => (<option key={k} value={k}>ทำ Long Run ทุกวัน {['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][k]}</option>))}
+                                        {Object.values(setupAvail).filter(v=>v).length === 0 && (<option value={0}>กรุณาเลือกวันซ้อมก่อน</option>)}
+                                    </select>
+                                </div>
+
+                                {/* ส่วนที่ 4: น้ำหนัก */}
+                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                                        <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block text-center">Starting Weight</label>
+                                        <input type="number" step="0.1" value={setupInitWeight} onChange={e=>setSetupInitWeight(Number(e.target.value))} className="w-full bg-transparent text-center text-white font-black text-3xl italic outline-none border-b-2 border-zinc-800 focus:border-orange-500 transition-colors"/>
+                                    </div>
+                                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                                        <label className="text-[10px] font-black text-lime-400 uppercase tracking-widest mb-2 block text-center">Target Goal</label>
+                                        <input type="number" step="0.1" value={setupTargetWeight} onChange={e=>setSetupTargetWeight(Number(e.target.value))} className="w-full bg-transparent text-center text-white font-black text-3xl italic outline-none border-b-2 border-zinc-800 focus:border-lime-400 transition-colors"/>
+                                    </div>
+                                </div>
+
+                                <button onClick={saveProfileSetup} className="w-full bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-400 hover:to-orange-300 text-black font-black uppercase tracking-widest py-4 rounded-xl mt-6 active:scale-95 transition-all shadow-[0_0_20px_rgba(249,115,22,0.4)]">Save & Create Plan</button>
                             </div>
                         </div>
                     </div>
                 );
             }
 
+            // ตัวแปรสถิติของ Original 
+            let totalDistanceAllTime = 0, totalSecondsAllTime = 0, longestRun = 0, fastest5kSecs = Infinity, fastest10kSecs = Infinity, streakCount = 0, maxStreakCount = 0, aquaCount = 0, maxAquaCount = 0;
+            const parsePace = (pace) => { if (!pace) return Infinity; const parts = pace.split(':'); return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : Infinity; }
+            const formatPace = (secs) => { if (secs === Infinity) return '--:--'; const m = Math.floor(secs / 60); const s = Math.floor(secs % 60); return `${m}:${s.toString().padStart(2, '0')}`; }
+            const sortedDates = Object.keys(allRecords).sort((a, b) => new Date(a) - new Date(b));
+            sortedDates.forEach(date => {
+                const rec = allRecords[date];
+                if (rec.runLogged && rec.runDistance && rec.runPace) {
+                    const dist = parseFloat(rec.runDistance); const pSecs = parsePace(rec.runPace);
+                    if (pSecs !== Infinity) { totalDistanceAllTime += dist; totalSecondsAllTime += (pSecs * dist); if (dist > longestRun) longestRun = dist; if (dist >= 5 && pSecs < fastest5kSecs) fastest5kSecs = pSecs; if (dist >= 10 && pSecs < fastest10kSecs) fastest10kSecs = pSecs; }
+                    streakCount++;
+                } else streakCount = 0;
+                if (streakCount > maxStreakCount) maxStreakCount = streakCount;
+                if (rec.water >= 8) aquaCount++; else aquaCount = 0;
+                if (aquaCount > maxAquaCount) maxAquaCount = aquaCount;
+            });
+
             return (
                 <div className="min-h-screen text-zinc-200 pb-24 selection:bg-orange-500/30 font-sans">
                     {showConfetti && <Confetti />}
                     <header className="relative bg-zinc-950 pt-12 pb-16 px-6 border-b border-zinc-800 overflow-hidden shadow-2xl z-10">
-                        <div className="absolute inset-0 racing-stripes opacity-20"></div>
-                        <div className="absolute top-0 right-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[80px] opacity-20"></div>
+                        <div className="absolute inset-0 racing-stripes opacity-20"></div><div className="absolute top-0 right-[-10%] w-64 h-64 bg-orange-600 rounded-full blur-[80px] opacity-20"></div>
                         <div className="relative z-10">
                             <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-lime-400 font-black text-xs tracking-[0.3em] uppercase mb-1 drop-shadow-md">Road To Bangsaen42</p>
-                                    <h1 className="text-5xl font-black tracking-tighter leading-none mb-1 uppercase text-white italic">Project <span className="text-orange-500">80</span></h1>
-                                    <h2 className="text-sm font-bold text-zinc-400 tracking-wider mt-2 uppercase">Runner: <span className="text-white">{displayProfileName}</span></h2>
-                                </div>
-                                <button onClick={onLogout} className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl shadow-md flex flex-col items-center hover:bg-zinc-800 transition-colors">
-                                    <svg className="w-6 h-6 text-zinc-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Log Out</span>
-                                </button>
+                                <div><p className="text-lime-400 font-black text-xs tracking-[0.3em] uppercase mb-1 drop-shadow-md">Road To Bangsaen42</p><h1 className="text-5xl font-black tracking-tighter leading-none mb-1 uppercase text-white italic">Project <span className="text-orange-500">80</span></h1><h2 className="text-sm font-bold text-zinc-400 tracking-wider mt-2 uppercase">Runner: <span className="text-white">{displayProfileName}</span></h2></div>
+                                <button onClick={onLogout} className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl shadow-md flex flex-col items-center hover:bg-zinc-800"><svg className="w-6 h-6 text-zinc-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg><span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Log Out</span></button>
                             </div>
-                            
                             <div className="mt-6 flex flex-col gap-2">
-                                <div className={`inline-block border px-4 py-2 rounded-lg w-max ${diffDays > 0 ? 'bg-zinc-900 border-zinc-800 text-orange-500' : 'bg-orange-500 border-orange-400 text-black shadow-[0_0_10px_rgba(249,115,22,0.5)] animate-pulse'}`}>
-                                    <p className="font-bold text-xs tracking-widest uppercase">
-                                        {diffDays > 0 ? `DAY ${diffDays} / ${totalDays}` : 'WARM UP (PRE-SEASON)'}
-                                    </p>
-                                </div>
-                                {diffDays > 0 && (
-                                    <div className={`text-xs font-black tracking-widest uppercase ${phaseColor}`}>
-                                        WEEK {currentWeekIndex + 1}/24 : {phaseName}
-                                    </div>
-                                )}
+                                <div className={`inline-block border px-4 py-2 rounded-lg w-max bg-zinc-900 border-zinc-800 text-orange-500`}><p className="font-bold text-xs tracking-widest uppercase">DAY {diffDays} / {totalDays}</p></div>
+                                <div className="text-xs font-black tracking-widest uppercase text-lime-400">WEEK {currentWeekIndex + 1}/24 : TARGET {targetDist}K</div>
                             </div>
                         </div>
                     </header>
 
                     <div className="px-5 -mt-8 relative z-20 space-y-5">
                         <div className="bg-zinc-900/90 backdrop-blur-xl rounded-[24px] p-6 shadow-2xl border border-zinc-800 flex items-center justify-between gap-3 overflow-hidden relative">
-                            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-orange-500/10 to-transparent"></div>
                             <div className="flex flex-col z-10 shrink-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Target Weight</span>
-                                    <button onClick={() => setShowSetup(true)} className="text-zinc-500 hover:text-orange-500">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                    </button>
-                                </div>
-                                <div className="flex items-baseline gap-1">
-                                    <input type="number" step="0.1" value={weight} onChange={(e) => updateWeightToCloud(parseFloat(e.target.value) || 0)} className="w-28 bg-transparent text-5xl font-black text-white italic tracking-tighter outline-none border-b-4 border-zinc-800 focus:border-lime-400 transition-colors" />
-                                    <span className="text-lime-400 font-bold text-base uppercase tracking-wider">KG</span>
-                                </div>
-                                <div className="flex gap-3 mt-5">
-                                    <button onClick={() => updateWeightToCloud(Number((weight + 0.1).toFixed(1)))} className="w-12 h-12 bg-zinc-800 rounded-lg text-zinc-300 font-black text-2xl hover:bg-zinc-700 active:scale-95 transition-all">+</button>
-                                    <button onClick={() => updateWeightToCloud(Math.max(40, Number((weight - 0.1).toFixed(1))))} className="w-12 h-12 bg-orange-500 rounded-lg text-black font-black text-3xl shadow-[0_0_15px_rgba(249,115,22,0.4)] active:scale-95 transition-all">-</button>
-                                </div>
+                                <div className="flex items-center gap-2 mb-2"><span className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Target Weight</span><button onClick={() => setShowSetup(true)} className="text-zinc-500 hover:text-orange-500"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></button></div>
+                                <div className="flex items-baseline gap-1"><input type="number" step="0.1" value={weight} onChange={(e) => updateWeightToCloud(parseFloat(e.target.value) || 0)} className="w-28 bg-transparent text-5xl font-black text-white italic tracking-tighter outline-none border-b-4 border-zinc-800 focus:border-lime-400 transition-colors" /><span className="text-lime-400 font-bold text-base uppercase tracking-wider">KG</span></div>
+                                <div className="flex gap-3 mt-5"><button onClick={() => updateWeightToCloud(Number((weight + 0.1).toFixed(1)))} className="w-12 h-12 bg-zinc-800 rounded-lg text-zinc-300 font-black text-2xl hover:bg-zinc-700">+</button><button onClick={() => updateWeightToCloud(Math.max(40, Number((weight - 0.1).toFixed(1))))} className="w-12 h-12 bg-orange-500 rounded-lg text-black font-black text-3xl shadow-[0_0_15px_rgba(249,115,22,0.4)]">-</button></div>
                             </div>
-                            <div className="flex-1 flex justify-end z-10 relative mr-2">
-                                <CoolRunnerAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} currentConfig={currentConfig} />
-                            </div>
-                        </div>
-
-                        <div className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 shadow-lg">
-                            <div className="flex justify-between items-end mb-4">
-                                <h3 className="font-black text-white text-sm tracking-widest uppercase">Marathon Countdown</h3>
-                                <span className="text-2xl font-black italic text-lime-400 leading-none">{overallProgress}%</span>
-                            </div>
-                            <div className="relative w-full bg-zinc-950 h-5 rounded-full overflow-hidden border border-zinc-800">
-                                <div className="absolute inset-0 flex flex-col justify-evenly opacity-30"><div className="h-[1px] w-full bg-white border-dashed"></div><div className="h-[1px] w-full bg-white border-dashed"></div></div>
-                                <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-600 via-orange-500 to-lime-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(204,255,0,0.5)]" style={{ width: `${overallProgress}%` }}></div>
-                            </div>
+                            <div className="flex-1 flex justify-end z-10 relative mr-2"><CoolRunnerAvatar weight={weight} targetWeight={targetWeight} initialWeight={initialWeight} currentConfig={currentConfig} /></div>
                         </div>
                     </div>
 
                     <div className="flex justify-between gap-2 mt-6 px-5">
-                        <button onClick={() => setActiveTab('tracker')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'tracker' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'}`}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Pit Stop
-                        </button>
-                        <button onClick={() => setActiveTab('plan')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'plan' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'}`}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg> Playbook
-                        </button>
-                        <button onClick={() => setActiveTab('leaderboard')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'leaderboard' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'}`}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Ranking
-                        </button>
-                        <button onClick={() => setActiveTab('stats')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center justify-center gap-1 transition-all duration-300 ${activeTab === 'stats' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'}`}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg> Stats
-                        </button>
+                        <button onClick={() => setActiveTab('tracker')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center gap-1 transition-all ${activeTab === 'tracker' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'}`}>Pit Stop</button>
+                        <button onClick={() => setActiveTab('plan')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center gap-1 transition-all ${activeTab === 'plan' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'}`}>Playbook</button>
+                        <button onClick={() => setActiveTab('leaderboard')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center gap-1 transition-all ${activeTab === 'leaderboard' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'}`}>Ranking</button>
+                        <button onClick={() => setActiveTab('stats')} className={`flex-1 py-3 px-1 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex flex-col items-center gap-1 transition-all ${activeTab === 'stats' ? 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'}`}>Stats</button>
                     </div>
 
                     <main className="px-5 mt-6 space-y-6">
                         {activeTab === 'tracker' && (
                             <React.Fragment>
-                                <section className={`rounded-[24px] p-6 border-2 flex items-center justify-between relative overflow-hidden transition-colors duration-500 ${dailyScore === 100 ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_30px_rgba(249,115,22,0.4)]' : 'bg-zinc-900 border-zinc-800 text-white shadow-xl'}`}>
-                                    <div className="relative z-10 max-w-[60%]">
-                                        <h2 className="font-black text-3xl italic tracking-tighter uppercase mb-2">Energy</h2>
-                                        <p className={`text-sm font-bold leading-snug tracking-wide ${dailyScore === 100 ? 'text-black/80' : 'text-zinc-400'}`}>{getMotivationalMessage()}</p>
-                                    </div>
-                                    <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
-                                        <svg className="w-full h-full transform -rotate-90 drop-shadow-lg" viewBox="0 0 36 36">
-                                            <path className={dailyScore === 100 ? 'text-orange-600/30' : 'text-zinc-950'} strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                            <path className={`transition-all duration-1000 ease-out ${dailyScore === 100 ? 'text-white' : 'text-lime-400'}`} strokeDasharray={`${dailyScore}, 100`} strokeWidth="4" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                        </svg>
-                                        <div className="absolute flex flex-col items-center justify-center"><span className="text-4xl font-black italic">{dailyScore}</span></div>
-                                    </div>
+                                <section className={`rounded-[24px] p-6 border-2 flex items-center justify-between ${dailyScore === 100 ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_30px_rgba(249,115,22,0.4)]' : 'bg-zinc-900 border-zinc-800'}`}>
+                                    <div><h2 className="font-black text-3xl italic tracking-tighter uppercase mb-2">Energy</h2></div>
+                                    <div className="text-5xl font-black italic">{dailyScore}%</div>
                                 </section>
 
-                                <section className={`rounded-[24px] p-6 border transition-all duration-500 ${dailyScore === 100 ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-zinc-900 border-zinc-800'}`}>
-                                    <div className="flex items-center gap-5">
-                                        <div className={`w-16 h-16 rounded-[18px] flex items-center justify-center shrink-0 text-3xl transition-all ${dailyScore === 100 ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/50 scale-110' : 'bg-zinc-950 text-zinc-500 border border-zinc-800'}`}>🎁</div>
-                                        <div>
-                                            <h3 className={`font-black text-base uppercase tracking-widest ${dailyScore === 100 ? 'text-orange-400' : 'text-zinc-400'}`}>{dailyScore === 100 ? 'REWARD UNLOCKED! 🎉' : 'Daily Reward'}</h3>
-                                            <p className={`text-sm mt-2 font-medium leading-relaxed ${dailyScore === 100 ? 'text-zinc-300' : 'text-zinc-500'}`}>{dailyScore === 100 ? `ยอดเยี่ยมมาก! วันนี้ได้สิทธิ์ทาน "${todayReward}" ให้รางวัลตัวเองเลยลูกพี่! 🍔` : 'ทำภารกิจด้านล่างให้ครบ 100% เพื่อปลดล็อกของอร่อยมื้อนี้'}</p>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 transition-all duration-500">
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setMealsOpen(!mealsOpen)}>
                                         <h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-orange-500 rounded-full"></span> 01. Fuel Intake (40 Pts)</h2>
-                                        <span className="text-zinc-400 text-sm font-bold uppercase">{mealsOpen ? 'HIDE' : 'SHOW'}</span>
                                     </div>
                                     {mealsOpen && (
-                                    <div className="grid gap-4 mt-6 animation-fade-in">
-                                        {[
-                                            { key: 'breakfastDone', state: dailyData.breakfastDone, label: 'B-FAST', desc: currentConfig.meals.breakfast },
-                                            { key: 'lunchDone', state: dailyData.lunchDone, label: 'LUNCH', desc: currentConfig.meals.lunch },
-                                            { key: 'snackDone', state: dailyData.snackDone, label: 'SNACK', desc: currentConfig.meals.snack },
-                                            { key: 'dinnerDone', state: dailyData.dinnerDone, label: 'DINNER', desc: currentConfig.meals.dinner }
-                                        ].map((meal, idx) => (
-                                            <div key={idx} onClick={() => updateDaily(meal.key, !meal.state)} className={`p-5 rounded-[16px] cursor-pointer flex items-center gap-5 transition-all duration-300 active:scale-95 border-l-4 ${meal.state ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-orange-500 shadow-md'}`}>
-                                                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${meal.state ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}>
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                                                </div>
-                                                <div>
-                                                    <h3 className={`font-black text-sm uppercase tracking-widest ${meal.state ? 'text-zinc-600 line-through' : 'text-white'}`}>{meal.label}</h3>
-                                                    <p className={`text-sm mt-1.5 font-medium ${meal.state ? 'text-zinc-700' : 'text-zinc-300'}`}>{meal.desc}</p>
-                                                </div>
+                                    <div className="grid gap-4 mt-6">
+                                        {[ { key: 'breakfastDone', state: dailyData.breakfastDone, label: 'B-FAST', desc: currentConfig.meals.breakfast }, { key: 'lunchDone', state: dailyData.lunchDone, label: 'LUNCH', desc: currentConfig.meals.lunch }, { key: 'snackDone', state: dailyData.snackDone, label: 'SNACK', desc: currentConfig.meals.snack }, { key: 'dinnerDone', state: dailyData.dinnerDone, label: 'DINNER', desc: currentConfig.meals.dinner } ].map((meal, idx) => (
+                                            <div key={idx} onClick={() => updateDaily(meal.key, !meal.state)} className={`p-5 rounded-[16px] cursor-pointer flex items-center gap-5 border-l-4 ${meal.state ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-orange-500'}`}>
+                                                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${meal.state ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}>✓</div>
+                                                <div><h3 className={`font-black text-sm uppercase tracking-widest ${meal.state ? 'text-zinc-600 line-through' : 'text-white'}`}>{meal.label}</h3><p className={`text-sm mt-1.5 font-medium ${meal.state ? 'text-zinc-700' : 'text-zinc-300'}`}>{meal.desc}</p></div>
                                             </div>
                                         ))}
                                     </div>
                                     )}
                                 </section>
 
-                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden transition-all duration-500">
-                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-500/10 transition-all duration-700 -z-0" style={{ height: `${Math.min((dailyData.water/targetWater)*100, 100)}%` }}></div>
-                                    <div className="relative z-10">
-                                        <div className="flex items-center justify-between mb-6 cursor-pointer" onClick={() => setWaterOpen(!waterOpen)}>
-                                            <h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-blue-500 rounded-full"></span> 02. Hydration (20 Pts)</h2>
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-blue-400 text-base font-black italic">{dailyData.water} / {targetWater}</div>
-                                                <span className="text-zinc-400 text-sm font-bold uppercase">{waterOpen ? 'HIDE' : 'SHOW'}</span>
-                                            </div>
-                                        </div>
-                                        {waterOpen && (
-                                        <div className="animation-fade-in">
-                                            <div className="flex items-center justify-center gap-8 mb-8">
-                                                <button onClick={() => updateDaily('water', Math.max(0, dailyData.water - 1))} className="w-16 h-16 rounded-full bg-zinc-950 border-2 border-zinc-800 text-3xl font-black text-zinc-500 active:scale-95">-</button>
-                                                <div className="text-7xl transition-all duration-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">💧</div>
-                                                <button onClick={() => updateDaily('water', dailyData.water + 1)} className="w-16 h-16 rounded-full bg-blue-500 text-black text-3xl font-black active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.4)]">+</button>
-                                            </div>
-                                            <div className="pt-5 border-t border-zinc-800/50 space-y-3">
-                                                {waterSchedule.map((item, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between bg-zinc-950 p-4 rounded-xl border border-zinc-800/50">
-                                                        <div className="flex flex-col gap-1.5">
-                                                            <span className="text-[11px] font-black text-black bg-blue-500 px-2 py-0.5 rounded w-max uppercase">{item.time}</span>
-                                                            <span className="text-xs font-bold text-zinc-400 uppercase">{item.desc}</span>
-                                                        </div>
-                                                        <div className="text-base font-black text-blue-400 italic shrink-0">{item.amount}x</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        )}
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
+                                    <div className="flex items-center justify-between cursor-pointer" onClick={() => setWaterOpen(!waterOpen)}>
+                                        <h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-blue-500 rounded-full"></span> 02. Hydration (20 Pts)</h2>
+                                        <div className="text-blue-400 text-base font-black italic">{dailyData.water} / {targetWater}</div>
                                     </div>
+                                    {waterOpen && (
+                                        <div className="flex items-center justify-center gap-8 mt-6">
+                                            <button onClick={() => updateDaily('water', Math.max(0, dailyData.water - 1))} className="w-16 h-16 rounded-full bg-zinc-950 border-2 border-zinc-800 text-3xl font-black text-zinc-500">-</button>
+                                            <div className="text-5xl">💧</div>
+                                            <button onClick={() => updateDaily('water', dailyData.water + 1)} className="w-16 h-16 rounded-full bg-blue-500 text-black text-3xl font-black">+</button>
+                                        </div>
+                                    )}
                                 </section>
 
-                                <section className={`rounded-[24px] p-6 border transition-all duration-500 ${isRaceDay ? 'bg-gradient-to-br from-orange-900 to-red-900 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)]' : 'bg-zinc-900 border-zinc-800'}`}>
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setExOpen(!exOpen)}>
-                                        <div>
-                                            <h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-orange-500 rounded-full"></span> 03. Daily Mission (40 Pts)</h2>
-                                            <p className={`text-sm font-bold mt-3 mb-1 ml-5 uppercase tracking-wider px-3 py-1 rounded-md inline-block border ${isRaceDay ? 'text-yellow-400 bg-yellow-400/20 border-yellow-400/50' : 'text-lime-400 bg-lime-400/10 border-lime-400/20'}`}>{currentConfig.title}</p>
-                                        </div>
-                                        <span className="text-zinc-400 text-sm font-bold uppercase shrink-0">{exOpen ? 'HIDE' : 'SHOW'}</span>
+                                        <div><h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-orange-500 rounded-full"></span> 03. Daily Mission (40 Pts)</h2><p className={`text-sm font-bold mt-3 mb-1 ml-5 uppercase tracking-wider px-3 py-1 rounded-md inline-block border ${isRaceDay ? 'text-yellow-400 bg-yellow-400/20 border-yellow-400/50' : 'text-lime-400 bg-lime-400/10 border-lime-400/20'}`}>{currentConfig.title}</p></div>
                                     </div>
-                                    
                                     {exOpen && (
-                                    <div className="grid gap-4 mt-6 animation-fade-in">
+                                    <div className="grid gap-4 mt-6">
                                         {currentConfig.exercises.map((ex, idx) => {
                                             const isDone = dailyData.exerciseChecks[idx] || false;
                                             return (
-                                            <div key={idx} onClick={() => { const newChecks = [...dailyData.exerciseChecks]; newChecks[idx] = !isDone; updateDaily('exerciseChecks', newChecks); }} className={`p-5 rounded-[16px] cursor-pointer flex items-start gap-4 transition-all duration-300 active:scale-scale-95 border-l-4 ${isDone ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-lime-400 shadow-md'}`}>
-                                                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${isDone ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg></div>
+                                            <div key={idx} onClick={() => { const newChecks = [...dailyData.exerciseChecks]; newChecks[idx] = !isDone; updateDaily('exerciseChecks', newChecks); }} className={`p-5 rounded-[16px] cursor-pointer flex items-start gap-4 border-l-4 ${isDone ? 'bg-zinc-950 border-zinc-800 opacity-60' : 'bg-zinc-800/50 border-lime-400 shadow-md'}`}>
+                                                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${isDone ? 'border-lime-400 bg-lime-400 text-black' : 'border-zinc-500 text-transparent'}`}>✓</div>
                                                 <div><h3 className={`font-black text-sm uppercase tracking-wider ${isDone ? 'text-zinc-600 line-through' : 'text-white'}`}>{ex.title}</h3><p className={`text-xs mt-2 font-bold tracking-wide uppercase ${isDone ? 'text-zinc-700' : 'text-lime-400/80'}`}>TARGET: {ex.focus} <br/><span className={`normal-case block mt-1.5 leading-relaxed font-medium ${isDone ? 'text-zinc-700' : 'text-zinc-400'}`}>{ex.detail}</span></p></div>
                                             </div>
                                         )})}
@@ -786,103 +503,51 @@
                                 </section>
 
                                 {currentConfig.id !== 'rest' && (
-                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 transition-all duration-500">
+                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
                                     <div className="flex items-center justify-between cursor-pointer" onClick={() => setLoggerOpen(!loggerOpen)}>
-                                        <div>
-                                            <h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-red-500 rounded-full"></span> 04. Run Logger</h2>
-                                            <p className="text-xs font-bold mt-1.5 ml-5 text-zinc-400 tracking-wider">บันทึกสถิติจากนาฬิกา ⌚</p>
-                                        </div>
-                                        <span className="text-zinc-400 text-sm font-bold uppercase shrink-0">{loggerOpen ? 'HIDE' : 'SHOW'}</span>
+                                        <div><h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-red-500 rounded-full"></span> 04. Run Logger</h2><p className="text-xs font-bold mt-1.5 ml-5 text-zinc-400 tracking-wider">บันทึกสถิติจากนาฬิกา ⌚</p></div>
                                     </div>
-                                    
                                     {loggerOpen && (
-                                    <div className="mt-6 animation-fade-in">
+                                    <div className="mt-6">
                                         {dailyData.runLogged ? (
-                                            <div className="bg-zinc-950 p-5 rounded-[16px] border border-lime-500/50 shadow-[0_0_15px_rgba(163,230,53,0.1)] relative overflow-hidden">
-                                                <div className="flex justify-between items-start mb-4 relative z-10">
-                                                    <div><h3 className="text-lime-400 font-black tracking-widest uppercase text-sm">RUN SAVED! 🔥</h3><p className="text-zinc-400 text-xs mt-1">สถิติซ้อมวันนี้ถูกบันทึกแล้ว</p></div>
-                                                    <button onClick={() => updateDaily('runLogged', false)} className="text-zinc-500 text-[10px] font-bold underline uppercase hover:text-white">Edit</button>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-2 text-center relative z-10">
-                                                    <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800"><span className="text-[10px] text-zinc-500 font-bold block uppercase mb-1">Dist (KM)</span><span className="text-white font-black text-xl italic">{dailyData.runDistance}</span></div>
-                                                    <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800"><span className="text-[10px] text-zinc-500 font-bold block uppercase mb-1">Avg Pace</span><span className="text-white font-black text-xl italic">{dailyData.runPace}</span></div>
-                                                    <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800"><span className="text-[10px] text-zinc-500 font-bold block uppercase mb-1">Avg HR</span><span className="text-white font-black text-xl italic">{dailyData.runHR}</span></div>
-                                                </div>
+                                            <div className="bg-zinc-950 p-5 rounded-[16px] border border-lime-500/50 relative">
+                                                <div className="flex justify-between items-start mb-4"><div><h3 className="text-lime-400 font-black tracking-widest uppercase text-sm">RUN SAVED! 🔥</h3></div><button onClick={() => updateDaily('runLogged', false)} className="text-zinc-500 text-[10px] font-bold underline uppercase">Edit</button></div>
+                                                <div className="grid grid-cols-3 gap-2 text-center"><div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800"><span className="text-[10px] text-zinc-500 font-bold block uppercase mb-1">Dist (KM)</span><span className="text-white font-black text-xl italic">{dailyData.runDistance}</span></div><div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800"><span className="text-[10px] text-zinc-500 font-bold block uppercase mb-1">Pace</span><span className="text-white font-black text-xl italic">{dailyData.runPace}</span></div><div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800"><span className="text-[10px] text-zinc-500 font-bold block uppercase mb-1">HR</span><span className="text-white font-black text-xl italic">{dailyData.runHR}</span></div></div>
                                             </div>
                                         ) : (
                                             <div className="space-y-4">
                                                 <div className="grid grid-cols-3 gap-3">
-                                                    <div><label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1.5 block">Dist (KM)</label><input type="number" step="0.01" value={distanceInput} onChange={(e) => setDistanceInput(e.target.value)} placeholder="0.00" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-center text-white font-black text-lg focus:border-orange-500 outline-none transition-colors" /></div>
-                                                    <div><label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1.5 block">Avg Pace</label><input type="text" value={paceInput} onChange={(e) => setPaceInput(e.target.value)} placeholder="0:00" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-center text-white font-black text-lg focus:border-orange-500 outline-none transition-colors" /></div>
-                                                    <div><label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1.5 block">Avg HR</label><input type="number" value={hrInput} onChange={(e) => setHrInput(e.target.value)} placeholder="0" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-center text-white font-black text-lg focus:border-orange-500 outline-none transition-colors" /></div>
+                                                    <div><label className="text-[10px] text-zinc-500 font-bold uppercase mb-1.5 block">Dist (KM)</label><input type="number" step="0.01" value={distanceInput} onChange={(e) => setDistanceInput(e.target.value)} placeholder="0.00" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-center text-white font-black text-lg focus:border-orange-500 outline-none" /></div>
+                                                    <div><label className="text-[10px] text-zinc-500 font-bold uppercase mb-1.5 block">Avg Pace</label><input type="text" value={paceInput} onChange={(e) => setPaceInput(e.target.value)} placeholder="0:00" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-center text-white font-black text-lg focus:border-orange-500 outline-none" /></div>
+                                                    <div><label className="text-[10px] text-zinc-500 font-bold uppercase mb-1.5 block">Avg HR</label><input type="number" value={hrInput} onChange={(e) => setHrInput(e.target.value)} placeholder="0" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-center text-white font-black text-lg focus:border-orange-500 outline-none" /></div>
                                                 </div>
-                                                <button onClick={saveRunLog} disabled={!distanceInput || !paceInput} className="w-full bg-orange-500 text-black font-black uppercase tracking-widest py-4 rounded-xl active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.3)]"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> Save Run Data</button>
+                                                <button onClick={saveRunLog} disabled={!distanceInput || !paceInput} className="w-full bg-orange-500 text-black font-black uppercase tracking-widest py-4 rounded-xl disabled:opacity-50">Save Run Data</button>
                                             </div>
                                         )}
                                     </div>
                                     )}
                                 </section>
                                 )}
-
-                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 transition-all duration-500">
-                                    <div className="flex items-center justify-between cursor-pointer" onClick={() => setBatteryOpen(!batteryOpen)}>
-                                        <div>
-                                            <h2 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-2"><span className="w-3 h-3 bg-emerald-500 rounded-full"></span> 05. Body Battery</h2>
-                                            <p className="text-xs font-bold mt-1.5 ml-5 text-zinc-400 tracking-wider">เช็คสภาพร่างกายและการนอน 🔋</p>
-                                        </div>
-                                        <span className="text-zinc-400 text-sm font-bold uppercase shrink-0">{batteryOpen ? 'HIDE' : 'SHOW'}</span>
-                                    </div>
-
-                                    {batteryOpen && (
-                                        <div className="mt-6 space-y-6 animation-fade-in">
-                                            <div>
-                                                <h3 className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Sleep Duration (เมื่อคืนนอนกี่ชั่วโมง)</h3>
-                                                <div className="flex gap-2">
-                                                    {['< 6 hr', '6-8 hr', '> 8 hr'].map(opt => (
-                                                        <button key={opt} onClick={() => updateDaily('sleepDuration', opt)} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase transition-all ${dailyData.sleepDuration === opt ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-zinc-950 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>{opt}</button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Morning Status (สภาพร่างกายเช้านี้)</h3>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => updateDaily('bodyStatus', 'fresh')} className={`flex-1 py-3 flex flex-col items-center gap-1 rounded-xl transition-all ${dailyData.bodyStatus === 'fresh' ? 'bg-lime-400/20 border-lime-400 text-lime-400' : 'bg-zinc-950 border-zinc-800 text-zinc-500'} border`}><span className="text-xl">🟢</span><span className="text-[9px] font-black uppercase tracking-wider mt-1">Fresh</span></button>
-                                                    <button onClick={() => updateDaily('bodyStatus', 'sore')} className={`flex-1 py-3 flex flex-col items-center gap-1 rounded-xl transition-all ${dailyData.bodyStatus === 'sore' ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400' : 'bg-zinc-950 border-zinc-800 text-zinc-500'} border`}><span className="text-xl">🟡</span><span className="text-[9px] font-black uppercase tracking-wider mt-1">Sore</span></button>
-                                                    <button onClick={() => updateDaily('bodyStatus', 'exhausted')} className={`flex-1 py-3 flex flex-col items-center gap-1 rounded-xl transition-all ${dailyData.bodyStatus === 'exhausted' ? 'bg-red-500/20 border-red-500 text-red-500' : 'bg-zinc-950 border-zinc-800 text-zinc-500'} border`}><span className="text-xl">🔴</span><span className="text-[9px] font-black uppercase tracking-wider mt-1">Exhausted</span></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </section>
                             </React.Fragment>
                         )}
 
                         {activeTab === 'plan' && (
                             <React.Fragment>
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
                                     <h2 className="font-black text-xl text-white mb-6 uppercase tracking-widest italic">Nutrition Playbook</h2>
                                     <div className="space-y-4 relative z-10">
                                         {[ { id: 'B-FAST', desc: currentConfig.meals.breakfast }, { id: 'LUNCH', desc: currentConfig.meals.lunch }, { id: 'SNACK', desc: currentConfig.meals.snack }, { id: 'DINNER', desc: currentConfig.meals.dinner } ].map((item, idx) => (
                                             <div key={idx} className="bg-zinc-950 p-5 rounded-[16px] border border-zinc-800/50"><h3 className="font-black text-orange-500 text-sm mb-2 uppercase tracking-widest">{item.id}</h3><p className="text-base font-medium text-zinc-300">{item.desc}</p></div>
                                         ))}
                                     </div>
-                                    <div className="mt-6 p-5 bg-orange-900/20 rounded-[16px] text-sm font-medium text-orange-300 flex items-start gap-4 border border-orange-800/50 leading-relaxed relative z-10">
-                                        <span className="text-2xl">💡</span>
-                                        <div><p className="text-white font-bold mb-1">โควตาโปรตีนของคุณ: {Math.round(weight * 1.5)} - {Math.round(weight * 1.8)} กรัม/วัน</p><p className="text-xs text-orange-400 opacity-80">(คำนวณจากน้ำหนักตัว {weight} กก. x 1.5-1.8 เพื่อซ่อมแซมกล้ามเนื้อ)</p></div>
+                                    <div className="mt-6 p-5 bg-orange-900/20 rounded-[16px] text-sm font-medium text-orange-300 flex items-start gap-4 border border-orange-800/50 leading-relaxed">
+                                        <span className="text-2xl">💡</span><div><p className="text-white font-bold mb-1">โควตาโปรตีนของคุณ: {Math.round(weight * 1.5)} - {Math.round(weight * 1.8)} กรัม/วัน</p><p className="text-xs text-orange-400 opacity-80">(คำนวณจากน้ำหนักตัว {weight} กก. x 1.5-1.8)</p></div>
                                     </div>
                                 </section>
                                 
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-lime-400/10 rounded-full blur-2xl"></div>
-                                    <div className="mb-6 relative z-10">
-                                        <h2 className="font-black text-xl text-white uppercase tracking-widest italic mb-2">Workout Routine</h2>
-                                        <div className={`flex flex-col gap-2 mt-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800/50`}>
-                                            <p className={`text-sm font-black uppercase tracking-widest ${isRaceDay ? 'text-yellow-400' : 'text-lime-400'}`}>{currentConfig.title}</p>
-                                            <p className="text-xs text-zinc-400 mb-2">{currentConfig.desc}</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4 relative z-10">
+                                    <div className="mb-6"><h2 className="font-black text-xl text-white uppercase tracking-widest italic mb-2">Workout Routine</h2><div className={`flex flex-col gap-2 mt-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800/50`}><p className={`text-sm font-black uppercase tracking-widest ${isRaceDay ? 'text-yellow-400' : 'text-lime-400'}`}>{currentConfig.title}</p><p className="text-xs text-zinc-400 mb-2">{currentConfig.desc}</p></div></div>
+                                    <div className="space-y-4">
                                         {currentConfig.exercises.map((ex, idx) => (
                                             <div key={idx} className="bg-zinc-950 p-5 rounded-[16px] border border-zinc-800/50 flex gap-5"><span className={`font-black text-2xl italic opacity-50 ${isRaceDay ? 'text-yellow-400' : 'text-lime-400'}`}>0{idx+1}</span><div><span className="text-base font-bold text-white uppercase tracking-wide block mb-1">{ex.title}</span><span className="text-xs text-zinc-400 block mt-1.5 leading-relaxed"><strong className={isRaceDay ? 'text-yellow-400' : 'text-lime-400'}>FOCUS:</strong> {ex.focus} <br/>{ex.detail}</span></div></div>
                                         ))}
@@ -892,42 +557,21 @@
                         )}
 
                         {activeTab === 'leaderboard' && (
-                            <div className="space-y-6 pb-10 animation-fade-in">
-                                <div className="text-center mb-6">
-                                    <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]">THE ELITE LEADERBOARD</h2>
-                                    <p className="text-sm font-bold text-orange-400 uppercase tracking-widest mt-2">ระยะวิ่งสะสม 7 วันย้อนหลัง (Weekly Mileage)</p>
-                                </div>
-
+                            <div className="space-y-6 pb-10">
+                                <div className="text-center mb-6"><h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">THE ELITE LEADERBOARD</h2><p className="text-sm font-bold text-orange-400 uppercase tracking-widest mt-2">ระยะวิ่งสะสม 7 วันย้อนหลัง (Weekly Mileage)</p></div>
                                 <div className="space-y-4">
                                     {leaderboardData.length === 0 ? (
                                         <div className="text-center p-8 bg-zinc-900 rounded-2xl border border-zinc-800 text-zinc-500 font-bold">กำลังโหลดข้อมูลชมรม... ⏳</div>
                                     ) : (
                                         leaderboardData.map((runner, idx) => {
-                                            let badge = '';
-                                            let bgStyle = 'bg-zinc-900 border-zinc-800';
-                                            let textStyle = 'text-white';
-                                            if (idx === 0) { badge = '👑'; bgStyle = 'bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.2)]'; textStyle = 'text-yellow-400'; }
+                                            let badge = '', bgStyle = 'bg-zinc-900 border-zinc-800', textStyle = 'text-white';
+                                            if (idx === 0) { badge = '👑'; bgStyle = 'bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border-yellow-500/50'; textStyle = 'text-yellow-400'; }
                                             else if (idx === 1) { badge = '🥈'; bgStyle = 'bg-zinc-900 border-zinc-400/50'; textStyle = 'text-zinc-300'; }
                                             else if (idx === 2) { badge = '🥉'; bgStyle = 'bg-zinc-900 border-orange-900/50'; textStyle = 'text-orange-300'; }
-
                                             return (
-                                                <div key={idx} className={`p-5 rounded-[20px] border flex items-center justify-between transition-all ${bgStyle}`}>
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl bg-zinc-950 border-2 ${idx === 0 ? 'border-yellow-400' : 'border-zinc-800'}`}>
-                                                            {idx === 0 ? '1' : idx + 1}
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <h3 className={`font-black text-lg uppercase tracking-wider ${textStyle}`}>{runner.name}</h3>
-                                                                <span className="text-xl">{badge}</span>
-                                                            </div>
-                                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Total All-Time: {runner.totalKM.toFixed(1)} KM</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className={`text-3xl font-black italic ${idx === 0 ? 'text-white' : 'text-zinc-300'}`}>{runner.weeklyKM.toFixed(1)}</p>
-                                                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">KM (7 Days)</p>
-                                                    </div>
+                                                <div key={idx} className={`p-5 rounded-[20px] border flex items-center justify-between ${bgStyle}`}>
+                                                    <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl bg-zinc-950 border-2 ${idx === 0 ? 'border-yellow-400' : 'border-zinc-800'}`}>{idx === 0 ? '1' : idx + 1}</div><div><div className="flex items-center gap-2"><h3 className={`font-black text-lg uppercase tracking-wider ${textStyle}`}>{runner.name}</h3><span className="text-xl">{badge}</span></div><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Total All-Time: {runner.totalKM.toFixed(1)} KM</p></div></div>
+                                                    <div className="text-right"><p className={`text-3xl font-black italic ${idx === 0 ? 'text-white' : 'text-zinc-300'}`}>{runner.weeklyKM.toFixed(1)}</p><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">KM (7 Days)</p></div>
                                                 </div>
                                             )
                                         })
@@ -937,54 +581,22 @@
                         )}
 
                         {activeTab === 'stats' && (
-                            <div className="space-y-6 pb-10 animation-fade-in">
-                                
+                            <div className="space-y-6 pb-10">
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
                                     <h2 className="font-black text-xl text-white mb-2 uppercase tracking-widest italic">Virtual Map</h2>
                                     <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-6">สะสมระยะทางสู่เป้าหมาย</p>
-                                    
                                     <div className="relative w-full h-8 bg-zinc-950 rounded-full border border-zinc-800 overflow-visible mb-3">
-                                        <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.4)] transition-all duration-1000" style={{width: `${virtualMapProgress}%`}}></div>
-                                        <div className="absolute top-1/2 -translate-y-1/2 text-2xl drop-shadow-md transition-all duration-1000 z-10" style={{left: `calc(${virtualMapProgress}% - 16px)`}}>🏃‍♂️</div>
+                                        <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.4)] transition-all duration-1000" style={{width: `${Math.min((totalDistanceAllTime / 600) * 100, 100)}%`}}></div>
+                                        <div className="absolute top-1/2 -translate-y-1/2 text-2xl drop-shadow-md transition-all duration-1000 z-10" style={{left: `calc(${Math.min((totalDistanceAllTime / 600) * 100, 100)}% - 16px)`}}>🏃‍♂️</div>
                                     </div>
                                 </section>
 
                                 <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
                                     <h2 className="font-black text-xl text-white mb-6 uppercase tracking-widest italic">Personal Bests</h2>
                                     <div className="grid grid-cols-3 gap-3">
-                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center">
-                                            <span className="text-2xl mb-2">🏅</span>
-                                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Fastest 5K</span>
-                                            <span className="text-white font-black text-lg italic">{formatPace(fastest5kSecs)}</span>
-                                        </div>
-                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center">
-                                            <span className="text-2xl mb-2">🏆</span>
-                                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Fastest 10K</span>
-                                            <span className="text-white font-black text-lg italic">{formatPace(fastest10kSecs)}</span>
-                                        </div>
-                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center">
-                                            <span className="text-2xl mb-2">🔥</span>
-                                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Longest Run</span>
-                                            <span className="text-white font-black text-lg italic">{longestRun.toFixed(1)}<span className="text-[10px] ml-1">KM</span></span>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                <section className="bg-zinc-900 rounded-[24px] p-6 border border-zinc-800">
-                                    <h2 className="font-black text-xl text-white mb-6 uppercase tracking-widest italic">Trophy Room</h2>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div className={`p-4 rounded-[16px] border text-center transition-all ${achievements.halfMarathon ? 'bg-yellow-400/10 border-yellow-400/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-zinc-950 border-zinc-800 opacity-50 grayscale'}`}>
-                                            <span className="text-3xl mb-2 block">{achievements.halfMarathon ? '🎖️' : '🔒'}</span>
-                                            <span className={`text-[9px] font-black uppercase tracking-wider block leading-tight ${achievements.halfMarathon ? 'text-yellow-400' : 'text-zinc-500'}`}>Half-Way</span>
-                                        </div>
-                                        <div className={`p-4 rounded-[16px] border text-center transition-all ${achievements.streakMaster ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-zinc-950 border-zinc-800 opacity-50 grayscale'}`}>
-                                            <span className="text-3xl mb-2 block">{achievements.streakMaster ? '⚡' : '🔒'}</span>
-                                            <span className={`text-[9px] font-black uppercase tracking-wider block leading-tight ${achievements.streakMaster ? 'text-orange-400' : 'text-zinc-500'}`}>Streak</span>
-                                        </div>
-                                        <div className={`p-4 rounded-[16px] border text-center transition-all ${achievements.aquaMan ? 'bg-blue-500/10 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-zinc-950 border-zinc-800 opacity-50 grayscale'}`}>
-                                            <span className="text-3xl mb-2 block">{achievements.aquaMan ? '💦' : '🔒'}</span>
-                                            <span className={`text-[9px] font-black uppercase tracking-wider block leading-tight ${achievements.aquaMan ? 'text-blue-400' : 'text-zinc-500'}`}>Aqua Man</span>
-                                        </div>
+                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center"><span className="text-2xl mb-2">🏅</span><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Fastest 5K</span><span className="text-white font-black text-lg italic">{formatPace(fastest5kSecs)}</span></div>
+                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center"><span className="text-2xl mb-2">🏆</span><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Fastest 10K</span><span className="text-white font-black text-lg italic">{formatPace(fastest10kSecs)}</span></div>
+                                        <div className="bg-zinc-950 p-4 rounded-[16px] border border-zinc-800 text-center flex flex-col items-center"><span className="text-2xl mb-2">🔥</span><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Longest Run</span><span className="text-white font-black text-lg italic">{longestRun.toFixed(1)}<span className="text-[10px] ml-1">KM</span></span></div>
                                     </div>
                                 </section>
                             </div>
@@ -997,30 +609,19 @@
         const MainContainer = () => {
             const [user, setUser] = useState(null);
             const [authLoading, setAuthLoading] = useState(true);
-            const [currentUser, setCurrentUser] = useState(() => window.localStorage.getItem('p80_current_profile'));
+            const [currentUser, setCurrentUser] = useState(() => window.localStorage.getItem('p80_current_profile_v6'));
 
             useEffect(() => {
-                const initAuth = async () => {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
-                        else await signInAnonymously(auth);
-                    } catch (error) { console.error("Auth error", error); }
-                };
+                const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) {} };
                 initAuth();
                 const unsubscribe = onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); });
                 return () => unsubscribe();
             }, []);
 
-            const handleLogin = (name) => { 
-                const safeName = name.trim().toLowerCase(); 
-                setCurrentUser(safeName); window.localStorage.setItem('p80_current_profile', safeName); 
-            };
-            const handleLogout = () => { setCurrentUser(null); window.localStorage.removeItem('p80_current_profile'); };
+            if (authLoading) return <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center"><div className="w-12 h-12 border-4 border-zinc-800 border-t-orange-500 rounded-full animate-spin mb-4"></div></div>;
+            if (!user || !currentUser) return <LoginScreen onLogin={(name) => { const safeName = name.trim().toLowerCase(); setCurrentUser(safeName); window.localStorage.setItem('p80_current_profile_v6', safeName); }} />;
 
-            if (authLoading) return <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center"><div className="w-12 h-12 border-4 border-zinc-800 border-t-orange-500 rounded-full animate-spin mb-4"></div><p className="text-zinc-500 font-black tracking-widest text-sm uppercase">CONNECTING...</p></div>;
-            if (!user || !currentUser) return <LoginScreen onLogin={handleLogin} />;
-
-            return <Dashboard user={user} profileName={currentUser} onLogout={handleLogout} />;
+            return <Dashboard user={user} profileName={currentUser} onLogout={() => { setCurrentUser(null); window.localStorage.removeItem('p80_current_profile_v6'); }} />;
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
