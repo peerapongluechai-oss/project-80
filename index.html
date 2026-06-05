@@ -3,31 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Project 80: Ultimate Garmin Edition</title>
+    <title>Project 80: Suunto Edition</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#09090b">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
+    <meta name="theme-color" content="#000000">
     
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Prompt:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #09090b; color: #e4e4e7; overflow-x: hidden; }
+        /* Suunto Style: Technical, bold, and minimal */
+        body { font-family: 'Prompt', 'Inter', sans-serif; background-color: #000000; color: #e4e4e7; overflow-x: hidden; }
         @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
         @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
-        .animate-breathe { animation: breathe 3s ease-in-out infinite; transform-origin: bottom; }
+        .animate-breathe { animation: breathe 3s ease-in-out infinite; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .garmin-card { background: linear-gradient(145deg, #18181b, #09090b); border: 1px solid #27272a; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
+        
+        /* Suunto Specific Classes */
+        .suunto-card { background-color: #121212; border: 1px solid #27272a; border-radius: 8px; }
+        .suunto-card-highlight { background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; }
+        .suunto-accent { color: #bef264; } /* Volt Green */
+        .suunto-bg-accent { background-color: #bef264; color: #000; }
+        .suunto-border-accent { border-color: #bef264; }
+        
         .gauge-arc { stroke-dasharray: 126; stroke-dashoffset: 126; transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        .tab-active { background-color: #f97316; color: #000; box-shadow: 0 0 15px rgba(249, 115, 22, 0.4); }
     </style>
 </head>
 <body>
@@ -52,13 +58,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        // Force V16 to refresh everyone's corrupted cache cleanly
-        const appId = 'project80_garmin_v16'; 
+        const appId = 'project80_suunto_ultimate';
 
         const safeStorage = {
             getItem: (key) => { try { return window.localStorage.getItem(key); } catch (e) { return null; } },
             setItem: (key, value) => { try { window.localStorage.setItem(key, value); } catch (e) {} },
-            removeItem: (key) => { try { window.localStorage.removeItem(key); } catch (e) {} }
+            removeItem: (key) => { try { window.localStorage.removeItem(key); } catch (e) {} },
+            clearAll: () => { try { window.localStorage.clear(); } catch(e) {} }
         };
 
         const parsePace = (p) => {
@@ -72,18 +78,6 @@
             const m = Math.floor(secs / 60);
             const s = Math.floor(secs % 60);
             return `${m}:${s.toString().padStart(2, '0')}`;
-        };
-
-        const calcPredictor = (baseSecs, baseDist, targetDist) => {
-            const s = (baseSecs) * Math.pow(targetDist/baseDist, 1.06);
-            const hrs = Math.floor(s/3600), mins = Math.floor((s%3600)/60), secs = Math.floor(s%60);
-            return { s, str: `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}` };
-        };
-
-        const getHrZone = (min, max, age, rhr) => {
-            const maxHr = 220 - (age||35);
-            const hrr = maxHr - (rhr||60);
-            return `${Math.round(hrr*min)+Number(rhr||60)}-${Math.round(hrr*max)+Number(rhr||60)} bpm`;
         };
 
         const generateSmartSchedule = (availObj, longDay) => {
@@ -110,6 +104,18 @@
             return newSched;
         };
 
+        const calcPredictor = (baseSecs, baseDist, targetDist) => {
+            const s = (baseSecs) * Math.pow(targetDist/baseDist, 1.06);
+            const hrs = Math.floor(s/3600), mins = Math.floor((s%3600)/60), secs = Math.floor(s%60);
+            return { s, str: `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}` };
+        };
+
+        const getHrZone = (min, max, age, rhr) => {
+            const maxHr = 220 - (age||35);
+            const hrr = maxHr - (rhr||60);
+            return `${Math.round(hrr*min)+Number(rhr||60)}-${Math.round(hrr*max)+Number(rhr||60)} bpm`;
+        };
+
         const generateFeedback = (dist, pace, hr, targetPaceStr) => {
             if(!pace || pace === '0:00' || !targetPaceStr || targetPaceStr === '-') return "บันทึกข้อมูลสำเร็จ! รักษาวินัยการซ้อมได้ดีเยี่ยมครับ 🏃‍♂️";
             const pSecs = parsePace(pace);
@@ -134,15 +140,8 @@
             return "+0 (ปกติ ทรงตัว)";
         };
 
-        const getTargetWater = (lifestyle) => {
-            if (lifestyle === 'heavy') return 12;
-            if (lifestyle === 'active') return 10;
-            return 8;
-        };
-
         const getDayConfig = (todayObj, weekIdx, isRace, prof) => {
             const dayIndex = todayObj.getDay(); 
-            const currentTargetDist = prof.targetDist || 42.195;
             const currentSchedule = prof.schedule || {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'};
             const dayType = currentSchedule[dayIndex] || 'rest';
 
@@ -156,30 +155,29 @@
             const pz = { ez: getPaceStr(80), lr: getPaceStr(85), tm: getPaceStr(95), in: getPaceStr(105) };
 
             let baseLong = 5;
-            if(currentTargetDist == 42.195) baseLong = [10,12,14,10, 16,18,20,15, 22,24,26,18, 28,30,21,32, 25,35,25,30, 21,15,10, 42.195][weekIdx] || 10;
-            else if(currentTargetDist == 21.1) baseLong = [5,6,7,5, 8,10,12,8, 14,16,18,10, 15,18,12,20, 15,21.1,12,15, 10,8,5, 21.1][weekIdx] || 5;
-            else if(currentTargetDist == 10) baseLong = [3,4,5,3, 5,6,7,4, 6,8,9,5, 8,10,6,12, 8,10,6,8, 5,4,3, 10][weekIdx] || 3;
+            if(prof.targetDist == 42.195) baseLong = [10,12,14,10, 16,18,20,15, 22,24,26,18, 28,30,21,32, 25,35,25,30, 21,15,10, 42.195][weekIdx] || 10;
+            else if(prof.targetDist == 21.1) baseLong = [5,6,7,5, 8,10,12,8, 14,16,18,10, 15,18,12,20, 15,21.1,12,15, 10,8,5, 21.1][weekIdx] || 5;
+            else if(prof.targetDist == 10) baseLong = [3,4,5,3, 5,6,7,4, 6,8,9,5, 8,10,6,12, 8,10,6,8, 5,4,3, 10][weekIdx] || 3;
             else baseLong = [2,3,4,2, 3,4,5,3, 4,5,6,3, 4,6,4,7, 5,6,4,5, 3,3,2, 5][weekIdx] || 2; 
 
-            let cfg = { id:'rest', name:'Rest Day', desc:'พักฟื้นร่างกาย ยืดเหยียด', pace:'-', hr:'-', meals:{ b: 'ข้าวโอ๊ต+กล้วยหอม / แซนวิชไข่ต้ม', l: 'ข้าว 1 ทัพพี + เนื้อสัตว์ลีน + ผัก', s: 'ถั่วแระญี่ปุ่น / โยเกิร์ต', d: 'สลัดปลา / สุกี้น้ำ (ลดแป้ง)' }, ex:['💤 พักการวิ่ง (Full Rest)','Core Plank 3 เซต','กลิ้ง Foam Roller'] };
-
+            let cfg = { id:'rest', name:'พักผ่อน (Rest)', desc:'พักฟื้นร่างกาย ยืดเหยียด', pace:'-', hr:'-', meals:{ b: 'ข้าวโอ๊ต+กล้วยหอม / แซนวิชไข่ต้ม', l: 'ข้าว 1 ทัพพี + เนื้อสัตว์ลีน + ผัก', s: 'ถั่วแระญี่ปุ่น / โยเกิร์ต', d: 'สลัดปลา / สุกี้น้ำ (ลดแป้ง)' }, ex:['💤 พักการวิ่ง (Full Rest)','Core Plank 3 เซต','กลิ้ง Foam Roller'] };
             cfg.detailedWorkout = { warmup: [], main: '', cooldown: [] };
             cfg.aiAdvice = '';
 
             if(isRace) {
                 cfg = { id:'long', name:`RACE DAY!`, desc:'ถึงเวลาโชว์ผลการซ้อม!', pace:'Target Pace', hr:getHrZone(0.7,0.88, prof.age, prof.rhr), meals:{b:'ขนมปังแยม+กาแฟ',l:'ฉลองหลังเข้าเส้นชัย!',s:'เกลือแร่',d:'ปาร์ตี้หมูกระทะ'}, ex:['🏃‍♂️ ลุยให้เต็มที่ ดื่มน้ำทุกจุด','แช่น้ำเย็น Recovery','ยืดเหยียดเบาๆ'] };
-                cfg.detailedWorkout = { warmup: ['วอร์มอัพเบาๆ 10 นาที', 'เดินเร็ว 3 นาที'], main: `วิ่ง ${currentTargetDist}K อย่างมั่นใจ ตามแผน`, cooldown: ['เดินรับเหรียญ 10 นาที', 'แช่น้ำเย็น'] };
+                cfg.detailedWorkout = { warmup: ['วอร์มอัพเบาๆ 10 นาที', 'เดินเร็ว 3 นาที'], main: `วิ่ง ${prof.targetDist}K อย่างมั่นใจ ตามแผน`, cooldown: ['เดินรับเหรียญ 10 นาที', 'แช่น้ำเย็น'] };
                 cfg.aiAdvice = 'วันแข่งจริง ระวังอย่าวิ่งตามคนอื่นจนเพซพังในช่วงแรก ออกตัวช้าๆ ครับ';
             } else if(dayType === 'long') {
-                cfg = { id:'long', name:'Long Run', desc:`วิ่งยาว ${baseLong} กม. เน้นความอึด`, pace:`${pz.lr} - ${pz.ez}`, hr:getHrZone(0.65,0.75, prof.age, prof.rhr), meals:{...cfg.meals, b:'โหลดคาร์บ ขนมปัง 2-3 แผ่น'}, ex:[`🏃‍♂️ วิ่งระยะ ${baseLong} กม.`,'ฝึกจิบน้ำ/กินเจลระหว่างวิ่ง','ยืดเหยียดชุดใหญ่'] };
+                cfg = { id:'long', name:'วิ่งยาว (Long Run)', desc:`วิ่งยาว ${baseLong} กม. เน้นความอึด`, pace:`${pz.lr} - ${pz.ez}`, hr:getHrZone(0.65,0.75, prof.age, prof.rhr), meals:{...cfg.meals, b:'โหลดคาร์บ ขนมปัง 2-3 แผ่น'}, ex:[`🏃‍♂️ วิ่งระยะ ${baseLong} กม.`,'ฝึกจิบน้ำ/กินเจลระหว่างวิ่ง','ยืดเหยียดชุดใหญ่'] };
                 cfg.detailedWorkout = { warmup: ['เดินเร็ว 5 นาที', 'Drills 5 นาที'], main: `วิ่ง ${baseLong} กม. คุมโซน Z2-Z3`, cooldown: ['เดินคลายกรด 10 นาที', 'Stretching 20 วิ/ท่า'] };
                 cfg.aiAdvice = 'วันวิ่งยาวสร้าง Base Endurance ไม่ต้องสนเพซ เน้นเวลาที่อยู่บนเท้าให้ครบครับ';
             } else if(dayType === 'speed') {
-                cfg = { id:'speed', name:'Speed / Tempo', desc:'ฝึกความเร็วรอบขา 30-45 นาที', pace:`${pz.in} - ${pz.tm}`, hr:getHrZone(0.8,0.88, prof.age, prof.rhr), meals: cfg.meals, ex:['⚡ วิ่งคอร์ทความเร็ว','ทำ Dynamic Stretch ก่อนวิ่ง','Russian Twist 3 เซต'] };
+                cfg = { id:'speed', name:'ความเร็ว (Speed Work)', desc:'ฝึกการใช้พลังงานและรอบขา', pace:`${pz.in} - ${pz.tm}`, hr:getHrZone(0.8,0.88, prof.age, prof.rhr), meals: cfg.meals, ex:['⚡ วิ่งคอร์ทความเร็ว','ทำ Dynamic Stretch ก่อนวิ่ง','Russian Twist 3 เซต'] };
                 cfg.detailedWorkout = { warmup: ['จ๊อกกิ้ง 10-15 นาที', 'Drills ชุดใหญ่'], main: `Tempo/Interval 3-5 เซต เพซ ${cfg.pace}`, cooldown: ['จ๊อกกิ้ง 10 นาที', 'ยืดเหยียดหน้าขา'] };
                 cfg.aiAdvice = 'Speed Work เพิ่ม VCR และขยับเพดาน Lactate Threshold ให้วิ่งทนขึ้น';
             } else if(dayType === 'easy') {
-                cfg = { id:'easy', name:'Easy Run ชิลๆ', desc:'วิ่งสบายๆ 45-60 นาที (Base)', pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals: cfg.meals, ex:['🏃‍♂️ วิ่ง Easy คุมหัวใจ','ทำ Drills ก่อนวิ่ง','Squats 3 เซต'] };
+                cfg = { id:'easy', name:'วิ่งสบาย (Easy Run)', desc:'สร้างฐาน Aerobic Base', pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals: cfg.meals, ex:['🏃‍♂️ วิ่ง Easy คุมหัวใจ','ทำ Drills ก่อนวิ่ง','Squats 3 เซต'] };
                 cfg.detailedWorkout = { warmup: ['หมุนข้อต่อ 3 นาที', 'เดินเร็ว 3 นาที'], main: `วิ่งคุมโซน 2-3 (${cfg.pace}) พูดคุยได้ไม่หอบ`, cooldown: ['เดินช้าลงเรื่อยๆ', 'ยืดเหยียดช่วงล่าง'] };
                 cfg.aiAdvice = 'Easy Run สร้างเส้นเลือดฝอยในกล้ามเนื้อ เป็นรากฐานสำคัญของการวิ่งระยะไกล';
             } else { 
@@ -197,7 +195,7 @@
             }
 
             if (prof.lifestyle === 'heavy') {
-                cfg.meals.s = (cfg.meals.s ? cfg.meals.s + ' + ' : '') + 'เกลือแร่ (ชดเชยเหงื่อจากการทำงาน)';
+                cfg.meals.s = 'กล้วยหอม 1 ลูก + เกลือแร่ (ชดเชยเหงื่อจากการทำงาน)';
             }
 
             cfg.detailedMeals = {
@@ -210,17 +208,22 @@
             return cfg;
         };
 
+        const getTargetWater = (lifestyle) => {
+            if (lifestyle === 'heavy') return 12;
+            if (lifestyle === 'active') return 10;
+            return 8;
+        };
+
         class ErrorBoundary extends React.Component {
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            componentDidCatch(error, errorInfo) { console.error("App crashed:", error, errorInfo); }
             render() {
                 if (this.state.hasError) {
                     return (
-                        <div className="min-h-screen bg-red-950 flex flex-col items-center justify-center p-8 text-center text-white">
-                            <h1 className="text-4xl font-black mb-4">🚨 APP CRASHED!</h1>
-                            <p className="text-zinc-300 mb-8 font-mono text-xs">{this.state.error?.toString()}</p>
-                            <button onClick={() => window.location.reload()} className="bg-white text-black font-black px-10 py-4 rounded-2xl active:scale-95 transition-all">REFRESH NOW</button>
+                        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
+                            <h1 className="text-3xl font-black mb-4 text-red-500">SYSTEM HALTED</h1>
+                            <p className="text-zinc-300 mb-6 font-mono text-sm">{this.state.error?.toString()}</p>
+                            <button onClick={() => window.location.reload()} className="suunto-bg-accent text-black font-black px-8 py-3 rounded-lg uppercase text-lg">Reboot System</button>
                         </div>
                     );
                 }
@@ -228,47 +231,55 @@
             }
         }
 
-        const Confetti = () => (
-            <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-                {Array.from({ length: 50 }).map((_, i) => (
-                    <div key={i} className="absolute top-[-10%]" style={{ left: `${Math.random() * 100}%`, width: `${Math.random() * 10 + 5}px`, height: `${Math.random() * 10 + 5}px`, backgroundColor: ['#ea580c', '#f97316', '#bef264', '#fde047', '#ef4444'][Math.floor(Math.random() * 5)], borderRadius: Math.random() > 0.5 ? '50%' : '4px', animation: `confetti-fall ${Math.random() * 2 + 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`, animationDelay: `${Math.random() * 0.3}s` }} />
-                ))}
-            </div>
-        );
-
-        const OriginalAvatar = ({ activity = 'stretch' }) => {
+        const EliteAvatar = ({ activity = 'stretch' }) => {
             const isRunning = activity !== 'stretch' && activity !== 'rest';
             return (
-                <div className={`w-[120px] h-[160px] relative flex items-end justify-center pb-4 ${isRunning ? '' : 'animate-breathe'}`}>
-                    <svg viewBox="0 0 100 150" className="w-full h-full drop-shadow-2xl">
+                <div className={`w-[130px] h-[170px] relative flex items-end justify-center pb-2 ${isRunning ? '' : 'animate-breathe'}`}>
+                    <svg viewBox="0 0 100 150" className="w-full h-full drop-shadow-2xl overflow-visible">
                         <style>{`
-                            @keyframes run-leg-l { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-10px) rotate(-20deg); } }
-                            @keyframes run-leg-r { 0%, 100% { transform: translateY(-10px) rotate(-20deg); } 50% { transform: translateY(0px) rotate(0deg); } }
-                            @keyframes run-arm-l { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(40deg); } }
-                            @keyframes run-arm-r { 0%, 100% { transform: rotate(40deg); } 50% { transform: rotate(-20deg); } }
-                            @keyframes head-bob { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(2px); } }
-                            .leg-l { transform-origin: 45px 60px; animation: ${isRunning ? 'run-leg-l 0.6s infinite' : 'none'}; }
-                            .leg-r { transform-origin: 55px 60px; animation: ${isRunning ? 'run-leg-r 0.6s infinite' : 'none'}; }
-                            .arm-l { transform-origin: 35px 45px; animation: ${isRunning ? 'run-arm-l 0.6s infinite' : 'none'}; }
-                            .arm-r { transform-origin: 65px 45px; animation: ${isRunning ? 'run-arm-r 0.6s infinite' : 'none'}; }
-                            .head { transform-origin: 50px 30px; animation: ${isRunning ? 'head-bob 0.6s infinite' : 'none'}; }
+                            @keyframes run-l { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-12px) rotate(-25deg); } }
+                            @keyframes run-r { 0%, 100% { transform: translateY(-12px) rotate(-25deg); } 50% { transform: translateY(0px) rotate(0deg); } }
+                            @keyframes arm-l { 0%, 100% { transform: rotate(-25deg); } 50% { transform: rotate(35deg); } }
+                            @keyframes arm-r { 0%, 100% { transform: rotate(35deg); } 50% { transform: rotate(-25deg); } }
+                            @keyframes head-bob { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(4px); } }
                         `}</style>
-                        <g transform="translate(0, 10)">
-                            <path className="leg-l" d="M 42 70 L 38 105 L 48 105 L 48 70 Z" fill="#fcd5ce" />
-                            <rect className="leg-l" x="37" y="100" width="12" height="6" fill="#a3e635" rx="1" />
-                            <path className="leg-r" d="M 58 70 L 62 105 L 52 105 L 52 70 Z" fill="#fcd5ce" />
-                            <rect className="leg-r" x="51" y="100" width="12" height="6" fill="#a3e635" rx="1" />
-                            <path d="M 30 35 L 70 35 L 65 75 L 35 75 Z" fill="#f97316" />
-                            <rect x="40" y="45" width="20" height="12" fill="white" rx="1" />
-                            <text x="50" y="55" fontSize="9" fontWeight="900" textAnchor="middle" fill="black">80</text>
-                            <path className="arm-l" d="M 35 40 Q 20 60 25 80" fill="none" stroke="#fcd5ce" strokeWidth="6" strokeLinecap="round" />
-                            <path className="arm-r" d="M 65 40 Q 80 60 75 80" fill="none" stroke="#fcd5ce" strokeWidth="6" strokeLinecap="round" />
-                            <g className="head">
-                                <circle cx="50" cy="25" r="15" fill="#fcd5ce" />
-                                <rect x="35" y="18" width="30" height="10" rx="3" fill="#f97316" />
-                                <rect x="35" y="18" width="30" height="3" rx="1" fill="#ea580c" />
-                                <path d="M 40 40 Q 50 45 60 40" fill="none" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" />
-                                <circle cx="43" cy="25" r="1.5" fill="#1e293b" /><circle cx="57" cy="25" r="1.5" fill="#1e293b" />
+                        <g transform="translate(0, 15)">
+                            {/* Back Arm */}
+                            <g style={{transformOrigin: '50px 35px', animation: isRunning ? 'arm-l 0.6s infinite ease-in-out' : 'none'}}>
+                                <path d="M 45 35 Q 25 55 30 75" fill="none" stroke="#d4d4d8" strokeWidth="8" strokeLinecap="round" />
+                                <circle cx="30" cy="75" r="4" fill="#d4d4d8" />
+                            </g>
+                            {/* Back Leg */}
+                            <g style={{transformOrigin: '50px 65px', animation: isRunning ? 'run-l 0.6s infinite ease-in-out' : 'none'}}>
+                                <path d="M 46 65 Q 35 90 40 115" fill="none" stroke="#a1a1aa" strokeWidth="9" strokeLinecap="round" />
+                                <path d="M 34 115 Q 40 108 48 115 L 48 122 L 34 122 Z" fill="#bef264" />
+                                <path d="M 34 122 L 48 122 L 48 125 L 34 125 Z" fill="#000" />
+                            </g>
+                            {/* Front Leg */}
+                            <g style={{transformOrigin: '50px 65px', animation: isRunning ? 'run-r 0.6s infinite ease-in-out' : 'none'}}>
+                                <path d="M 54 65 Q 65 90 60 115" fill="none" stroke="#f4f4f5" strokeWidth="9" strokeLinecap="round" />
+                                <path d="M 54 115 Q 60 108 68 115 L 68 122 L 54 122 Z" fill="#bef264" />
+                                <path d="M 54 122 L 68 122 L 68 125 L 54 125 Z" fill="#000" />
+                            </g>
+                            {/* Athletic Torso (Matte Black) */}
+                            <path d="M 40 32 Q 50 25 60 32 L 56 68 L 44 68 Z" fill="#18181b" />
+                            <path d="M 45 32 L 55 32 L 50 48 Z" fill="#bef264" />
+                            <text x="50" y="60" fontSize="12" fontWeight="900" textAnchor="middle" fill="#52525b">80</text>
+                            {/* Front Arm */}
+                            <g style={{transformOrigin: '50px 35px', animation: isRunning ? 'arm-r 0.6s infinite ease-in-out' : 'none'}}>
+                                <path d="M 55 35 Q 75 55 70 75" fill="none" stroke="#ffffff" strokeWidth="8" strokeLinecap="round" />
+                                <circle cx="70" cy="75" r="4" fill="#ffffff" />
+                                <rect x="65" y="66" width="10" height="5" fill="#000" rx="1" transform="rotate(-30 70 68)" />
+                                <circle cx="70" cy="68.5" r="1.5" fill="#bef264" transform="rotate(-30 70 68)" />
+                            </g>
+                            {/* Head & Accessories */}
+                            <g style={{transformOrigin: '50px 20px', animation: isRunning ? 'head-bob 0.6s infinite ease-in-out' : 'none'}}>
+                                <circle cx="50" cy="18" r="13" fill="#f4f4f5" />
+                                <path d="M 37 18 Q 50 2 63 18 Z" fill="#18181b" />
+                                <path d="M 60 15 L 74 15" stroke="#18181b" strokeWidth="3" strokeLinecap="round" />
+                                <path d="M 41 17 L 63 17" stroke="#bef264" strokeWidth="4" strokeLinecap="round" />
+                                <path d="M 48 17 L 56 17" stroke="#bef264" strokeWidth="6" strokeLinecap="round" />
+                                <circle cx="50" cy="10" r="1.5" fill="#bef264" />
                             </g>
                         </g>
                     </svg>
@@ -279,224 +290,18 @@
         const LoginScreen = ({ onLogin }) => {
             const [name, setName] = useState('');
             return (
-                <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-6 relative overflow-hidden">
-                    <div className="absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px]"></div>
-                    <div className="absolute bottom-[-20%] right-[-20%] w-[500px] h-[500px] bg-lime-500/10 rounded-full blur-[120px]"></div>
-                    <div className="w-full max-w-sm garmin-card p-10 rounded-[32px] text-center z-10 shadow-2xl">
-                        <h2 className="text-lime-400 font-black tracking-[0.3em] text-xs uppercase mb-3 animate-pulse">ROAD TO BANGSAEN42</h2>
-                        <h1 className="text-6xl font-black italic text-white tracking-tighter mb-8">PRO <span className="text-orange-500">80</span></h1>
-                        <div className="space-y-4">
-                            <input type="text" value={name} onChange={e=>setName(e.target.value.toUpperCase())} placeholder="ENTER RUNNER ID" className="w-full bg-black border-2 border-zinc-800 rounded-2xl p-5 text-center font-black text-white focus:border-orange-500 outline-none transition-all placeholder:text-zinc-700 tracking-widest text-lg" />
-                            <button onClick={()=> name.trim() && onLogin(name.trim())} className="w-full bg-orange-500 hover:bg-orange-400 py-5 rounded-2xl uppercase tracking-widest transition-all text-lg font-black text-black shadow-lg shadow-orange-500/20 active:scale-95">Start Engine</button>
-                        </div>
+                <div className="min-h-screen bg-black flex items-center justify-center p-6">
+                    <div className="w-full max-w-sm suunto-card p-10 text-center shadow-2xl shadow-[#bef264]/5">
+                        <h2 className="text-zinc-300 font-black tracking-[0.3em] text-xs uppercase mb-2">PERFORMANCE METRICS</h2>
+                        <h1 className="text-6xl font-black text-white tracking-tighter mb-8 uppercase">PRO <span className="suunto-accent">80</span></h1>
+                        <input type="text" value={name} onChange={e=>setName(e.target.value.toUpperCase())} placeholder="RUNNER ID" className="w-full bg-[#1e1e1e] border border-zinc-800 rounded-lg p-5 text-center font-bold text-white focus:border-[#bef264] outline-none mb-6 tracking-widest uppercase text-xl" />
+                        <button onClick={()=>name.trim() && onLogin(name.trim())} className="w-full suunto-bg-accent py-5 rounded-lg uppercase tracking-widest font-black text-lg active:scale-95 transition-all">SYNC DEVICE</button>
                     </div>
                 </div>
             );
         };
 
-        const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, saveRun, targetWater }) => {
-            return (
-                <div className="space-y-6">
-                    <section className={`p-8 rounded-[32px] garmin-card border-l-8 transition-colors ${score===100 ? 'border-l-lime-400 shadow-lg shadow-lime-500/10' : 'border-l-orange-500'}`}>
-                        <div className="flex justify-between items-center">
-                            <div><h2 className="text-3xl font-black italic uppercase text-white">SCORE</h2><p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Today's Performance</p></div>
-                            <div className="text-6xl font-black italic text-white">{score}%</div>
-                        </div>
-                    </section>
-                    
-                    <section className="garmin-card p-6 rounded-[32px]">
-                        <h3 className="font-black text-sm uppercase text-orange-400 mb-4 tracking-widest">🍎 Nutrition (40 Pts)</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            {[ {k:'b',l:'Breakfast'}, {k:'l',l:'Lunch'}, {k:'s',l:'Snack'}, {k:'d',l:'Dinner'} ].map(m => (
-                                <button key={m.k} onClick={()=>updateDaily(m.k, !daily[m.k])} className={`p-5 rounded-2xl text-sm font-bold uppercase transition-all border-2 ${daily[m.k] ? 'bg-lime-500/20 text-lime-400 border-lime-500/50' : 'bg-black text-zinc-600 border-zinc-900'}`}>
-                                    {m.l}
-                                </button>
-                            ))}
-                        </div>
-                    </section>
-
-                    <section className="garmin-card p-6 rounded-[32px] flex items-center justify-between">
-                        <div><h3 className="font-black text-sm uppercase text-blue-400 tracking-widest">💧 Hydration (20 Pts)</h3><p className="text-xs text-zinc-500 font-bold uppercase mt-1">Goal: {targetWater} Glasses</p></div>
-                        <div className="flex items-center gap-5">
-                            <button onClick={()=>updateDaily('w', Math.max(0, daily.w-1))} className="w-12 h-12 bg-zinc-800 rounded-xl font-black text-xl text-white">-</button>
-                            <span className="text-3xl font-black italic text-white">{daily.w}</span>
-                            <button onClick={()=>updateDaily('w', daily.w+1)} className="w-12 h-12 bg-blue-500 text-black rounded-xl font-black text-xl">+</button>
-                        </div>
-                    </section>
-
-                    <section className="garmin-card p-6 rounded-[32px]">
-                        <h3 className="font-black text-sm uppercase text-lime-400 mb-2 tracking-widest">🏃‍♂️ Workout: {cfg.name}</h3>
-                        <p className="text-sm font-medium text-zinc-400 mb-6">{cfg.desc}</p>
-                        <div className="space-y-3 mb-6">
-                            {cfg.ex.map((ex, i) => (
-                                <div key={i} onClick={()=>{let nx=[...(daily.ex||[false,false,false])]; nx[i]=!nx[i]; updateDaily('ex', nx);}} className={`p-5 rounded-2xl border-2 cursor-pointer flex items-center gap-4 transition-all ${daily.ex?.[i] ? 'bg-lime-500/10 border-lime-500/50 text-lime-400' : 'bg-black border-zinc-900 text-zinc-400'}`}>
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${daily.ex?.[i] ? 'bg-lime-400 border-lime-400 text-black' : 'border-zinc-700'}`}>{daily.ex?.[i] ? '✓' : ''}</div>
-                                    <span className="font-bold text-sm uppercase">{ex}</span>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {cfg.id !== 'rest' && !daily.rLog && (
-                            <div className="bg-black p-6 rounded-2xl border border-zinc-800 space-y-4">
-                                <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Run Logger</p>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div><label className="text-[10px] font-black text-zinc-600 block mb-2">DISTANCE</label><input type="number" placeholder="KM" value={inDist} onChange={e=>setInDist(e.target.value)} className="w-full bg-zinc-900 p-4 rounded-xl text-center font-black text-white border border-zinc-800 focus:border-orange-500 outline-none" /></div>
-                                    <div><label className="text-[10px] font-black text-zinc-600 block mb-2">AVG PACE</label><input type="text" placeholder="0:00" value={inPace} onChange={e=>setInPace(e.target.value)} className="w-full bg-zinc-900 p-4 rounded-xl text-center font-black text-white border border-zinc-800 focus:border-orange-500 outline-none" /></div>
-                                    <div><label className="text-[10px] font-black text-zinc-600 block mb-2">AVG HR</label><input type="number" placeholder="BPM" value={inHr} onChange={e=>setInHr(e.target.value)} className="w-full bg-zinc-900 p-4 rounded-xl text-center font-black text-white border border-zinc-800 focus:border-orange-500 outline-none" /></div>
-                                </div>
-                                <button onClick={saveRun} disabled={!inDist || !inPace} className="w-full bg-orange-500 hover:bg-orange-400 text-black py-4 rounded-xl font-black uppercase text-sm tracking-widest disabled:opacity-50 mt-2 transition-all">Analyze & Save</button>
-                            </div>
-                        )}
-                        
-                        {daily.rLog && (
-                            <div className="bg-black p-6 rounded-2xl border border-lime-500/30">
-                                <div className="flex justify-between items-start mb-4">
-                                    <p className="text-lime-400 font-black text-sm uppercase">✅ Workout Analyzed!</p>
-                                    <button onClick={()=>updateDaily('rLog', false)} className="text-[10px] text-zinc-600 font-bold underline uppercase">Edit Data</button>
-                                </div>
-                                <div className="space-y-4">
-                                    <p className="text-sm font-medium text-zinc-300 leading-relaxed"><span className="text-orange-400 font-black">AI COACH:</span> {daily.aiFeedback}</p>
-                                    <div className="inline-block bg-cyan-500/10 border border-cyan-500/50 p-3 rounded-xl">
-                                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Daily Condition</p>
-                                        <p className="text-sm font-black text-cyan-400 mt-1 uppercase">{daily.perfCondition}</p>
-                                    </div>
-                                    {daily.vcrUpgraded && (
-                                        <div className="mt-4 bg-fuchsia-500/10 border border-fuchsia-500/50 p-4 rounded-xl text-center animate-pulse">
-                                            <p className="text-sm font-black text-fuchsia-400 uppercase tracking-widest">🎉 VCR Level Up!</p>
-                                            <p className="text-xs font-bold text-fuchsia-300 mt-2">สถิติดีขึ้น! AI อัปเกรด VCR ให้เป็น {daily.newVcrVal} ม. แล้ว</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </section>
-                </div>
-            );
-        };
-
-        const TabPlan = ({ cfg }) => (
-            <div className="space-y-6 pb-10">
-                <section className="garmin-card rounded-[32px] p-8 border-l-4 border-l-orange-500">
-                    <h2 className="font-black text-sm text-white uppercase tracking-widest mb-4 opacity-50">💬 Coach's Advice</h2>
-                    <p className="text-lg font-bold text-zinc-200 leading-relaxed italic">"{cfg.aiAdvice}"</p>
-                </section>
-                <section className="garmin-card rounded-[32px] p-6">
-                    <h2 className="font-black text-sm text-lime-400 uppercase tracking-widest mb-6 px-2">🏃‍♂️ Training Details</h2>
-                    <div className="space-y-6">
-                        <div className="bg-black p-6 rounded-2xl border border-zinc-900">
-                            <p className="text-xs font-black text-zinc-500 uppercase mb-2">Primary Goal</p>
-                            <p className="text-2xl font-black text-white uppercase">{cfg.name}</p>
-                            <div className="flex gap-3 mt-4">
-                                <span className="bg-zinc-800 px-4 py-2 rounded-lg text-cyan-400 font-black text-xs">PACE: {cfg.pace}</span>
-                                <span className="bg-zinc-800 px-4 py-2 rounded-lg text-red-400 font-black text-xs">HR: {cfg.hr}</span>
-                            </div>
-                        </div>
-                        <div className="space-y-5 px-2">
-                            <div><p className="text-xs font-black text-orange-400 uppercase mb-3">🔥 Warm-Up</p><ul className="list-disc list-inside text-base font-bold text-zinc-300 space-y-2">{cfg.detailedWorkout.warmup.map((i,idx)=><li key={idx}>{i}</li>)}</ul></div>
-                            <div><p className="text-xs font-black text-lime-400 uppercase mb-3">👟 Main Set</p><p className="text-base font-black text-white bg-zinc-900 p-5 rounded-xl border border-zinc-800">{cfg.detailedWorkout.main}</p></div>
-                            <div><p className="text-xs font-black text-blue-400 uppercase mb-3">❄️ Cool-Down</p><ul className="list-disc list-inside text-base font-bold text-zinc-300 space-y-2">{cfg.detailedWorkout.cooldown.map((i,idx)=><li key={idx}>{i}</li>)}</ul></div>
-                        </div>
-                    </div>
-                </section>
-                <section className="garmin-card rounded-[32px] p-6">
-                    <h2 className="font-black text-sm text-yellow-400 uppercase tracking-widest mb-6 px-2">🥑 Nutrition Guide</h2>
-                    <div className="grid gap-4">
-                        {[ {id:'Breakfast', k:'b', c:'text-yellow-400'}, {id:'Lunch', k:'l', c:'text-orange-400'}, {id:'Snack', k:'s', c:'text-fuchsia-400'}, {id:'Dinner', k:'d', c:'text-blue-400'} ].map(m => {
-                            const d = cfg.detailedMeals[m.k]; if(!d) return null;
-                            return (
-                                <div key={m.k} className="bg-black p-6 rounded-2xl border border-zinc-900">
-                                    <p className={`text-xs font-black uppercase ${m.c} mb-2`}>{m.id}</p>
-                                    <p className="text-lg font-black text-white mb-2">{d.menu}</p>
-                                    <p className="text-sm font-bold text-zinc-500 leading-relaxed">{d.detail}</p>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </section>
-            </div>
-        );
-
-        const TabRanking = ({ leaderboardData }) => (
-            <section className="space-y-6 pb-10">
-                <div className="text-center mb-8 pt-4">
-                    <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]">LEADERBOARD</h2>
-                    <p className="text-xs font-bold text-orange-400 uppercase tracking-widest mt-2">ระยะวิ่งสะสม 7 วันย้อนหลัง</p>
-                </div>
-                <div className="space-y-4">
-                    {leaderboardData.length === 0 ? <div className="text-center p-8 garmin-card rounded-3xl text-zinc-500 font-bold uppercase tracking-widest">Loading Records... ⏳</div> : 
-                        leaderboardData.map((runner, idx) => {
-                            let badge = '', bgStyle = 'bg-black border-zinc-800', textStyle = 'text-white';
-                            if (idx === 0) { badge = '👑'; bgStyle = 'bg-gradient-to-r from-orange-900/40 to-yellow-900/40 border-yellow-500/50 shadow-lg shadow-yellow-500/10'; textStyle = 'text-yellow-400'; }
-                            else if (idx === 1) { badge = '🥈'; bgStyle = 'bg-zinc-900 border-zinc-500'; textStyle = 'text-zinc-300'; }
-                            else if (idx === 2) { badge = '🥉'; bgStyle = 'bg-zinc-900 border-orange-800'; textStyle = 'text-orange-300'; }
-                            return (
-                                <div key={idx} className={`p-6 rounded-[24px] border flex items-center justify-between transition-all ${bgStyle}`}>
-                                    <div className="flex items-center gap-5">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl bg-zinc-950 border-2 ${idx === 0 ? 'border-yellow-400 text-yellow-400' : 'border-zinc-800'}`}>{idx + 1}</div>
-                                        <div>
-                                            <div className="flex items-center gap-2"><h3 className={`font-black text-xl uppercase tracking-wider ${textStyle}`}>{runner.name}</h3><span className="text-2xl">{badge}</span></div>
-                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">All-Time: {runner.tKm.toFixed(1)} KM</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`text-4xl font-black italic ${idx === 0 ? 'text-white' : 'text-zinc-300'}`}>{runner.wKm.toFixed(1)}</p>
-                                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">KM</p>
-                                    </div>
-                                </div>
-                            )
-                        })
-                    }
-                </div>
-            </section>
-        );
-
-        const TabStats = ({ prof, vo2Value, tDist, pTime, pSource, fastest5kSecs, fastest10kSecs, longestRun }) => {
-            let vo2Color = "#ef4444", vo2Label = "POOR";
-            if (vo2Value >= 35) { vo2Color = "#f97316"; vo2Label = "FAIR"; }
-            if (vo2Value >= 40) { vo2Color = "#a3e635"; vo2Label = "GOOD"; }
-            if (vo2Value >= 45) { vo2Color = "#60a5fa"; vo2Label = "EXCELLENT"; }
-            if (vo2Value >= 50) { vo2Color = "#e879f9"; vo2Label = "SUPERIOR"; }
-            const offset = 126 - (Math.min(100, ((vo2Value - 20) / 40) * 100) / 100) * 126;
-
-            return (
-                <div className="space-y-6 pb-12">
-                    <section className="garmin-card rounded-[32px] p-8 text-center shadow-xl">
-                        <h2 className="font-black text-sm text-zinc-500 uppercase tracking-widest mb-6">PEAK VO2 MAX</h2>
-                        <div className="flex justify-center mb-6">
-                            <div className="relative w-56 h-28 overflow-hidden">
-                                <svg className="w-full h-full" viewBox="0 0 100 50">
-                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#27272a" strokeWidth="12" strokeLinecap="round" />
-                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={vo2Color} strokeWidth="12" strokeLinecap="round" className="gauge-arc" style={{strokeDashoffset: offset}} />
-                                </svg>
-                                <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center">
-                                    <span className="text-6xl font-black italic tracking-tighter" style={{color: vo2Color}}>{vo2Value}</span>
-                                    <span className="text-[10px] font-black uppercase mt-1 tracking-widest" style={{color: vo2Color}}>{vo2Label}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Calculated from VCR & Records</p>
-                    </section>
-                    
-                    <section className="garmin-card rounded-[32px] p-6 border-l-4 border-l-lime-500">
-                        <h2 className="font-black text-sm text-zinc-400 uppercase tracking-widest mb-4">AI Race Predictor</h2>
-                        <p className="text-xs text-lime-400 font-bold uppercase mb-2 tracking-widest">Est. {prof.targetDist}K Time</p>
-                        <p className="text-5xl font-black italic text-white tracking-tighter mb-4">{pTime}</p>
-                        <div className="bg-black/50 py-2.5 px-4 rounded-xl inline-block border border-zinc-800"><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Ref: {pSource}</p></div>
-                    </section>
-
-                    <section className="garmin-card rounded-[32px] p-6">
-                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-6 text-center italic">Personal Bests</h2>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-black p-5 rounded-2xl border border-zinc-800 text-center"><p className="text-[10px] text-zinc-600 font-black mb-2 uppercase tracking-tighter">Fastest 5K</p><p className="text-lg font-black text-white italic">{formatPace(fastest5kSecs)}</p></div>
-                            <div className="bg-black p-5 rounded-2xl border border-zinc-800 text-center"><p className="text-[10px] text-zinc-600 font-black mb-2 uppercase tracking-tighter">Fastest 10K</p><p className="text-lg font-black text-white italic">{formatPace(fastest10kSecs)}</p></div>
-                            <div className="bg-black p-5 rounded-2xl border border-zinc-800 text-center"><p className="text-[10px] text-zinc-600 font-black mb-2 uppercase tracking-tighter">Longest</p><p className="text-lg font-black text-white italic">{longestRun.toFixed(1)}K</p></div>
-                        </div>
-                    </section>
-                </div>
-            );
-        };
-
-        const SetupModal = ({ initialProf, onSave }) => {
+        const SetupModal = ({ initialProf, onSave, onCancel }) => {
             const [w, setW] = useState(initialProf.weight || 90);
             const [tw, setTw] = useState(initialProf.targetWeight || 80);
             const [h, setH] = useState(initialProf.height || 175);
@@ -511,75 +316,350 @@
             const [avail, setAvail] = useState(initialProf.schedule ? {0: initialProf.schedule[0]!=='rest', 1: initialProf.schedule[1]!=='rest', 2: initialProf.schedule[2]!=='rest', 3: initialProf.schedule[3]!=='rest', 4: initialProf.schedule[4]!=='rest', 5: initialProf.schedule[5]!=='rest', 6: initialProf.schedule[6]!=='rest'} : {0:true, 1:false, 2:true, 3:true, 4:false, 5:true, 6:false});
             const [ld, setLd] = useState(initialProf.schedule ? Number(Object.keys(initialProf.schedule).find(key => initialProf.schedule[key] === 'long') || 0) : 0);
 
+            const handleSave = () => {
+                onSave({ weight:w, targetWeight:tw, height:h, gender, age, rhr, vcr, targetDist:td, injury, lifestyle, schedule: generateSmartSchedule(avail, ld) });
+            };
+
+            const handleResetProfile = () => {
+                if(window.confirm("คุณต้องการลบข้อมูลทั้งหมดแล้วเริ่มใหม่ใช่หรือไม่?")) {
+                    safeStorage.clearAll();
+                    window.location.reload();
+                }
+            }
+
+            const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
             return (
-                <div className="fixed inset-0 bg-black/95 flex items-center justify-center p-6 z-50 overflow-y-auto">
-                    <div className="w-full max-w-sm garmin-card p-10 rounded-[40px] shadow-2xl space-y-8 my-8">
-                        <div className="border-b border-zinc-800 pb-4">
-                            <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter">Runner Profile</h2>
-                            <p className="text-sm font-bold text-zinc-500 mt-2">ตั้งเป้าหมายและจัดตารางส่วนตัว 🎯</p>
+                <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-start p-5 z-50 overflow-y-auto">
+                    <div className="w-full max-w-sm suunto-card p-8 my-6">
+                        <div className="flex justify-between items-center border-b border-zinc-800 pb-4 mb-6">
+                            <h2 className="text-2xl font-black text-white uppercase tracking-widest">Settings</h2>
+                            {initialProf.initialWeight && <button onClick={onCancel} className="text-zinc-300 font-bold text-sm uppercase hover:text-white transition-colors">CLOSE</button>}
                         </div>
+
                         <div className="space-y-6">
+                            {/* Body Metrics */}
                             <div>
-                                <label className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3 block">Target Distance</label>
-                                <div className="grid grid-cols-4 gap-2">
-                                    {[ {d:5, l:'5K'}, {d:10, l:'10K'}, {d:21.1, l:'21K'}, {d:42.195, l:'42K'} ].map(dist => (<button key={dist.d} onClick={() => setTd(dist.d)} className={`py-4 rounded-xl text-sm font-black transition-colors ${td === dist.d ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'bg-black border border-zinc-800 text-zinc-500'}`}>{dist.l}</button>))}
-                                </div>
-                            </div>
-
-                            <div className="bg-black p-5 rounded-2xl border border-fuchsia-500/30">
-                                <label className="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest mb-3 block text-center">30-Min VCR Test (Meters)</label>
-                                <div className="bg-zinc-900 p-3 rounded-xl mb-4 border border-zinc-800">
-                                    <ul className="text-[10px] text-zinc-400 font-bold space-y-2">
-                                        <li className="flex justify-between"><span>🔴 Beginner (&gt; 7:30)</span><span>&lt; 4000</span></li>
-                                        <li className="flex justify-between"><span>🟡 Intermediate</span><span>4000-5000</span></li>
-                                        <li className="flex justify-between"><span>🟢 Advanced (&lt; 6:00)</span><span>&gt; 5000</span></li>
-                                    </ul>
-                                </div>
-                                <div className="flex items-baseline justify-center gap-2">
-                                    <input type="number" value={vcr} onChange={e=>setVcr(Number(e.target.value))} className="w-28 bg-transparent text-center text-white font-black text-4xl italic outline-none border-b-2 border-fuchsia-500 focus:border-fuchsia-400 transition-colors"/>
-                                    <span className="text-fuchsia-400 font-bold text-sm uppercase">M</span>
-                                </div>
-                            </div>
-
-                            <div className="border-t border-zinc-800 pt-6">
-                                <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-3 flex justify-between"><span>Training Days</span><span>{Object.values(avail).filter(Boolean).length} Days</span></label>
-                                <div className="flex justify-between gap-1 mb-5">
-                                    {['อา','จ','อ','พ','พฤ','ศ','ส'].map((day, idx) => (<button key={idx} onClick={() => setAvail({...avail, [idx]: !avail[idx]})} className={`w-full py-4 rounded-xl text-xs font-black transition-colors ${avail[idx] ? 'bg-orange-500 text-black shadow-md shadow-orange-500/20' : 'bg-black border border-zinc-800 text-zinc-600'}`}>{day}</button>))}
-                                </div>
-                                <label className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-2 block">Long Run Day</label>
-                                <select value={ld} onChange={e => setLd(Number(e.target.value))} className="w-full bg-black border border-zinc-800 p-5 rounded-2xl text-white font-bold text-base outline-none focus:border-red-500 transition-colors">
-                                    {Object.keys(avail).filter(k=>avail[k]).map(k => (<option key={k} value={k}>ทำ Long Run ทุกวัน {['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][k]}</option>))}
-                                    {Object.values(avail).filter(v=>v).length === 0 && (<option value={0}>กรุณาเลือกวันซ้อมก่อน</option>)}
-                                </select>
-                            </div>
-
-                            <div className="border-t border-zinc-800 pt-6">
-                                <label className="text-[10px] font-black text-lime-400 uppercase tracking-widest mb-4 block">Golden Data (AI Coach Settings)</label>
+                                <h3 className="text-sm font-black text-zinc-300 uppercase tracking-widest mb-3">Body Metrics</h3>
                                 <div className="grid grid-cols-2 gap-3 mb-3">
-                                    <div><label className="text-[9px] text-zinc-500 font-bold uppercase mb-1 block">Weight KG</label><input type="number" step="0.1" value={w} onChange={e=>setW(Number(e.target.value))} className="w-full bg-black p-4 rounded-xl text-white font-bold text-lg border border-zinc-800 focus:border-orange-500 outline-none text-center" /></div>
-                                    <div><label className="text-[9px] text-zinc-500 font-bold uppercase mb-1 block">Target KG</label><input type="number" step="0.1" value={tw} onChange={e=>setTw(Number(e.target.value))} className="w-full bg-black p-4 rounded-xl text-white font-bold text-lg border border-zinc-800 focus:border-lime-500 outline-none text-center" /></div>
+                                    <div className="bg-[#1e1e1e] p-4 rounded-lg border border-zinc-800"><label className="text-xs text-zinc-300 font-bold uppercase block mb-1">Weight (KG)</label><input type="number" value={w} onChange={e=>setW(Number(e.target.value))} className="w-full bg-transparent text-white font-black text-2xl outline-none focus:text-[#bef264]" /></div>
+                                    <div className="bg-[#1e1e1e] p-4 rounded-lg border border-zinc-800"><label className="text-xs text-zinc-300 font-bold uppercase block mb-1">Target (KG)</label><input type="number" value={tw} onChange={e=>setTw(Number(e.target.value))} className="w-full bg-transparent text-white font-black text-2xl outline-none focus:text-[#bef264]" /></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mb-3">
-                                    <div><label className="text-[9px] text-zinc-500 font-bold uppercase mb-1 block">Height CM</label><input type="number" value={h} onChange={e=>setH(Number(e.target.value))} className="w-full bg-black p-4 rounded-xl text-white font-bold text-lg border border-zinc-800 focus:border-orange-500 outline-none text-center" /></div>
-                                    <div><label className="text-[9px] text-zinc-500 font-bold uppercase mb-1 block">Gender</label>
-                                        <div className="flex gap-1 h-[56px]">
-                                            <button onClick={()=>setGender('male')} className={`flex-1 rounded-xl text-sm font-bold transition-colors ${gender==='male' ? 'bg-zinc-800 text-white' : 'bg-black border border-zinc-800 text-zinc-600'}`}>M</button>
-                                            <button onClick={()=>setGender('female')} className={`flex-1 rounded-xl text-sm font-bold transition-colors ${gender==='female' ? 'bg-zinc-800 text-white' : 'bg-black border border-zinc-800 text-zinc-600'}`}>F</button>
-                                        </div>
+                                    <div className="bg-[#1e1e1e] p-4 rounded-lg border border-zinc-800"><label className="text-xs text-zinc-300 font-bold uppercase block mb-1">Height (CM)</label><input type="number" value={h} onChange={e=>setH(Number(e.target.value))} className="w-full bg-transparent text-white font-bold text-lg outline-none focus:text-[#bef264]" /></div>
+                                    <div className="flex gap-1 bg-[#1e1e1e] p-2 rounded-lg border border-zinc-800">
+                                        <button onClick={()=>setGender('male')} className={`flex-1 rounded text-sm font-bold transition-colors ${gender==='male' ? 'suunto-bg-accent' : 'bg-transparent text-zinc-300'}`}>M</button>
+                                        <button onClick={()=>setGender('female')} className={`flex-1 rounded text-sm font-bold transition-colors ${gender==='female' ? 'suunto-bg-accent' : 'bg-transparent text-zinc-300'}`}>F</button>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <div><label className="text-[9px] text-zinc-500 font-bold uppercase mb-1 block">Age</label><input type="number" value={age} onChange={e=>setAge(Number(e.target.value))} className="w-full bg-black p-4 rounded-xl text-white font-bold text-lg border border-zinc-800 focus:border-orange-500 outline-none text-center" /></div>
-                                    <div><label className="text-[9px] text-zinc-500 font-bold uppercase mb-1 block">Resting HR</label><input type="number" value={rhr} onChange={e=>setRhr(Number(e.target.value))} className="w-full bg-black p-4 rounded-xl text-white font-bold text-lg border border-zinc-800 focus:border-orange-500 outline-none text-center" /></div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-[#1e1e1e] p-4 rounded-lg border border-zinc-800"><label className="text-xs text-zinc-300 font-bold uppercase block mb-1">Age</label><input type="number" value={age} onChange={e=>setAge(Number(e.target.value))} className="w-full bg-transparent text-white font-bold text-lg outline-none focus:text-[#bef264]" /></div>
+                                    <div className="bg-[#1e1e1e] p-4 rounded-lg border border-zinc-800"><label className="text-xs text-zinc-300 font-bold uppercase block mb-1">Resting HR</label><input type="number" value={rhr} onChange={e=>setRhr(Number(e.target.value))} className="w-full bg-transparent text-white font-bold text-lg outline-none text-[#f97316] focus:text-[#bef264]" /></div>
                                 </div>
-                                
-                                <select value={injury} onChange={e=>setInjury(e.target.value)} className="w-full bg-black p-4 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm mb-3"><option value="none">ไม่เคยบาดเจ็บ (ปกติ)</option><option value="knee">เจ็บเข่า / ITB</option><option value="plantar">รองช้ำ / เจ็บฝ่าเท้า</option><option value="shin">หน้าแข้ง (Shin Splints)</option></select>
-                                <select value={lifestyle} onChange={e=>setLifestyle(e.target.value)} className="w-full bg-black p-4 rounded-xl text-white font-bold border border-zinc-800 outline-none text-sm"><option value="sedentary">ออฟฟิศ (นั่งทำงาน)</option><option value="active">Active (เดินบ่อย)</option><option value="heavy">Heavy (ใช้แรงงาน)</option></select>
                             </div>
 
-                            <button onClick={()=>onSave({weight:w, targetWeight:tw, height:h, gender, age, rhr, vcr, targetDist:td, injury, lifestyle, schedule: generateSmartSchedule(avail, ld)})} className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl mt-4 active:scale-95 transition-all shadow-xl shadow-white/10 text-lg">Save & Calculate</button>
+                            {/* Plan Setup */}
+                            <div className="border-t border-zinc-800 pt-6">
+                                <h3 className="text-sm font-black text-zinc-300 uppercase tracking-widest mb-3">Plan Setup</h3>
+                                <div className="bg-[#1e1e1e] p-4 rounded-lg border border-zinc-800 mb-4">
+                                    <label className="text-xs text-zinc-300 font-bold uppercase block mb-2">Race Distance</label>
+                                    <div className="flex gap-2">
+                                        {[5,10,21.1,42.195].map(d => (<button key={d} onClick={()=>setTd(d)} className={`flex-1 py-3 rounded text-sm font-bold transition-colors ${td===d ? 'suunto-bg-accent' : 'bg-[#121212] text-zinc-300 border border-zinc-800'}`}>{d===42.195?'42K':d+'K'}</button>))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-[#1e1e1e] p-5 rounded-lg border border-cyan-900/50 shadow-[0_0_15px_rgba(6,182,212,0.05)] mb-4">
+                                    <label className="text-sm font-black text-cyan-400 uppercase mb-3 block">VCR Test Reference</label>
+                                    <div className="bg-[#121212] p-4 rounded mb-4 border border-zinc-800">
+                                        <ul className="text-xs text-zinc-200 font-bold space-y-2">
+                                            <li className="flex justify-between"><span>🔴 Beginner (> 7:30)</span><span>&lt; 4000m</span></li>
+                                            <li className="flex justify-between"><span>🟡 Intermediate (6:00 - 7:30)</span><span>4000 - 5000m</span></li>
+                                            <li className="flex justify-between"><span>🟢 Advanced (&lt; 6:00)</span><span>&gt; 5000m</span></li>
+                                        </ul>
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <input type="number" value={vcr} onChange={e=>setVcr(Number(e.target.value))} className="flex-1 bg-transparent border-b-2 border-cyan-900 text-cyan-400 font-black text-3xl outline-none focus:border-cyan-400 text-center" />
+                                        <span className="text-cyan-600 font-bold text-sm uppercase">Meters</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Schedule & Lifestyle */}
+                            <div className="border-t border-zinc-800 pt-6">
+                                <h3 className="text-sm font-black text-zinc-300 uppercase tracking-widest mb-3">Schedule & Routine</h3>
+                                <div className="mb-4">
+                                    <label className="text-xs text-zinc-300 font-bold uppercase block mb-2 flex justify-between"><span>Training Days</span><span className="text-white">{Object.values(avail).filter(v=>v).length} Days/Wk</span></label>
+                                    <div className="flex gap-1">
+                                        {['S','M','T','W','T','F','S'].map((d,i) => (<button key={i} onClick={()=>setAvail({...avail, [i]:!avail[i]})} className={`flex-1 py-3 rounded text-sm font-bold transition-colors ${avail[i] ? 'bg-zinc-700 text-white' : 'bg-[#1e1e1e] text-zinc-400 border border-zinc-800'}`}>{d}</button>))}
+                                    </div>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="text-xs text-zinc-300 font-bold uppercase block mb-2">Long Run Day</label>
+                                    <select value={ld} onChange={e=>setLd(Number(e.target.value))} className="w-full bg-[#1e1e1e] text-white p-4 rounded-lg border border-zinc-800 outline-none text-sm">
+                                        {Object.keys(avail).filter(k=>avail[k]).map(k => (<option key={k} value={k}>Every {dayLabels[k]}</option>))}
+                                        {Object.values(avail).filter(v=>v).length === 0 && (<option value={0}>Select days first</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <select value={injury} onChange={e=>setInjury(e.target.value)} className="w-full bg-[#1e1e1e] text-zinc-300 p-4 rounded-lg border border-zinc-800 outline-none text-xs"><option value="none">No Injury</option><option value="knee">Knee/ITB</option><option value="plantar">Plantar</option><option value="shin">Shin Splints</option></select>
+                                    <select value={lifestyle} onChange={e=>setLifestyle(e.target.value)} className="w-full bg-[#1e1e1e] text-zinc-300 p-4 rounded-lg border border-zinc-800 outline-none text-xs"><option value="sedentary">Office/Sedentary</option><option value="active">Active/Walk</option><option value="heavy">Heavy Work</option></select>
+                                </div>
+                            </div>
+
+                            <button onClick={handleSave} className="w-full suunto-bg-accent py-5 rounded-lg uppercase tracking-widest text-lg font-black active:scale-95 transition-all mt-6 shadow-[0_0_15px_rgba(190,242,100,0.2)]">SYNC SETTINGS</button>
+                            
+                            <div className="pt-6 mt-6 border-t border-zinc-900 text-center">
+                                <button onClick={handleResetProfile} className="text-xs text-red-500 font-bold uppercase tracking-widest hover:text-red-400 transition-colors">⚠️ Factory Reset</button>
+                            </div>
                         </div>
                     </div>
+                </div>
+            );
+        };
+
+        const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, saveRun, targetWater }) => (
+            <div className="space-y-6">
+                <section className={`p-6 suunto-card flex items-center justify-between border-l-4 transition-colors ${score===100 ? 'border-l-[#bef264] bg-[#bef264]/5' : 'border-l-zinc-700'}`}>
+                    <div><h2 className="text-3xl font-black uppercase text-white">SCORE</h2><p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">Daily Objective</p></div>
+                    <div className={`text-6xl font-black ${score===100 ? 'suunto-accent' : 'text-white'}`}>{score}%</div>
+                </section>
+                
+                <section className="suunto-card p-6">
+                    <h3 className="font-black text-sm uppercase text-zinc-300 mb-5 tracking-widest flex items-center gap-2"><span>🍏</span> NUTRITION LOG</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        {[ {k:'b',l:'Breakfast'}, {k:'l',l:'Lunch'}, {k:'s',l:'Snack'}, {k:'d',l:'Dinner'} ].map(m => (
+                            <button key={m.k} onClick={()=>updateDaily(m.k, !daily[m.k])} className={`p-5 rounded-lg text-sm font-bold uppercase transition-all border-2 ${daily[m.k] ? 'suunto-bg-accent border-[#bef264]' : 'bg-[#1e1e1e] text-zinc-300 border-zinc-800 hover:bg-zinc-800'}`}>{m.l}</button>
+                        ))}
+                    </div>
+                </section>
+                
+                <section className="suunto-card p-6 flex items-center justify-between">
+                    <div><h3 className="font-black text-sm uppercase text-cyan-400 tracking-widest flex items-center gap-2"><span>💧</span> HYDRATION</h3><p className="text-xs text-zinc-400 font-bold uppercase mt-1">Target: {targetWater} Glasses</p></div>
+                    <div className="flex items-center gap-5">
+                        <button onClick={()=>updateDaily('w', Math.max(0, daily.w-1))} className="w-14 h-14 bg-[#1e1e1e] rounded-xl font-black text-2xl text-zinc-300 border border-zinc-800 active:scale-95 transition-transform">-</button>
+                        <span className="text-4xl font-black text-white w-10 text-center">{daily.w}</span>
+                        <button onClick={()=>updateDaily('w', daily.w+1)} className="w-14 h-14 bg-cyan-600/20 text-cyan-400 border border-cyan-800 rounded-xl font-black text-2xl active:scale-95 transition-transform hover:bg-cyan-600/40">+</button>
+                    </div>
+                </section>
+                
+                <section className="suunto-card p-6">
+                    <h3 className="font-black text-sm uppercase suunto-accent mb-3 tracking-widest">🏃‍♂️ WORKOUT: {cfg.name}</h3>
+                    <p className="text-base text-zinc-300 mb-6 leading-relaxed font-medium">{cfg.desc}</p>
+                    <div className="space-y-4 mb-8">
+                        {cfg.ex.map((ex, i) => (
+                            <div key={i} onClick={()=>{let nx=[...(daily.ex||[false,false,false])]; nx[i]=!nx[i]; updateDaily('ex', nx);}} className={`p-5 rounded-xl border-2 flex items-center gap-4 cursor-pointer transition-all ${daily.ex?.[i] ? 'bg-[#bef264]/10 border-[#bef264] suunto-accent' : 'bg-[#1e1e1e] border-zinc-800 text-zinc-300 hover:border-zinc-600'}`}>
+                                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center shrink-0 ${daily.ex?.[i] ? 'bg-[#bef264] border-[#bef264] text-black' : 'border-zinc-600'}`}>{daily.ex?.[i] && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}</div>
+                                <span className="font-bold text-base tracking-wide">{ex}</span>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {cfg.id !== 'rest' && !daily.rLog && (
+                        <div className="bg-[#1e1e1e] p-6 rounded-xl border border-zinc-800">
+                            <p className="text-xs font-black text-zinc-300 uppercase tracking-widest mb-4">MANUAL RUN LOGGER</p>
+                            <div className="grid grid-cols-3 gap-3 mb-6">
+                                <input type="number" value={inDist} onChange={e=>setInDist(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-800 text-center font-bold text-lg text-white outline-none focus:border-[#bef264] transition-colors" placeholder="KM"/>
+                                <input type="text" value={inPace} onChange={e=>setInPace(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-800 text-center font-bold text-lg text-white outline-none focus:border-[#bef264] transition-colors" placeholder="PACE"/>
+                                <input type="number" value={inHr} onChange={e=>setInHr(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-800 text-center font-bold text-lg text-white outline-none focus:border-[#bef264] transition-colors" placeholder="HR"/>
+                            </div>
+                            <button onClick={saveRun} disabled={!inDist || !inPace} className="w-full suunto-bg-accent py-5 rounded-xl uppercase tracking-widest text-sm font-black disabled:opacity-30 disabled:grayscale transition-all active:scale-95 shadow-[0_0_15px_rgba(190,242,100,0.2)]">SAVE ACTIVITY</button>
+                        </div>
+                    )}
+                    
+                    {daily.rLog && (
+                        <div className="bg-[#1e1e1e] p-6 rounded-xl border border-zinc-700">
+                            <div className="flex justify-between items-start mb-4">
+                                <p className="suunto-accent font-black text-sm uppercase tracking-widest">ACTIVITY LOGGED</p>
+                                <button onClick={()=>updateDaily('rLog', false)} className="text-xs text-zinc-400 uppercase font-bold hover:text-white transition-colors">EDIT</button>
+                            </div>
+                            <div className="bg-black p-4 rounded-xl border border-zinc-800 mb-6 grid grid-cols-3 text-center">
+                                <div><p className="text-xs text-zinc-400 font-bold uppercase mb-1">DIST</p><p className="text-white font-black text-xl">{daily.rDist} <span className="text-xs font-normal text-zinc-400">km</span></p></div>
+                                <div><p className="text-xs text-zinc-400 font-bold uppercase mb-1">PACE</p><p className="text-white font-black text-xl">{daily.rPace}</p></div>
+                                <div><p className="text-xs text-zinc-400 font-bold uppercase mb-1">HR</p><p className="text-white font-black text-xl">{daily.rHr} <span className="text-xs font-normal text-zinc-400">bpm</span></p></div>
+                            </div>
+                            <h4 className="text-xs font-black text-orange-400 uppercase tracking-widest mb-2 flex items-center gap-2"><span>🤖</span> AI COACH FEEDBACK</h4>
+                            <p className="text-base font-bold text-zinc-200 leading-relaxed mb-5">{daily.aiFeedback}</p>
+                            <span className="text-xs font-black text-black uppercase bg-[#bef264] px-3 py-2 rounded-md inline-block">{daily.perfCondition}</span>
+                            
+                            {daily.vcrUpgraded && (
+                                <div className="mt-5 bg-fuchsia-500/10 border border-fuchsia-500/50 p-4 rounded-xl text-center animate-pulse">
+                                    <p className="text-sm text-fuchsia-400 font-black uppercase tracking-widest">🎉 VCR Level Up!</p>
+                                    <p className="text-xs text-zinc-200 mt-2 font-bold">สถิติดีขึ้น AI อัปเกรด VCR ให้เป็น {daily.newVcrVal}m อัตโนมัติ</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </section>
+            </div>
+        );
+
+        const TabPlan = ({ cfg, prof }) => {
+            const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            const scheduleMap = { 'rest': 'Rest', 'easy': 'Easy', 'speed': 'Speed', 'long': 'Long Run' };
+            const colorMap = { 'rest': 'text-zinc-500', 'easy': 'text-lime-400', 'speed': 'text-orange-400', 'long': 'text-red-400' };
+            const todayIdx = new Date().getDay();
+
+            return (
+                <div className="space-y-6 pb-10">
+                    <section className="suunto-card p-8 border-t-4 border-t-zinc-600">
+                        <h2 className="font-black text-sm text-zinc-400 uppercase tracking-widest mb-4">💬 COACH'S BRIEFING</h2>
+                        <p className="text-lg font-bold text-zinc-200 leading-relaxed italic">"{cfg.aiAdvice}"</p>
+                    </section>
+
+                    <section className="suunto-card p-8">
+                        <h2 className="font-black text-sm text-zinc-400 uppercase tracking-widest mb-5">TRAINING PROTOCOL</h2>
+                        <div className="mb-6 pb-6 border-b border-zinc-800">
+                            <p className="text-3xl font-black text-white uppercase">{cfg.name}</p>
+                            <div className="flex gap-3 mt-4">
+                                <span className="bg-[#1e1e1e] border border-zinc-700 px-4 py-2 rounded-lg text-cyan-400 font-black text-xs tracking-widest">PACE: {cfg.pace}</span>
+                                <span className="bg-[#1e1e1e] border border-zinc-700 px-4 py-2 rounded-lg text-red-400 font-black text-xs tracking-widest">HR: {cfg.hr}</span>
+                            </div>
+                        </div>
+                        <div className="space-y-6">
+                            <div><p className="text-xs font-black text-orange-400 uppercase mb-3 tracking-widest">WARM-UP</p><ul className="list-disc list-inside text-base font-bold text-zinc-300 space-y-2">{cfg.detailedWorkout.warmup.map((i,idx)=><li key={idx}>{i}</li>)}</ul></div>
+                            <div><p className="text-xs font-black suunto-accent uppercase mb-3 tracking-widest">MAIN SET</p><p className="text-lg font-black text-white bg-[#1e1e1e] p-5 rounded-xl border border-zinc-800 leading-relaxed">{cfg.detailedWorkout.main}</p></div>
+                            <div><p className="text-xs font-black text-cyan-400 uppercase mb-3 tracking-widest">COOL-DOWN</p><ul className="list-disc list-inside text-base font-bold text-zinc-300 space-y-2">{cfg.detailedWorkout.cooldown.map((i,idx)=><li key={idx}>{i}</li>)}</ul></div>
+                        </div>
+                    </section>
+
+                    <section className="suunto-card p-8">
+                        <h2 className="font-black text-sm text-zinc-400 uppercase tracking-widest mb-5">NUTRITION GUIDE</h2>
+                        <div className="space-y-4 mb-6">
+                            {[ {k:'b', t:'Breakfast', c:'text-yellow-400'}, {k:'l', t:'Lunch', c:'text-orange-400'}, {k:'s', t:'Snack', c:'text-fuchsia-400'}, {k:'d', t:'Dinner', c:'text-blue-400'} ].map(m => {
+                                const d = cfg.detailedMeals[m.k]; if(!d) return null;
+                                return (
+                                    <div key={m.k} className="bg-[#1e1e1e] p-5 rounded-xl border border-zinc-800">
+                                        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${m.c}`}>{m.t}</p>
+                                        <p className="text-base font-black text-white leading-relaxed">{d.menu}</p>
+                                        <p className="text-sm text-zinc-300 mt-2 font-bold">{d.detail}</p>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className="bg-[#bef264]/10 border border-[#bef264]/30 p-5 rounded-xl flex items-start gap-4">
+                            <span className="text-2xl">💡</span>
+                            <div>
+                                <p className="text-xs font-black text-[#bef264] uppercase tracking-widest mb-2">PROTEIN QUOTA</p>
+                                <p className="text-base text-zinc-200 font-bold">{Math.round((prof.weight||90) * 1.5)} - {Math.round((prof.weight||90) * 1.8)} กรัม/วัน</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="suunto-card p-8">
+                        <h2 className="font-black text-sm text-zinc-400 uppercase tracking-widest mb-5">WEEKLY SCHEDULE</h2>
+                        <div className="space-y-3">
+                            {dayNames.map((day, idx) => {
+                                const type = prof?.schedule?.[idx] || 'rest';
+                                const isToday = todayIdx === idx;
+                                return (
+                                    <div key={idx} className={`p-5 rounded-xl border flex justify-between items-center transition-colors ${isToday ? 'bg-zinc-800 border-zinc-500 shadow-md' : 'bg-[#1e1e1e] border-zinc-800'}`}>
+                                        <span className={`text-sm font-black uppercase tracking-widest ${isToday ? 'text-white' : 'text-zinc-400'}`}>{day} {isToday && '(TODAY)'}</span>
+                                        <span className={`text-sm font-black uppercase tracking-widest ${colorMap[type]}`}>{scheduleMap[type]}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+                </div>
+            );
+        };
+
+        const TabRanking = ({ leaderboardData }) => (
+            <section className="space-y-6 pb-10">
+                <div className="text-center mb-8 pt-4">
+                    <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">LEADERBOARD</h2>
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-2">Weekly Mileage (7 Days)</p>
+                </div>
+                <div className="space-y-4">
+                    {leaderboardData.length === 0 ? <div className="text-center p-10 suunto-card text-zinc-400 font-bold text-base tracking-widest uppercase">LOADING...</div> : 
+                        leaderboardData.map((runner, idx) => {
+                            let bg = 'bg-[#121212] border-zinc-800', txt = 'text-white', numColor = 'text-zinc-500';
+                            if (idx === 0) { bg = 'bg-[#18181b] border-[#bef264]/50 shadow-lg shadow-[#bef264]/10'; txt = 'suunto-accent'; numColor = 'suunto-accent'; }
+                            else if (idx === 1) { txt = 'text-zinc-300'; numColor = 'text-zinc-400'; }
+                            else if (idx === 2) { txt = 'text-zinc-400'; numColor = 'text-zinc-500'; }
+                            return (
+                                <div key={idx} className={`p-6 rounded-2xl border flex items-center justify-between transition-all ${bg}`}>
+                                    <div className="flex items-center gap-5">
+                                        <div className={`w-10 font-black text-3xl text-center italic ${numColor}`}>{idx + 1}</div>
+                                        <div>
+                                            <h3 className={`font-black text-xl uppercase tracking-wider ${txt}`}>{runner.name} {idx===0&&'👑'}</h3>
+                                            <p className="text-xs text-zinc-400 font-bold uppercase mt-1 tracking-widest">All-Time: {runner.tKm.toFixed(1)} KM</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`text-4xl font-black italic ${idx===0?'text-white':'text-zinc-300'}`}>{runner.wKm.toFixed(1)}</p>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    }
+                </div>
+            </section>
+        );
+
+        const TabStats = ({ prof, vo2Value, tDist, pTime, pSource, fastest5kSecs, fastest10kSecs, longestRun, achievements }) => {
+            const bmi = prof.height ? (prof.weight / Math.pow(prof.height/100, 2)).toFixed(1) : '-';
+            let vo2Color = "#ef4444", vo2Label = "POOR";
+            if (vo2Value >= 35) { vo2Color = "#f97316"; vo2Label = "FAIR"; }
+            if (vo2Value >= 40) { vo2Color = "#a3e635"; vo2Label = "GOOD"; }
+            if (vo2Value >= 45) { vo2Color = "#60a5fa"; vo2Label = "EXCELLENT"; }
+            if (vo2Value >= 50) { vo2Color = "#e879f9"; vo2Label = "SUPERIOR"; }
+            
+            const offset = 126 - (Math.min(100, ((vo2Value - 20) / 40) * 100) / 100) * 126;
+            const mapGoal = 600;
+            const mapProgress = Math.min((tDist / mapGoal) * 100, 100);
+
+            return (
+                <div className="space-y-6 pb-12">
+                    <section className="suunto-card p-10 text-center border-t-4 border-t-zinc-700">
+                        <h2 className="font-black text-xs text-zinc-400 uppercase tracking-widest mb-8">PEAK VO2 MAX</h2>
+                        <div className="flex justify-center mb-8">
+                            <div className="relative w-56 h-28 overflow-hidden">
+                                <svg className="w-full h-full" viewBox="0 0 100 50">
+                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#27272a" strokeWidth="8" strokeLinecap="round" />
+                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={vo2Color} strokeWidth="8" strokeLinecap="round" className="gauge-arc" style={{strokeDashoffset: offset}} />
+                                </svg>
+                                <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center">
+                                    <span className="text-6xl font-black tracking-tighter italic" style={{color: vo2Color}}>{vo2Value}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg bg-black border border-zinc-800" style={{color: vo2Color}}>{vo2Label}</span>
+                    </section>
+                    
+                    <section className="suunto-card p-8">
+                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-6 flex items-center gap-2"><span>📍</span> VIRTUAL MAP</h2>
+                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mb-4">สะสมระยะทาง {tDist.toFixed(1)} / {mapGoal} KM</p>
+                        <div className="relative w-full h-8 bg-[#1e1e1e] rounded-full border border-zinc-800 overflow-visible mb-2">
+                            <div className="absolute top-0 left-0 h-full bg-cyan-600/60 rounded-full transition-all duration-1000" style={{width: `${mapProgress}%`}}></div>
+                            <div className="absolute top-1/2 -translate-y-1/2 text-3xl drop-shadow-md transition-all duration-1000 z-10" style={{left: `calc(${mapProgress}% - 16px)`}}>🏃‍♂️</div>
+                        </div>
+                    </section>
+
+                    <section className="suunto-card p-8">
+                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-6">🏆 PERSONAL BESTS</h2>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-[#1e1e1e] p-5 rounded-xl border border-zinc-800 text-center"><p className="text-xs text-zinc-400 font-bold uppercase mb-2">5K</p><p className="text-xl font-black text-white italic">{formatPace(fastest5kSecs)}</p></div>
+                            <div className="bg-[#1e1e1e] p-5 rounded-xl border border-zinc-800 text-center"><p className="text-xs text-zinc-400 font-bold uppercase mb-2">10K</p><p className="text-xl font-black text-white italic">{formatPace(fastest10kSecs)}</p></div>
+                            <div className="bg-[#1e1e1e] p-5 rounded-xl border border-zinc-800 text-center"><p className="text-xs text-zinc-400 font-bold uppercase mb-2">MAX DIST</p><p className="text-xl font-black text-white italic">{longestRun.toFixed(1)}<span className="text-[10px] ml-1">K</span></p></div>
+                        </div>
+                    </section>
+
+                    <section className="suunto-card p-8">
+                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-6">🏅 TROPHY ROOM</h2>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className={`p-5 rounded-xl border text-center transition-all ${achievements.halfMarathon ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-[#1e1e1e] border-zinc-800 opacity-50 grayscale'}`}><span className="text-4xl mb-3 block">{achievements.halfMarathon ? '🎖️' : '🔒'}</span><span className={`text-xs font-black uppercase tracking-wider block ${achievements.halfMarathon ? 'text-yellow-400' : 'text-zinc-500'}`}>Half-Way</span></div>
+                            <div className={`p-5 rounded-xl border text-center transition-all ${achievements.streakMaster ? 'bg-orange-500/10 border-orange-500/50' : 'bg-[#1e1e1e] border-zinc-800 opacity-50 grayscale'}`}><span className="text-4xl mb-3 block">{achievements.streakMaster ? '⚡' : '🔒'}</span><span className={`text-xs font-black uppercase tracking-wider block ${achievements.streakMaster ? 'text-orange-400' : 'text-zinc-500'}`}>Streak</span></div>
+                            <div className={`p-5 rounded-xl border text-center transition-all ${achievements.aquaMan ? 'bg-cyan-500/10 border-cyan-500/50' : 'bg-[#1e1e1e] border-zinc-800 opacity-50 grayscale'}`}><span className="text-4xl mb-3 block">{achievements.aquaMan ? '💦' : '🔒'}</span><span className={`text-xs font-black uppercase tracking-wider block ${achievements.aquaMan ? 'text-cyan-400' : 'text-zinc-500'}`}>Aqua Man</span></div>
+                        </div>
+                    </section>
+
+                    <section className="suunto-card p-8 border-l-4 border-l-lime-500">
+                        <h2 className="font-black text-xs text-zinc-400 uppercase tracking-widest mb-2">AI PREDICTOR</h2>
+                        <p className="text-sm text-lime-400 font-black uppercase tracking-widest mb-4">EST. {prof.targetDist}K TIME</p>
+                        <p className="text-6xl font-black text-white italic tracking-tighter mb-5">{pTime}</p>
+                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">REF: {pSource}</p>
+                    </section>
                 </div>
             );
         };
@@ -588,14 +668,13 @@
             const [activeTab, setActiveTab] = useState('tracker');
             const [showSetup, setShowSetup] = useState(false);
             const [showConfetti, setShowConfetti] = useState(false);
-            const [leaderboardData, setLeaderboardData] = useState([]);
             
             const safeName = profileName.trim().toLowerCase();
-            const localKey = `p80_v16_stable_${safeName}`;
+            const localKey = `p80_v15_suunto_${safeName}`;
             
             const [prof, setProf] = useState(() => JSON.parse(safeStorage.getItem(localKey)) || {
-                initialWeight: 0, weight: 90.0, targetWeight: 80.0, height: 175, gender: 'male',
-                age: 35, rhr: 60, vcr: 0, targetDist: 42.195, injury: 'none', lifestyle: 'active',
+                initialWeight: null, weight: 90.0, targetWeight: 80.0, height: 175, gender: 'male',
+                age: 35, rhr: 60, vcr: 4500, targetDist: 42.195, injury: 'none', lifestyle: 'active',
                 schedule: {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'}, records: {}
             });
 
@@ -606,21 +685,23 @@
             const [inPace, setInPace] = useState(daily.rPace || '');
             const [inHr, setInHr] = useState(daily.rHr || '');
 
+            const [leaderboardData, setLeaderboardData] = useState([]);
+
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName);
+
             useEffect(() => {
-                const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName), snap => {
+                if(!prof.initialWeight) setShowSetup(true); 
+                const unsub = onSnapshot(docRef, snap => {
                     if(snap.exists()) {
                         const d = snap.data();
-                    setProf(prev => {
-                        const newProf = {...prev, ...d, records: d.records || {}};
-                        safeStorage.setItem(localKey, JSON.stringify(newProf));
-                        return newProf;
-                    });
-                    // 🛠️ ป้องกันการเด้ง: เช็คเฉพาะ VCR และ targetWeight (หลีกเลี่ยงการเช็ค initialWeight ที่อาจเป็น 0 หรือไม่ถูกบันทึก)
-                    if(!d.vcr || !d.targetWeight) setShowSetup(true);
-                } else setShowSetup(true);
-            });
-            
-            const unsubBoard = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'profiles'), snap => {
+                        setProf(prev => ({...prev, ...d}));
+                        if(!d.initialWeight) setShowSetup(true); 
+                        if(d.records?.[todayStr]) setDaily(d.records[todayStr]);
+                    }
+                });
+                
+                const boardRef = collection(db, 'artifacts', appId, 'public', 'data', 'profiles');
+                const unsubBoard = onSnapshot(boardRef, snap => {
                     let arr = [];
                     const last7 = Array.from({length:7}, (_,i) => { let d = new Date(); d.setDate(d.getDate()-6+i); return d.toDateString(); });
                     snap.forEach(docSnap => {
@@ -635,19 +716,17 @@
                     arr.sort((a, b) => b.wKm - a.wKm);
                     setLeaderboardData(arr);
                 });
-                
+
                 return () => { unsub(); unsubBoard(); };
             }, []);
 
-            // 🛠️ Local Sync First to prevent bouncing
             const updateDaily = (key, val) => {
-                setDaily(prev => {
-                    const nd = { ...prev, [key]: val };
-                    const nRecords = { ...prof.records, [todayStr]: nd };
-                    setProf(p => ({ ...p, records: nRecords }));
-                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName), { records: { [todayStr]: nd } }, { merge: true });
-                    return nd;
-                });
+                const nd = {...daily, [key]:val};
+                setDaily(nd);
+                const nRecords = {...prof.records, [todayStr]: nd};
+                setProf(p => ({...p, records: nRecords})); 
+                setDoc(docRef, { records: nRecords }, {merge:true});
+                safeStorage.setItem(localKey, JSON.stringify({...prof, records: nRecords}));
             };
 
             const saveRun = () => {
@@ -660,44 +739,21 @@
                 const cfgToday = getDayConfig(new Date(), 0, false, prof);
                 const ai = generateFeedback(dNum, inPace, inHr, cfgToday.pace);
                 const perf = calcCondition(inHr, inPace);
+                const nd = {...daily, rLog: true, rDist: inDist, rPace: inPace, rHr: inHr, aiFeedback: ai, perfCondition: perf, vcrUpgraded: upgraded, newVcrVal: currentVcr};
                 
-                setDaily(prev => {
-                    const nd = { ...prev, rLog: true, rDist: inDist, rPace: inPace, rHr: inHr, aiFeedback: ai, perfCondition: perf, vcrUpgraded: upgraded, newVcrVal: currentVcr };
-                    const nRecords = { ...prof.records, [todayStr]: nd };
-                    setProf(p => ({ ...p, vcr: currentVcr, records: nRecords }));
-                    
-                    if (upgraded) {
-                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName), { vcr: currentVcr, records: { [todayStr]: nd } }, { merge: true });
-                    } else {
-                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName), { records: { [todayStr]: nd } }, { merge: true });
-                    }
-                    return nd;
-                });
+                setDaily(nd);
+                const nProf = {...prof, vcr: currentVcr, records: {...prof.records, [todayStr]: nd}};
+                setProf(nProf);
+                setDoc(docRef, { vcr: currentVcr, records: nProf.records }, {merge:true});
+                safeStorage.setItem(localKey, JSON.stringify(nProf));
             };
 
             const updateWeight = (amt) => {
                 const w = Number((prof.weight + amt).toFixed(1));
                 setProf(p => ({...p, weight: w}));
-                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName), { weight: w }, {merge:true});
+                setDoc(docRef, { weight: w }, {merge:true});
+                safeStorage.setItem(localKey, JSON.stringify({...prof, weight: w}));
             };
-
-            // 🎯 CALCULATIONS BLOCK (Fixing tDist Error)
-            let tDist = 0, tSecs = 0, f5k = Infinity, f10k = Infinity, longestRun = 0;
-            if (prof.records) {
-                Object.values(prof.records).forEach(r => {
-                    if (r.rLog && r.rDist && r.rPace) {
-                        const d = parseFloat(r.rDist);
-                        const s = parsePace(r.rPace);
-                        if (!isNaN(d) && isFinite(s)) {
-                            tDist += d;
-                            tSecs += (s * d);
-                            if (d >= 5 && s < f5k) f5k = s;
-                            if (d >= 10 && s < f10k) f10k = s;
-                            if (d > longestRun) longestRun = d;
-                        }
-                    }
-                });
-            }
 
             const raceDate = new Date(2026, 10, 15); const planStart = new Date(2026, 5, 1);
             const totalDays = Math.ceil((raceDate - planStart)/(1000*3600*24));
@@ -705,17 +761,34 @@
             const weekIdx = Math.max(0, Math.min(23, Math.ceil(diff/7)-1));
             const cfg = getDayConfig(new Date(), weekIdx, false, prof);
 
+            let tDist = 0, tSecs = 0, f5k = Infinity, f10k = Infinity, longestRun = 0, maxStreakCount = 0, streakCount = 0, maxAquaCount = 0, aquaCount = 0;
+            const sortedDates = Object.keys(prof.records || {}).sort((a,b)=>new Date(a)-new Date(b));
+            sortedDates.forEach(dt => {
+                const r = prof.records[dt];
+                if(r.rLog && r.rDist && r.rPace) {
+                    const d = parseFloat(r.rDist), s = parsePace(r.rPace);
+                    if(!isNaN(d) && isFinite(s)) {
+                        tDist += d; tSecs += (s*d);
+                        if(d>=5 && s<f5k) f5k = s; if(d>=10 && s<f10k) f10k = s;
+                        if(d>longestRun) longestRun = d;
+                    }
+                    streakCount++;
+                } else streakCount = 0;
+                if(streakCount > maxStreakCount) maxStreakCount = streakCount;
+                if(r.w >= 8) aquaCount++; else aquaCount = 0;
+                if(aquaCount > maxAquaCount) maxAquaCount = aquaCount;
+            });
+
+            const achievements = { halfMarathon: longestRun >= 21.1, streakMaster: maxStreakCount >= 7, aquaMan: maxAquaCount >= 3 };
+            
             let bestMin = (prof.vcr || 4500) / 30;
             if (f5k !== Infinity) bestMin = Math.max(bestMin, 5000 / (f5k / 60));
-            if (f10k !== Infinity) bestSpeedMin = Math.max(bestMin, 10000 / (f10k / 60));
+            if (f10k !== Infinity) bestMin = Math.max(bestSpeedMin, 10000 / (f10k / 60));
             let vo2Value = parseFloat(((bestMin * 0.2) + 3.5).toFixed(1));
-            if (isNaN(vo2Value) || vo2Value <= 0) vo2Value = 0;
 
             let pTime = "NEED DATA", pSource = "Run 5K to unlock";
-            const targetD = prof.targetDist || 42.195;
-            if(f10k !== Infinity) { pTime = calcPredictor(f10k*10, 10, targetD).str; pSource = "Fastest 10K Record"; }
-            else if(f5k !== Infinity) { pTime = calcPredictor(f5k*5, 5, targetD).str; pSource = "Fastest 5K Record"; }
-            else if(tDist >= 5) { pTime = calcPredictor((tSecs/tDist)*tDist, tDist, targetD).str; pSource = "Average Pace"; }
+            if(f10k !== Infinity) { pTime = calcPredictor(f10k*10, 10, prof.targetDist).str; pSource = "Fastest 10K"; }
+            else if(f5k !== Infinity) { pTime = calcPredictor(f5k*5, 5, prof.targetDist).str; pSource = "Fastest 5K"; }
 
             const targetWater = getTargetWater(prof.lifestyle);
             let score = 0;
@@ -726,73 +799,59 @@
             useEffect(() => { if (score === 100) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 5000); } }, [score]);
 
             return (
-                <div className="min-h-screen bg-[#0d0d0d] p-6 pb-28 relative overflow-x-hidden">
+                <div className="min-h-screen bg-[#000000] p-6 pb-32 relative">
                     {showConfetti && <Confetti />}
-                    {showSetup && <SetupModal initialProf={prof} onSave={(d)=>{
-                        const finalData = { ...d };
-                        if (!prof.initialWeight) finalData.initialWeight = d.weight;
-                        setProf(p=>({...p, ...finalData})); 
-                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName), finalData, {merge:true}); 
-                        setShowSetup(false);
-                    }} onCancel={()=>setShowSetup(false)} />}
+                    {showSetup && <SetupModal initialProf={prof} onSave={(d)=>{setProf(p=>({...p, ...d, initialWeight: p.initialWeight || d.weight})); setDoc(docRef, {...d, initialWeight: prof.initialWeight || d.weight}, {merge:true}); safeStorage.setItem(localKey, JSON.stringify({...prof, ...d})); setShowSetup(false);}} onCancel={()=> prof.initialWeight && setShowSetup(false)} />}
                     
-                    <header className="flex justify-between items-start mb-10">
+                    <header className="flex justify-between items-start mb-8 pt-4">
                         <div>
-                            <p className="text-lime-400 font-black text-[10px] tracking-[0.4em] uppercase mb-1 drop-shadow-md">ROAD TO BANGSAEN42</p>
-                            <h1 className="text-5xl font-black italic text-white tracking-tighter uppercase leading-none drop-shadow-[0_0_10px_rgba(249,115,22,0.3)]">PRO <span className="text-orange-500">80</span></h1>
-                            <p className="text-sm font-bold text-zinc-500 mt-3 tracking-widest uppercase">Runner: <span className="text-white">{profileName}</span></p>
+                            <p className="text-zinc-400 font-black text-xs tracking-[0.3em] uppercase mb-2">ROAD TO BANGSAEN42</p>
+                            <h1 className="text-6xl font-black text-white tracking-tighter uppercase italic">PRO <span className="suunto-accent">80</span></h1>
+                            <p className="text-sm font-bold text-zinc-400 mt-3 tracking-widest uppercase">Runner: <span className="text-white">{profileName}</span></p>
                         </div>
-                        <button onClick={onLogout} className="garmin-card p-4 rounded-2xl flex flex-col items-center justify-center w-16 h-16 active:scale-90 transition-transform">
-                            <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                            <span className="text-[8px] font-bold text-zinc-600 mt-1 uppercase">EXIT</span>
+                        <button onClick={onLogout} className="suunto-card p-4 w-16 h-16 flex flex-col items-center justify-center active:scale-95 transition-transform hover:bg-[#1e1e1e]">
+                            <svg className="w-6 h-6 text-zinc-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">EXIT</span>
                         </button>
                     </header>
 
-                    <div className="garmin-card rounded-[32px] p-8 mb-8 relative overflow-hidden shadow-2xl border-t-2 border-t-orange-500/30">
+                    <div className="suunto-card p-8 mb-8 relative overflow-hidden">
                         <div className="relative z-10">
                             <button onClick={()=>setShowSetup(true)} className="flex items-center gap-2 mb-4 group">
-                                <span className="text-zinc-400 font-black text-xs uppercase tracking-[0.2em] group-hover:text-white transition-colors">TARGET WEIGHT</span>
-                                <svg className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                                <span className="text-zinc-400 font-black text-xs uppercase tracking-widest group-hover:text-white transition-colors">TARGET WEIGHT</span>
+                                <svg className="w-5 h-5 text-zinc-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
                             </button>
                             <div className="flex items-baseline gap-3 mb-8">
-                                <span className="text-huge font-black italic text-white tracking-tighter">{prof.weight}</span>
-                                <span className="text-lime-400 font-bold text-2xl uppercase tracking-widest">KG</span>
+                                <span className="text-7xl font-black text-white italic tracking-tighter">{prof.weight}</span>
+                                <span className="text-zinc-400 font-bold text-2xl uppercase">KG</span>
                             </div>
-                            <div className="flex gap-4">
-                                <button onClick={()=>updateWeight(0.1)} className="w-16 h-16 bg-zinc-800 rounded-2xl text-white font-black text-3xl active:scale-90 transition-all">+</button>
-                                <button onClick={()=>updateWeight(-0.1)} className="w-16 h-16 bg-orange-500 rounded-2xl text-black font-black text-4xl active:scale-90 shadow-lg shadow-orange-500/20 transition-all">-</button>
+                            <div className="flex gap-3 w-[160px]">
+                                <button onClick={()=>updateWeight(0.1)} className="flex-1 h-14 bg-[#1e1e1e] rounded-xl text-zinc-300 font-black text-3xl active:scale-95 border border-zinc-800 hover:bg-zinc-800">+</button>
+                                <button onClick={()=>updateWeight(-0.1)} className="flex-1 h-14 suunto-bg-accent rounded-xl text-black font-black text-4xl active:scale-95 transition-transform pb-1 hover:bg-[#a3e635]">-</button>
                             </div>
                         </div>
                         <div className="absolute top-6 right-6 z-20">
-                            <div className="bg-orange-500 px-4 py-2 rounded-full flex items-center gap-1 shadow-orange">
-                                <span className="text-black font-black text-[10px] uppercase tracking-wider">{cfg.name}</span>
-                            </div>
+                            <span className="suunto-bg-accent px-4 py-2 rounded-md text-xs font-black uppercase tracking-widest">{cfg.name}</span>
                         </div>
-                        <div className="absolute bottom-[-15px] right-2 z-0 scale-125">
-                            <OriginalAvatar activity={cfg.id} />
+                        <div className="absolute bottom-[-15px] right-2 z-0 scale-125 opacity-90">
+                            <EliteAvatar activity={cfg.id} />
                         </div>
                     </div>
 
-                    <nav className="flex gap-2 mb-10 h-24">
-                        {[
-                            {id:'tracker', label:'PIT STOP', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />},
-                            {id:'plan', label:'PLAYBOOK', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />},
-                            {id:'ranking', label:'RANKING', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />},
-                            {id:'stats', label:'STATS', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />}
-                        ].map(t => (
+                    <nav className="flex gap-3 mb-8">
+                        {[ {id:'tracker', label:'TRACK'}, {id:'plan', label:'PLAN'}, {id:'ranking', label:'RANK'}, {id:'stats', label:'DATA'} ].map(t => (
                             <button key={t.id} onClick={()=>setActiveTab(t.id)} 
-                                className={`flex-1 flex flex-col items-center justify-center rounded-[28px] font-black text-[10px] tracking-widest uppercase transition-all border-2 gap-2 ${activeTab===t.id ? 'tab-active border-orange-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">{t.icon}</svg>
+                                className={`flex-1 py-5 rounded-xl font-black text-xs tracking-widest uppercase transition-all border-2 ${activeTab===t.id ? 'suunto-bg-accent border-[#bef264]' : 'bg-[#121212] border-zinc-800 text-zinc-400 hover:bg-[#1e1e1e]'}`}>
                                 {t.label}
                             </button>
                         ))}
                     </nav>
 
-                    <main className="animate-in fade-in duration-500">
+                    <main className="animate-in fade-in duration-300">
                         {activeTab === 'tracker' && <TabTracker score={score} daily={daily} updateDaily={updateDaily} cfg={cfg} inDist={inDist} setInDist={setInDist} inPace={inPace} setInPace={setInPace} inHr={inHr} setInHr={setInHr} saveRun={saveRun} targetWater={targetWater} />}
-                        {activeTab === 'plan' && <TabPlan cfg={cfg} />}
+                        {activeTab === 'plan' && <TabPlan cfg={cfg} prof={prof} />}
                         {activeTab === 'ranking' && <TabRanking leaderboardData={leaderboardData} />}
-                        {activeTab === 'stats' && <TabStats prof={prof} vo2Value={vo2Value} tDist={tDist} pTime={pTime} pSource={pSource} fastest5kSecs={f5k} fastest10kSecs={f10k} longestRun={longestRun} />}
+                        {activeTab === 'stats' && <TabStats prof={prof} vo2Value={vo2Value} tDist={tDist} pTime={pTime} pSource={pSource} fastest5kSecs={f5k} fastest10kSecs={f10k} longestRun={longestRun} achievements={achievements} />}
                     </main>
                 </div>
             );
@@ -800,21 +859,18 @@
 
         const MainApp = () => {
             const [user, setUser] = useState(null);
-            const [authLoading, setAuthLoading] = useState(true);
+            const [loading, setLoading] = useState(true);
             const [currentUser, setCurrentUser] = useState(() => safeStorage.getItem('p80_user_v16'));
 
             useEffect(() => {
-                signInAnonymously(auth).catch(console.error);
-                const unsub = onAuthStateChanged(auth, u => { setUser(u); setAuthLoading(false); });
+                signInAnonymously(auth).catch(e => console.error(e));
+                const unsub = onAuthStateChanged(auth, u => { setUser(u); setLoading(false); });
                 return unsub;
             }, []);
 
-            const handleLogin = name => { setCurrentUser(name); safeStorage.setItem('p80_user_v16', name); };
-            const handleLogout = () => { setCurrentUser(null); safeStorage.removeItem('p80_user_v16'); window.location.reload(); };
-
-            if (authLoading) return <div className="min-h-screen bg-black flex items-center justify-center"><p className="text-orange-500 font-black tracking-widest text-sm animate-pulse">CONNECTING SATELLITE...</p></div>;
-            if (!user || !currentUser) return <LoginScreen onLogin={handleLogin} />;
-            return <Dashboard profileName={currentUser} onLogout={handleLogout} />;
+            if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><p className="suunto-accent font-black tracking-widest uppercase animate-pulse text-lg">SYNCING SATELLITE...</p></div>;
+            if (!user || !currentUser) return <LoginScreen onLogin={n=>{setCurrentUser(n); safeStorage.setItem('p80_user_v16', n);}} />;
+            return <Dashboard profileName={currentUser} onLogout={()=>{setCurrentUser(null); safeStorage.removeItem('p80_user_v16'); window.location.reload();}} />;
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
