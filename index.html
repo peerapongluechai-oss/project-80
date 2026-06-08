@@ -41,6 +41,9 @@
         import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { useState, useEffect, useMemo } = React;
+        
+        // ประกาศ API Key ไว้ระดับ Global เพื่อให้ระบบเติมข้อมูลให้ถูกต้อง
+        const apiKey = "";
 
         // --- 1. FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -479,7 +482,6 @@
                 reader.onload = async () => {
                     try {
                         const base64Data = reader.result.split(',')[1];
-                        const apiKey = "";
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
                         
                         const payload = {
