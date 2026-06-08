@@ -106,8 +106,16 @@
             return `${Math.round(hrr*min)+Number(rhr||60)}-${Math.round(hrr*max)+Number(rhr||60)} bpm`;
         };
 
-        const generateFeedback = (dist, pace, hr, targetPaceStr) => {
-            if(!pace || pace === '0:00' || !targetPaceStr || targetPaceStr === '-') return "บันทึกสถิติสำเร็จ! วินัยคือหัวใจสำคัญครับ 🏃‍♂️";
+        const generateFeedback = (dist, pace, hr, targetPaceStr, actType = 'Run') => {
+            if(!pace || pace === '0:00') return "บันทึกสถิติสำเร็จ! วินัยคือหัวใจสำคัญครับ 🏃‍♂️";
+            
+            // ถ้าเป็นกีฬาประเภทอื่น (ไม่ใช่การวิ่งถนน) AI จะให้คำแนะนำแบบเฉพาะเจาะจง
+            if (actType === 'Trail') return "⛰️ ลุยเทรลมาใช่ไหมครับ! เพซเทรลจะช้ากว่าถนนปกติเพราะความชัน AI จะไม่นำเพซนี้ไปฉุด VCR ของคุณลง ถือว่าได้ฝึกความแข็งแรงกล้ามเนื้อและระบบหายใจแบบเต็มๆ ครับ!";
+            if (actType === 'Swim') return "🏊‍♂️ ว่ายน้ำเป็นการ Cross-Training (เซฟข้อต่อ) ที่ยอดเยี่ยมตามหลักสูตรครูดินครับ! AI บันทึกสะสมไมล์ให้โดยไม่กระทบสถิติเพซวิ่งครับ";
+            if (actType === 'Bike') return "🚴‍♂️ ปั่นจักรยานช่วยสลับการใช้กล้ามเนื้อและสร้าง Aerobic Base ได้ดีมาก AI บันทึกผลให้เรียบร้อยครับ!";
+            if (actType === 'Other') return "🏋️‍♂️ ยอดเยี่ยมครับ! การเสริมสร้างความแข็งแรง (Strength) จะช่วยให้การวิ่งมาราธอนของคุณทนทานขึ้นครับ";
+
+            if(!targetPaceStr || targetPaceStr === '-') return "บันทึกสถิติสำเร็จ! วินัยคือหัวใจสำคัญครับ 🏃‍♂️";
             const pSecs = parsePace(pace);
             const tSecsArr = targetPaceStr.split(' - ').map(parsePace);
             if(tSecsArr.length >= 1 && tSecsArr[0] !== Infinity) {
@@ -927,7 +935,8 @@
                     if (equiv > currentVcr + 100) { currentVcr = Math.round(equiv); upgraded = true; }
                 }
                 const cfgToday = getDayConfig(new Date(), weekIdx, false, prof);
-                const ai = generateFeedback(dNum, inPace, inHr, cfgToday.pace);
+                // ส่ง inAct (ประเภทกีฬา) เข้าไปให้ AI โค้ชวิเคราะห์ด้วย
+                const ai = generateFeedback(dNum, inPace, inHr, cfgToday.pace, inAct);
                 const perf = calcCondition(inHr, inPace);
                 const nd = {...daily, rLog: true, rDist: inDist, rPace: inPace, rHr: inHr, rType: inAct, aiFeedback: ai, perfCondition: perf, vcrUpgraded: upgraded, newVcrVal: currentVcr};
                 
@@ -951,7 +960,7 @@
             const sortedDates = Object.keys(prof.records || {}).sort((a,b)=>new Date(a)-new Date(b));
             sortedDates.forEach(dt => {
                 const r = prof.records[dt];
-                if(r.rLog && r.rDist && r.rPace && (r.rType === 'Run' || !r.rType)) { // คิดสถิติเฉพาะการวิ่ง
+                if(r.rLog && r.rDist && r.rPace && (r.rType === 'Run' || !r.rType)) { // คิดสถิติเฉพาะการวิ่งถนน
                     const d = parseFloat(r.rDist), s = parsePace(r.rPace);
                     if(!isNaN(d) && isFinite(s)) {
                         tDist += d; tSecs += (s*d);
