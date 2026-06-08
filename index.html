@@ -42,9 +42,6 @@
 
         const { useState, useEffect, useMemo } = React;
         
-        // ประกาศ API Key ไว้ระดับ Global เพื่อให้ระบบเติมข้อมูลให้ถูกต้อง
-        const apiKey = "";
-
         // --- 1. FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAmQFwL7zniKTnT2INt93iHOlCuT97hC7g",
@@ -477,11 +474,26 @@
         const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, inAct, setInAct, saveRun, targetWater }) => {
             const [isScanning, setIsScanning] = useState(false);
             const [scanError, setScanError] = useState('');
+            // เพิ่ม State สำหรับจัดการ API Key โดยดึงจากเครื่อง (Local Storage)
+            const [aiKey, setAiKey] = useState(() => safeStorage.getItem('p80_gemini_key') || '');
 
             // ฟังก์ชัน AI สแกนภาพ
             const handleScanImage = async (e) => {
                 const file = e.target.files[0];
                 if(!file) return;
+
+                // ตรวจสอบและขอดู API Key จากผู้ใช้ (ครั้งแรกครั้งเดียว)
+                let currentKey = aiKey;
+                if (!currentKey) {
+                    currentKey = window.prompt("🔑 ระบบต้องการ API Key เพื่อใช้งาน AI\nกรุณานำรหัสที่สร้างจาก Google AI Studio มาวางที่นี่ (ทำครั้งเดียวแอปจะจำไว้ครับ):");
+                    if (currentKey && currentKey.trim() !== '') {
+                        setAiKey(currentKey.trim());
+                        safeStorage.setItem('p80_gemini_key', currentKey.trim());
+                    } else {
+                        return; // ยกเลิกการสแกนถ้าไม่ใส่รหัส
+                    }
+                }
+
                 setIsScanning(true);
                 setScanError('');
 
@@ -490,7 +502,9 @@
                 reader.onload = async () => {
                     try {
                         const base64Data = reader.result.split(',')[1];
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                        
+                        // ใช้รหัสที่ผู้ใช้กรอกเข้ามา
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentKey}`;
                         
                         const payload = {
                             contents: [{
@@ -533,8 +547,14 @@
                             setScanError("ไม่พบข้อมูลในรูปภาพนี้ครับ");
                         }
                     } catch (err) {
-                        // เพิ่มการแสดงรายละเอียด Error เพื่อให้รู้สาเหตุที่แท้จริง
-                        setScanError("ระบบ AI สแกนขัดข้อง: " + (err.message || "เกิดข้อผิดพลาด"));
+                        // แจ้งเตือนถ้ารหัสผิดหรือหมดอายุ
+                        if (err.message.includes('400') || err.message.includes('403')) {
+                            setScanError("API Key ไม่ถูกต้อง หรือถูกระงับ กรุณาตั้งค่าใหม่");
+                            safeStorage.removeItem('p80_gemini_key');
+                            setAiKey('');
+                        } else {
+                            setScanError("ระบบ AI สแกนขัดข้อง: " + (err.message || "เกิดข้อผิดพลาด"));
+                        }
                         console.error(err);
                     } finally {
                         setIsScanning(false);
@@ -581,7 +601,14 @@
                         
                         {cfg.id !== 'rest' && !daily.rLog && (
                             <div className="bg-[#18181b] p-6 rounded-xl border border-zinc-700">
-                                <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-4">ACTIVITY LOGGER (MANUAL & AI SCAN)</p>
+                                <div className="flex justify-between items-center mb-4">
+                                    <p className="text-xs font-black text-zinc-400 uppercase tracking-widest">ACTIVITY LOGGER (MANUAL & AI)</p>
+                                    {aiKey && (
+                                        <button onClick={() => { safeStorage.removeItem('p80_gemini_key'); setAiKey(''); }} className="text-[10px] text-zinc-500 underline uppercase font-bold hover:text-zinc-300">
+                                            เปลี่ยน API Key
+                                        </button>
+                                    )}
+                                </div>
                                 
                                 {/* ส่วนเลือกกีฬา & ปุ่มสแกน AI */}
                                 <div className="flex gap-2 mb-4">
@@ -596,7 +623,7 @@
                                         {isScanning ? <span className="animate-pulse">🔄 AI กำลังสแกนรูป...</span> : <>📸 สแกนรูปจากนาฬิกา / Strava<input type="file" accept="image/*" className="hidden" onChange={handleScanImage} /></>}
                                     </label>
                                 </div>
-                                {scanError && <p className="text-red-400 text-xs font-bold text-center mb-4">{scanError}</p>}
+                                {scanError && <p className="text-red-400 text-xs font-bold text-center mb-4 bg-red-500/10 p-2 rounded-lg border border-red-500/20">{scanError}</p>}
 
                                 <div className="grid grid-cols-3 gap-3 mb-6">
                                     <input type="number" value={inDist} onChange={e=>setInDist(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-700 text-center font-bold text-lg text-white outline-none focus:border-[#bef264]" placeholder="KM"/>
