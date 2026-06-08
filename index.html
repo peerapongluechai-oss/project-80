@@ -486,11 +486,22 @@
                             contents: [{
                                 role: "user",
                                 parts: [
-                                    { text: "Extract workout data from this smartwatch or fitness app screenshot (Garmin, Suunto, Strava, Apple Watch, etc.). Return ONLY a valid JSON object. Keys needed: 'distance' (number, total distance in km), 'pace' (string, average pace MM:SS), 'hr' (number, average heart rate bpm), 'type' (string: strictly guess from 'Run', 'Trail', 'Swim', 'Bike', or 'Other'). If unable to find a value, leave it as an empty string." },
+                                    { text: "Extract workout data from this fitness app screenshot (e.g., Zepp, Garmin, Strava). The UI is likely in Thai. Map Thai words correctly (e.g., 'ระยะทาง' = distance, 'ฝีเท้าเฉลี่ย' = pace, 'อัตราการเต้นหัวใจ' = hr). Return ONLY a valid JSON object without markdown. Keys needed: 'distance' (number, MUST be in kilometers. If image shows meters like 1550 ม., convert to 1.55), 'pace' (string, average pace MM:SS), 'hr' (number, average heart rate bpm), 'type' (string: strictly guess from 'Run', 'Trail', 'Swim', 'Bike', or 'Other' based on context like การวิ่งเทรล, ว่ายน้ำ). If unable to find a value, leave it empty." },
                                     { inlineData: { mimeType: file.type, data: base64Data } }
                                 ]
                             }],
-                            generationConfig: { responseMimeType: "application/json" }
+                            generationConfig: { 
+                                responseMimeType: "application/json",
+                                responseSchema: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        distance: { type: "NUMBER" },
+                                        pace: { type: "STRING" },
+                                        hr: { type: "NUMBER" },
+                                        type: { type: "STRING" }
+                                    }
+                                }
+                            }
                         };
 
                         const result = await fetchWithRetry(url, {
@@ -501,7 +512,9 @@
 
                         const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
                         if(text) {
-                            const data = JSON.parse(text);
+                            // ป้องกันกรณี AI ตอบกลับมามี Markdown ```json ครอบอยู่
+                            const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                            const data = JSON.parse(cleanText);
                             if(data.distance) setInDist(data.distance.toString());
                             if(data.pace) setInPace(data.pace.toString());
                             if(data.hr) setInHr(data.hr.toString());
@@ -510,7 +523,8 @@
                             setScanError("ไม่พบข้อมูลในรูปภาพนี้ครับ");
                         }
                     } catch (err) {
-                        setScanError("ระบบ AI สแกนขัดข้อง กรุณาลองใหม่");
+                        // เพิ่มการแสดงรายละเอียด Error เพื่อให้รู้สาเหตุที่แท้จริง
+                        setScanError("ระบบ AI สแกนขัดข้อง: " + (err.message || "เกิดข้อผิดพลาด"));
                         console.error(err);
                     } finally {
                         setIsScanning(false);
