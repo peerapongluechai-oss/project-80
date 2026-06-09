@@ -103,26 +103,39 @@
             return `${Math.round(hrr*min)+Number(rhr||60)}-${Math.round(hrr*max)+Number(rhr||60)} bpm`;
         };
 
-        const generateFeedback = (dist, pace, hr, targetPaceStr, actType = 'Run') => {
-            if(!pace || pace === '0:00') return "บันทึกสถิติสำเร็จ! วินัยคือหัวใจสำคัญครับ 🏃‍♂️";
+        // 🛠️ อัปเดต: เพิ่มการรับพารามิเตอร์ cadence เพื่อวิเคราะห์รอบขา
+        const generateFeedback = (dist, pace, hr, targetPaceStr, actType = 'Run', cadence = '') => {
+            let cadenceFeedback = "";
+            if (actType === 'Run' && cadence) {
+                const spm = Number(cadence);
+                if (spm > 0 && spm < 160) {
+                    cadenceFeedback = ` ⚠️ รอบขาของคุณค่อนข้างต่ำ (${spm} SPM) ระวัง Overstride และอาการเจ็บเข่านะครับ ลองซอยเท้าให้ถี่ขึ้นแตะ 170+ SPM ครับ`;
+                } else if (spm >= 170) {
+                    cadenceFeedback = ` 🏃‍♂️ รอบขาเยี่ยมมาก (${spm} SPM) พับเข่าและดึงเท้าได้ดีครับ เซฟข้อต่อได้เยอะเลย!`;
+                } else if (spm > 0) {
+                    cadenceFeedback = ` 👍 รอบขาอยู่ในเกณฑ์กำลังดี (${spm} SPM) คุมให้สม่ำเสมอนะครับ`;
+                }
+            }
+
+            if(!pace || pace === '0:00') return "บันทึกสถิติสำเร็จ! วินัยคือหัวใจสำคัญครับ 🏃‍♂️" + cadenceFeedback;
             
-            // ถ้าเป็นกีฬาประเภทอื่น (ไม่ใช่การวิ่งถนน) AI จะให้คำแนะนำแบบเฉพาะเจาะจง
-            if (actType === 'Trail') return "⛰️ ลุยเทรลมาใช่ไหมครับ! เพซเทรลจะช้ากว่าถนนปกติเพราะความชัน AI จะไม่นำเพซนี้ไปฉุด VCR ของคุณลง ถือว่าได้ฝึกความแข็งแรงกล้ามเนื้อและระบบหายใจแบบเต็มๆ ครับ!";
+            if (actType === 'Trail') return "⛰️ ลุยเทรลมาใช่ไหมครับ! เพซเทรลจะช้ากว่าถนนปกติ AI จะไม่นำเพซนี้ไปฉุด VCR ของคุณลง ถือว่าได้ฝึกความแข็งแรงกล้ามเนื้อแบบเต็มๆ ครับ!" + cadenceFeedback;
             if (actType === 'Swim') return "🏊‍♂️ ว่ายน้ำเป็นการ Cross-Training (เซฟข้อต่อ) ที่ยอดเยี่ยมตามหลักสูตรครูดินครับ! AI บันทึกสะสมไมล์ให้โดยไม่กระทบสถิติเพซวิ่งครับ";
             if (actType === 'Bike') return "🚴‍♂️ ปั่นจักรยานช่วยสลับการใช้กล้ามเนื้อและสร้าง Aerobic Base ได้ดีมาก AI บันทึกผลให้เรียบร้อยครับ!";
             if (actType === 'Other') return "🏋️‍♂️ ยอดเยี่ยมครับ! การเสริมสร้างความแข็งแรง (Strength) จะช่วยให้การวิ่งมาราธอนของคุณทนทานขึ้นครับ";
 
-            if(!targetPaceStr || targetPaceStr === '-') return "บันทึกสถิติสำเร็จ! วินัยคือหัวใจสำคัญครับ 🏃‍♂️";
+            if(!targetPaceStr || targetPaceStr === '-') return "บันทึกสถิติสำเร็จ! วินัยคือหัวใจสำคัญครับ 🏃‍♂️" + cadenceFeedback;
+            
             const pSecs = parsePace(pace);
             const tSecsArr = targetPaceStr.split(' - ').map(parsePace);
             if(tSecsArr.length >= 1 && tSecsArr[0] !== Infinity) {
                 const minT = Math.min(...tSecsArr);
                 const maxT = Math.max(...tSecsArr);
-                if(pSecs < minT - 15) return "วิ่งเร็วกว่าเป้าหมาย! ⚡ ครูดินบอกเสมอว่าซ้อมเร็วกว่ากำหนดระวังจะกรอบ ยืดเหยียดให้เยอะๆ ครับ";
-                if(pSecs > maxT + 15) return "เพซช้ากว่าเป้านิดหน่อย แต่ร่างกายได้สร้างความทนทาน (Endurance) ถือว่าเยี่ยมครับ 🐢";
-                return "เพอร์เฟกต์! 🎯 คุมเพซและหัวใจได้ตรงแผนเป๊ะ ร่างกายกำลังพัฒนาไปถูกทางตามหลักสูตรครับ";
+                if(pSecs < minT - 15) return "วิ่งเร็วกว่าเป้าหมาย! ⚡ ครูดินบอกเสมอว่าซ้อมเร็วกว่ากำหนดระวังจะกรอบ ยืดเหยียดให้เยอะๆ ครับ" + cadenceFeedback;
+                if(pSecs > maxT + 15) return "เพซช้ากว่าเป้านิดหน่อย แต่ร่างกายได้สร้างความทนทาน (Endurance) ถือว่าเยี่ยมครับ 🐢" + cadenceFeedback;
+                return "เพอร์เฟกต์! 🎯 คุมเพซและหัวใจได้ตรงแผนเป๊ะ ร่างกายกำลังพัฒนาไปถูกทางตามหลักสูตรครับ" + cadenceFeedback;
             }
-            return "ยอดเยี่ยมมากครับ! เก็บสะสมไมล์ไปเรื่อยๆ ความฟิตจะตามมาเอง 🏆";
+            return "ยอดเยี่ยมมากครับ! เก็บสะสมไมล์ไปเรื่อยๆ ความฟิตจะตามมาเอง 🏆" + cadenceFeedback;
         };
 
         const calcCondition = (hr, pace) => {
@@ -135,71 +148,95 @@
             return "+0 (ปกติ ทรงตัว)";
         };
 
-        // --- ระบบ AI ผสานหลักสูตรครูดิน ---
-        const getDayConfig = (todayObj, weekIdx, isRace, prof) => {
+        // --- ระบบ AI ผสานหลักสูตรครูดิน (อัปเกรดฐานข้อมูลจาก Master Plan รุ่น 15 ปี 2026) ---
+        // 🛠️ อัปเดต: รับค่า isHot เพื่อคำนวณปรับเพซสู้แดด
+        const getDayConfig = (todayObj, weekIdx, isRace, prof, isHot = false) => {
             const dayIndex = todayObj.getDay(); 
             const currentTargetDist = prof.targetDist || 42.195;
-            const currentSchedule = prof.schedule || {0:'long', 1:'rest', 2:'easy', 3:'speed', 4:'rest', 5:'easy', 6:'rest'};
+            
+            const currentSchedule = prof.schedule || {0:'easy', 1:'rest', 2:'speed', 3:'easy', 4:'easy', 5:'speed', 6:'long'}; 
             const dayType = currentSchedule[dayIndex] || 'rest';
 
-            const vcrSpeed = (prof.vcr || 4500) / 1800; 
-            const getPaceStr = (pct) => {
+            const vcrSpeed = (prof.vcr || 4500) / 1800; // m/s
+            
+            // 🛠️ ฟังก์ชันคำนวณ Pace แบบช่วง (Range) + ปรับสู้อากาศร้อน
+            const getPaceRange = (pct) => {
                 const spd = vcrSpeed * (pct/100);
                 if(spd<=0) return "0:00";
-                const s = 1000/spd;
-                return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+                let baseSecs = Math.round(1000/spd);
+                
+                if (isHot) baseSecs += 15; // ☀️ อากาศร้อน: ปรับเป้าหมายเพซให้ช้าลง 15 วินาที/กม. อัตโนมัติ
+                
+                let fastSecs = baseSecs - 10; 
+                let slowSecs = baseSecs + 15;
+                if(pct >= 85) { fastSecs = baseSecs - 5; slowSecs = baseSecs + 10; } // คอร์ท/Speed บีบช่วงให้แคบ
+                if(pct <= 70) { fastSecs = baseSecs - 15; slowSecs = baseSecs + 20; } // วิ่งสบาย ให้ช่วงกว้างขึ้น
+
+                const fmt = (s) => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+                return `${fmt(fastSecs)} - ${fmt(slowSecs)}`;
             };
             
-            // Pace Zones (อิงตามหลักสูตร)
-            const pz = { ez: getPaceStr(75), lr: getPaceStr(80), tm: getPaceStr(90), in: getPaceStr(105) };
+            // Pace Zones 
+            const pz = { ez: getPaceRange(70), lr: getPaceRange(75), tm: getPaceRange(85), in: getPaceRange(100), max: getPaceRange(110) };
 
-            // คำนวณระยะ Long Run
-            let baseLong = 5;
-            if(currentTargetDist == 42.195) baseLong = [10,12,14,10, 16,18,20,15, 22,24,26,18, 28,30,21,32, 25,35,25,30, 21,15,10, 42.195][weekIdx] || 10;
-            else if(currentTargetDist == 21.1) baseLong = [5,6,7,5, 8,10,12,8, 14,16,18,10, 15,18,12,20, 15,21.1,12,15, 10,8,5, 21.1][weekIdx] || 5;
-            else if(currentTargetDist == 10) baseLong = [3,4,5,3, 5,6,7,4, 6,8,9,5, 8,10,6,12, 8,10,6,8, 5,4,3, 10][weekIdx] || 3;
-            else baseLong = [2,3,4,2, 3,4,5,3, 4,5,6,3, 4,6,4,7, 5,6,4,5, 3,3,2, 5][weekIdx] || 2; 
-
-            // --- ฐานข้อมูลท่าซ้อมครูดิน (หมุนเวียนตามสัปดาห์) ---
-            const kruDinSpeed = [
-                `วิ่ง 400m x 10 เที่ยว (ความเร็ว 70-80%) สลับ เดิน 100m / Jog 100m`,
-                `วิ่ง 1K x 6 เที่ยว (เร็วกว่า Pace 10K ประมาณ 10 วิ) สลับ เดิน 100m / Jog 100m`,
-                `วิ่ง 800m x 6 เที่ยว (ความเร็ว 80%) สลับ เดิน 100m / Jog 100m`,
-                `วิ่ง 200m สลับ Jog 100m x 15 เที่ยว (ความเร็ว 70%)`
+            // 🌟 คัมภีร์โปรแกรมซ้อม 20 สัปดาห์ (สกัดจากตารางครูดิน รุ่นที่ 15 ปี 2026)
+            const masterPlan = [
+                { w: 1, long: '10k', lZone: '60%', speed: 'วิ่ง 50 นาทีสบายๆ สลับ Stride 60x5', sZone: '60%', easy: 'ว่ายน้ำตีขา 40 นาที', drill: 'เต้นแอโรบิค 50 นาที' },
+                { w: 2, long: '75 นาที', lZone: '60%', speed: 'วิ่ง 10k เร็วไม่ดูนาฬิกา', sZone: '80%', easy: 'วิ่งบนหญ้า 50 นาที + Bodyweight', drill: 'วิ่งช้าสลับเร็ว 40 นาที' },
+                { w: 3, long: '80 นาที', lZone: '60%', speed: 'วิ่ง 200m jog 100m x 20', sZone: '70%', easy: 'ว่ายน้ำตีขา 40 นาที', drill: 'เต้นแอโรบิค 50 นาที' },
+                { w: 4, long: '90 นาที', lZone: '60%', speed: 'วิ่ง 4k x 2 เดินสลับ jog 5 นาที', sZone: 'Pace10K', easy: 'วิ่งบนหญ้า 50 นาที', drill: 'วิ่งขึ้นที่สูง (Hill) 50 นาที' },
+                { w: 5, long: '15k', lZone: 'เหนื่อยหอบ', speed: 'วิ่ง 1k x 8 เดิน 100m (เร็วกว่า Pace10k)', sZone: '95%', easy: 'ว่ายน้ำ 40 นาที', drill: 'เต้นแอโรบิค 50 นาที' },
+                { w: 6, long: '90 นาที', lZone: '60%', speed: 'วิ่ง 5k x 2 เร็วไม่ดูนาฬิกา', sZone: '70%', easy: 'วิ่งบนหญ้า 40 นาที', drill: 'วิ่ง 30 นาทีสบายๆ + Stride 150x8' },
+                { w: 7, long: '20k', lZone: '60%', speed: 'วิ่ง 400m x 15 jog 100m', sZone: '80%', easy: 'ว่ายน้ำ 40 นาที + Bodyweight', drill: 'วิ่งช้าสลับเร็ว 50 นาที (70%)' },
+                { w: 8, long: '20k', lZone: '60%', speed: 'วิ่ง 1k x 12 เดิน 100m', sZone: 'Pace10K', easy: 'วิ่งบนหญ้า 50 นาที', drill: 'เต้นแอโรบิค 60 นาที' },
+                { w: 9, long: '25k', lZone: '60%', speed: 'วิ่ง 5k x 3 เดินสลับ jog', sZone: '60%', easy: 'ว่ายน้ำ 40 นาที', drill: 'วิ่ง 30 นาที + Stride 60x5' },
+                { w: 10, long: '20k', lZone: '60%', speed: 'วิ่ง 100m jog 100m x 15 รอบสนาม', sZone: '70%', easy: 'วิ่งบนหญ้า 50 นาที', drill: 'เต้นแอโรบิค 60 นาที' },
+                { w: 11, long: '25k', lZone: 'Z3', speed: 'วิ่ง 1k x 12 (Pace 5k)', sZone: '70%', easy: 'ว่ายน้ำ 40 นาที', drill: 'วิ่ง 150m ไหล 50m x 15 รอบสนาม (70%)' },
+                { w: 12, long: '20k', lZone: 'Z3', speed: 'วิ่ง 12k (300m ไหล 50m)', sZone: '75%', easy: 'วิ่งบนหญ้า 50 นาที', drill: 'เต้นแอโรบิค 60 นาที' },
+                { w: 13, long: '25k', lZone: 'Z3', speed: 'วิ่ง 400m x 20 jog 100m (2k สุดท้ายเร็ว)', sZone: '70%', easy: 'ว่ายน้ำ 50 นาที', drill: 'วิ่ง 30 นาที + 150x6 (70%)' },
+                { w: 14, long: '28k', lZone: 'Z2', speed: 'วิ่ง 4k x 3 เดิน 200m', sZone: '70%', easy: 'วิ่งบนหญ้า 40 นาที', drill: 'วิ่ง 6k (150m jog ไหล 50m)' },
+                { w: 15, long: '25k', lZone: 'Z3', speed: 'วิ่ง 200m x 20 jog 100m', sZone: '85%', easy: 'ว่ายน้ำ 60 นาที + Bodyweight', drill: 'วิ่ง 30 นาที + 150x6 (70%)' },
+                { w: 16, long: '30k', lZone: 'Z2', speed: 'วิ่ง 800m x 6 เดิน 100m', sZone: '80%', easy: 'วิ่งบนหญ้า 40 นาที', drill: 'วิ่ง 150m ไหล 50m x 30 (15 รอบสนาม)' },
+                { w: 17, long: '25k', lZone: 'Z3', speed: 'วิ่ง 400m x 20 jog 100m', sZone: '70%', easy: 'ว่ายน้ำ 60 นาที', drill: 'วิ่ง 30 นาที + 150x6 (70%)' },
+                { w: 18, long: '30k', lZone: 'Z2', speed: 'วิ่ง 1k x 12 (Pace 10k)', sZone: 'Pace10K', easy: 'วิ่งบนหญ้า 40 นาที', drill: 'วิ่ง 300m ไหล 50m x 30 (80%)' },
+                { w: 19, long: '15k', lZone: 'Taper', speed: 'วิ่ง 400m x 10', sZone: '70%', easy: 'ว่ายน้ำ 30 นาที', drill: 'พักผ่อน ยืดเหยียด' },
+                { w: 20, long: '42.195k', lZone: 'Race', speed: 'พักผ่อน (Tapering)', sZone: 'Rest', easy: 'จ๊อกกิ้งเบาๆ 20 นาที', drill: 'พักผ่อน' }
             ];
-            const kruDinEasy = [
-                `วิ่งบนหญ้า หรือ ว่ายน้ำตีขาในน้ำเบาๆ 40-50 นาที (เซฟข้อต่อ)`,
-                `วิ่ง Easy สบายๆ หรือ เต้นแอโรบิค 50 นาที (หรือทำท่า Drills ต่อเนื่อง)`,
-                `วิ่งสบายๆ หายใจหอบเหนื่อยเบาๆ 50 นาที เน้นกายบริหาร`,
-                `วิ่งขึ้นที่สูง (เนิน/สะพาน) 40 นาที สลับเดินเมื่อเหนื่อย`
-            ];
 
-            // --- เมนูอาหาร Street Food 7-11 & ร้านตามสั่ง ---
+            const currentWeekData = masterPlan[Math.min(weekIdx, 19)] || masterPlan[0];
+
             let dynamicMeals = { b: 'ไข่ลวก 2 ฟอง + นมโปรตีนสูง / โจ๊กหมูใส่ไข่', l: 'เกาเหลาเลือดหมูข้าวเปล่า / ข้าวมันไก่ต้ม(ไม่หนัง)', s: 'ถั่วแระญี่ปุ่น 7-11 / กล้วยหอม', d: 'สุกี้น้ำไก่ / สลัดผักอกไก่ฉีก 7-11' };
             if (dayType === 'long' || dayType === 'speed' || isRace) {
                 dynamicMeals = { b: 'หมูปิ้ง(มันน้อย)+ข้าวเหนียว / ซาลาเปาหมูสับ 7-11', l: 'ข้าวราดกะเพราไก่+ไข่ดาว / ผัดไท', s: 'ขนมปังโฮลวีต / เครื่องดื่มเกลือแร่', d: 'ข้าวสวย + ต้มยำปลา / ยำวุ้นเส้น' };
             }
 
             let cfg = { id:'rest', name:'Rest Day', desc:'พักฟื้นร่างกายตามหลักสูตร', pace:'-', hr:'-', meals: dynamicMeals, ex:['💤 พักการวิ่ง 100% (Full Rest)','Core Plank 3 เซต','กลิ้ง Foam Roller นวดกล้ามเนื้อ'], advice: 'ครูดินเน้นย้ำเสมอว่า วันพักคือส่วนสำคัญที่สุดของการซ้อม ให้ร่างกายได้ซ่อมแซมตัวเองครับ' };
-            cfg.detailedWorkout = { warmup: [], main: 'พักฟื้นร่างกายอย่างเต็มที่', cooldown: [] };
+            cfg.detailedWorkout = { warmup: [], main: 'พักฟื้นร่างกายอย่างเต็มที่ (No Running)', cooldown: [] };
 
             if(isRace) {
-                cfg = { id:'long', name:`RACE DAY!`, desc:'ถึงเวลาโชว์ผลการซ้อม!', pace:'Target Pace', hr:getHrZone(0.7,0.88, prof.age, prof.rhr), meals:dynamicMeals, ex:['🏃‍♂️ ลุยให้เต็มที่ ดื่มน้ำทุกจุด','แช่น้ำเย็น Recovery','ยืดเหยียดเบาๆ'], advice: 'ออกตัวช้าๆ อย่าวิ่งตามคนอื่น คุมเพซตัวเองให้ดีเหมือนตอนซ้อมยาวครับ' };
+                cfg = { id:'long', name:`RACE DAY!`, desc:'ถึงเวลาโชว์ผลการซ้อม!', pace:pz.tm, hr:getHrZone(0.7,0.88, prof.age, prof.rhr), meals:dynamicMeals, ex:['🏃‍♂️ ลุยให้เต็มที่ ดื่มน้ำทุกจุด','แช่น้ำเย็น Recovery','ยืดเหยียดเบาๆ'], advice: 'ออกตัวช้าๆ อย่าวิ่งตามคนอื่น คุมเพซตัวเองให้ดีเหมือนตอนซ้อมยาวครับ' };
                 cfg.detailedWorkout = { warmup: ['วอร์มอัพเบาๆ 10 นาที'], main: `วิ่ง ${currentTargetDist}K อย่างมั่นใจ เติมพลังงานตามแผน`, cooldown: ['เดินรับเหรียญ 10 นาที'] };
             } else if(dayType === 'long') {
-                cfg = { id:'long', name:'Long Run (วัดใจ)', desc:`วิ่งยาว ${baseLong} กม. เน้นความอึดทนทาน`, pace:`${pz.lr} - ${pz.ez}`, hr:getHrZone(0.65,0.75, prof.age, prof.rhr), meals:dynamicMeals, ex:[`🏃‍♂️ วิ่งระยะ ${baseLong} กม.`,'จิบน้ำทุก 2 กม.','ยืดเหยียดชุดใหญ่หลังวิ่ง'], advice: 'วิ่งยาวสไตล์ครูดิน: โซน 2-3 เหนื่อยหอบพอทนได้ ไม่ต้องสนความเร็ว เน้นเวลาบนเท้าให้ครบครับ' };
-                cfg.detailedWorkout = { warmup: ['เดินเร็ว 5 นาที', 'กายบริหาร ยืดเหยียดแบบขยับ (Dynamic)'], main: `วิ่ง ${baseLong} กม. ความเร็ว 60-70% (โซน 2-3) สลับเดินได้เมื่อหัวใจพุ่ง`, cooldown: ['เดินคลายกรด 10 นาที', 'ยืดเหยียดค้างท่า (Static)'] };
+                const targetPace = currentWeekData.lZone.includes('60%') ? pz.ez : (currentWeekData.lZone.includes('Z3') ? pz.tm : pz.lr);
+                const targetHr = currentWeekData.lZone.includes('60%') ? getHrZone(0.6,0.7, prof.age, prof.rhr) : getHrZone(0.7,0.8, prof.age, prof.rhr);
+                cfg = { id:'long', name:'Long Run (วัดใจ)', desc:`วิ่งยาว ${currentWeekData.long} ตามโปรแกรม`, pace:`${targetPace}`, hr:targetHr, meals:dynamicMeals, ex:[`🏃‍♂️ วิ่ง ${currentWeekData.long}`,'จิบน้ำทุก 2 กม.','ยืดเหยียดชุดใหญ่หลังวิ่ง'], advice: `เป้าหมายสัปดาห์นี้คือ ${currentWeekData.long} (${currentWeekData.lZone}) ไม่ต้องสนความเร็ว เน้นเวลาบนเท้าให้ครบครับ` };
+                cfg.detailedWorkout = { warmup: ['เดินเร็ว 5 นาที', 'กายบริหารแบบขยับ (Dynamic)'], main: `วิ่ง ${currentWeekData.long} คุมความเหนื่อยระดับ ${currentWeekData.lZone}`, cooldown: ['เดินคลายกรด 10 นาที', 'ยืดเหยียดค้างท่า (Static)'] };
             } else if(dayType === 'speed') {
-                const speedMain = kruDinSpeed[weekIdx % kruDinSpeed.length];
-                cfg = { id:'speed', name:'Speed Work / คอร์ท', desc:'ฝึกลงคอร์ทสร้างความเร็วและความทนทานของกล้ามเนื้อ', pace:`${pz.in} - ${pz.tm}`, hr:getHrZone(0.8,0.88, prof.age, prof.rhr), meals: dynamicMeals, ex:[`⚡ ${speedMain.split(' (')[0]}`,'วอร์มอัพให้ถึงก่อนวิ่งเร็ว','Russian Twist 3 เซต'], advice: 'วันลงคอร์ทช่วยขยับเพดานความฟิต (VCR) ให้สูงขึ้น วิ่งเสร็จต้องคูลดาวน์ให้ดีครับ' };
-                cfg.detailedWorkout = { warmup: ['จ๊อกกิ้งเบาๆ 15 นาที', 'ทำ Drills ยกเข่าเตะก้น'], main: `${speedMain} (Pace เป้าหมาย: ${cfg.pace})`, cooldown: ['จ๊อกกิ้งเบาๆ คลายกล้ามเนื้อ 15 นาที'] };
+                let sPace = pz.in;
+                if(currentWeekData.sZone === '70%') sPace = getPaceRange(70);
+                else if(currentWeekData.sZone === '80%') sPace = getPaceRange(80);
+                else if(currentWeekData.sZone === '60%') sPace = getPaceRange(60);
+                else if(currentWeekData.sZone === 'Pace10K') sPace = getPaceRange(90);
+                
+                cfg = { id:'speed', name:'Quality Work / ลงคอร์ท', desc:currentWeekData.speed, pace:`${sPace}`, hr:getHrZone(0.8,0.9, prof.age, prof.rhr), meals: dynamicMeals, ex:[`⚡ ${currentWeekData.speed.split(' ')[0]}`,'วอร์มอัพให้ถึงก่อนวิ่งเร็ว','Russian Twist 3 เซต'], advice: 'ตารางวันนี้ช่วยขยับเพดานความฟิต (VCR) ให้สูงขึ้น วิ่งเสร็จต้องคูลดาวน์ให้ดีครับ' };
+                cfg.detailedWorkout = { warmup: ['จ๊อกกิ้งเบาๆ 15 นาที', 'ทำ Drills ยกเข่าเตะก้น'], main: `${currentWeekData.speed} (เป้าหมาย: ${sPace})`, cooldown: ['จ๊อกกิ้งเบาๆ คลายกล้ามเนื้อ 15 นาที'] };
             } else if(dayType === 'easy') {
-                const easyMain = kruDinEasy[weekIdx % kruDinEasy.length];
-                cfg = { id:'easy', name:'Active Recovery / วิ่งสบาย', desc:'ฟื้นฟูร่างกาย สร้างฐานความฟิต (Aerobic Base)', pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals: dynamicMeals, ex:[`🏃‍♂️ ${easyMain.split(' (')[0]}`, 'ทำ Drills พื้นฐาน', 'Squats 3 เซต (หรือ Bodyweight)'], advice: 'วันวิ่งสบายคือการนวดกล้ามเนื้อด้วยการวิ่ง ท่าวิ่งต้องผ่อนคลายที่สุด ไม่ก้มหน้าครับ' };
-                cfg.detailedWorkout = { warmup: ['หมุนข้อต่อ 3 นาที'], main: `${easyMain} (คุมเพซสบายๆ ${cfg.pace})`, cooldown: ['เดินช้าลงเรื่อยๆ'] };
+                const isSwimDay = dayIndex === 0; 
+                const easyTask = isSwimDay ? currentWeekData.easy : currentWeekData.drill;
+                cfg = { id:'easy', name:'Active Recovery', desc:easyTask, pace:pz.ez, hr:getHrZone(0.6,0.7, prof.age, prof.rhr), meals: dynamicMeals, ex:[`🏃‍♂️ ${easyTask.substring(0,20)}...`, 'ทำ Drills พื้นฐาน', 'Squats 3 เซต (หรือ Bodyweight)'], advice: 'วันวิ่งสบายคือการนวดกล้ามเนื้อด้วยการวิ่ง ท่าวิ่งต้องผ่อนคลายที่สุด ไม่ก้มหน้าครับ' };
+                cfg.detailedWorkout = { warmup: ['หมุนข้อต่อ 3 นาที'], main: `${easyTask}`, cooldown: ['เดินช้าลงเรื่อยๆ'] };
             }
 
-            // ระบบเซฟข้อต่อ (Injury Adaptation)
             if (prof.injury === 'knee') {
                 cfg.ex = cfg.ex.map(e => e.includes('Squats') ? 'Glute Bridges 3 เซต (เซฟเข่า)' : e);
                 if (!cfg.ex.some(e => e.includes('ITB')) && dayType !== 'rest') cfg.ex.push('ยืดกล้ามเนื้อ ITB (เซฟเข่าด้านนอก)');
@@ -360,7 +397,6 @@
             const [injury, setInjury] = useState(initialProf.injury || 'none');
             const [lifestyle, setLifestyle] = useState(initialProf.lifestyle || 'active');
             
-            // ค่าเริ่มต้น Race Date (รูปแบบ YYYY-MM-DD)
             const [raceDateStr, setRaceDateStr] = useState(initialProf.raceDate || '2026-11-15');
             
             const [avail, setAvail] = useState(initialProf.schedule ? {0: initialProf.schedule[0]!=='rest', 1: initialProf.schedule[1]!=='rest', 2: initialProf.schedule[2]!=='rest', 3: initialProf.schedule[3]!=='rest', 4: initialProf.schedule[4]!=='rest', 5: initialProf.schedule[5]!=='rest', 6: initialProf.schedule[6]!=='rest'} : {0:true, 1:false, 2:true, 3:true, 4:false, 5:true, 6:false});
@@ -457,14 +493,12 @@
             );
         };
 
-        // 🛠️ อัปเดต fetchWithRetry ให้ดึง Error จาก Google มาโชว์ชัดๆ
         const fetchWithRetry = async (url, options, retries = 5) => {
             const delays = [1000, 2000, 4000, 8000, 16000];
             for (let i = 0; i < retries; i++) {
                 try {
                     const response = await fetch(url, options);
                     if (!response.ok) {
-                        // ดึงข้อความ Error จริงๆ จาก Google ทะลุออกมาเลย
                         const errData = await response.json().catch(() => ({}));
                         const errMsg = errData?.error?.message || `HTTP error! status: ${response.status}`;
                         throw new Error(errMsg);
@@ -477,11 +511,11 @@
             }
         };
 
-        const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, inAct, setInAct, saveRun, targetWater }) => {
+        // 🛠️ รับ isHotWeather และ setIsHotWeather เพื่อเปิด/ปิดโหมดอากาศร้อน
+        const TabTracker = ({ score, daily, updateDaily, cfg, inDist, setInDist, inPace, setInPace, inHr, setInHr, inCadence, setInCadence, inAct, setInAct, saveRun, targetWater, isHotWeather, setIsHotWeather }) => {
             const [isScanning, setIsScanning] = useState(false);
             const [scanError, setScanError] = useState('');
 
-            // ฟังก์ชัน AI สแกนภาพ (ระบบ Auto-Discover และซ่อนรหัสแบบนินจา)
             const handleScanImage = async (e) => {
                 const file = e.target.files[0];
                 if(!file) return;
@@ -489,8 +523,6 @@
                 setIsScanning(true);
                 setScanError('กำลังเตรียมระบบ AI Vision...');
 
-                // 🥷 วิธีซ่อน API Key แบบนินจา (หลบ GitHub สแกนเนอร์ โดยการหั่นรหัสเป็นท่อนๆ)
-                // เพื่อนๆ ที่ใช้แอปจะไม่ต้องกรอกรหัสเองอีกต่อไป โค้ดจะต่อรหัสให้อัตโนมัติ!
                 const p1 = "AQ.Ab8RN6Jj";
                 const p2 = "-wpm6y7RCka";
                 const p3 = "hetHf7nVPq2w";
@@ -504,7 +536,6 @@
                     try {
                         const base64Data = reader.result.split(',')[1];
                         
-                        // 🛠️ ระบบ Auto-Discover: ยิงไปถาม Google ว่า Key นี้ใช้ Model ไหนได้บ้าง
                         let targetModel = '';
                         try {
                             const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${secretKey}`);
@@ -513,9 +544,7 @@
                             if (listData.error) throw new Error(listData.error.message);
                             
                             if (listData.models) {
-                                // กรองเอารุ่นที่ใช้เจนข้อความ/รูปภาพได้
                                 const valid = listData.models.filter(m => m.supportedGenerationMethods?.includes('generateContent'));
-                                // เลือกรุ่นที่ดีที่สุดตามลำดับ
                                 const best = valid.find(m => m.name.includes('gemini-1.5-flash')) || 
                                              valid.find(m => m.name.includes('gemini-2.5-flash')) ||
                                              valid.find(m => m.name.includes('gemini-1.5-pro')) || 
@@ -538,11 +567,12 @@
 
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${secretKey}`;
                         
+                        // 🛠️ อัปเดต Prompt ให้สแกนหารอบขา (Cadence / SPM)
                         const payload = {
                             contents: [{
                                 role: "user",
                                 parts: [
-                                    { text: "Extract workout data from this fitness app screenshot (e.g., Zepp, Garmin, Strava). The UI is likely in Thai. Map Thai words correctly (e.g., 'ระยะทาง' = distance, 'ฝีเท้าเฉลี่ย' = pace, 'อัตราการเต้นหัวใจ' = hr). Return ONLY a valid JSON object without markdown. Keys needed: 'distance' (number, MUST be in kilometers. If image shows meters like 1550 ม., convert to 1.55), 'pace' (string, average pace MM:SS), 'hr' (number, average heart rate bpm), 'type' (string: strictly guess from 'Run', 'Trail', 'Swim', 'Bike', or 'Other' based on context like การวิ่งเทรล, ว่ายน้ำ). If unable to find a value, leave it empty." },
+                                    { text: "Extract workout data from this fitness app screenshot (e.g., Zepp, Garmin, Strava). The UI is likely in Thai. Map Thai words correctly (e.g., 'ระยะทาง' = distance, 'ฝีเท้าเฉลี่ย' = pace, 'อัตราการเต้นหัวใจ' = hr, 'รอบขา' or 'ก้าว/นาที' or 'spm' = cadence). Return ONLY a valid JSON object without markdown. Keys needed: 'distance' (number, MUST be in kilometers. If image shows meters like 1550 ม., convert to 1.55), 'pace' (string, average pace MM:SS), 'hr' (number, average heart rate bpm), 'cadence' (number, average steps per minute or cadence. Usually between 140-200. E.g., if it says 165 spm, return 165), 'type' (string: strictly guess from 'Run', 'Trail', 'Swim', 'Bike', or 'Other' based on context like การวิ่งเทรล, ว่ายน้ำ). If unable to find a value, leave it empty." },
                                     { inlineData: { mimeType: file.type, data: base64Data } }
                                 ]
                             }],
@@ -554,6 +584,7 @@
                                         distance: { type: "NUMBER" },
                                         pace: { type: "STRING" },
                                         hr: { type: "NUMBER" },
+                                        cadence: { type: "NUMBER" },
                                         type: { type: "STRING" }
                                     }
                                 }
@@ -573,6 +604,7 @@
                             if(data.distance) setInDist(data.distance.toString());
                             if(data.pace) setInPace(data.pace.toString());
                             if(data.hr) setInHr(data.hr.toString());
+                            if(data.cadence) setInCadence(data.cadence.toString());
                             if(data.type) setInAct(data.type.toString());
                             setScanError(''); 
                         } else {
@@ -613,7 +645,13 @@
                     </section>
                     
                     <section className="suunto-card p-6">
-                        <h3 className="font-black text-base uppercase suunto-accent mb-3 tracking-widest">🏃‍♂️ {cfg.name}</h3>
+                        {/* 🛠️ ปุ่มโหมดอากาศร้อน */}
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="font-black text-base uppercase suunto-accent tracking-widest flex-1">🏃‍♂️ {cfg.name}</h3>
+                            <button onClick={() => setIsHotWeather(!isHotWeather)} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1.5 border ${isHotWeather ? 'bg-orange-500/20 text-orange-400 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]' : 'bg-[#18181b] text-zinc-500 border-zinc-700 hover:text-zinc-300'}`}>
+                                <span>☀️</span> {isHotWeather ? 'อากาศร้อน (ปรับเพซลง 15 วิ)' : 'สู้แดด (ปรับเพซลง)'}
+                            </button>
+                        </div>
                         <p className="text-base text-zinc-300 mb-6 leading-relaxed font-medium">{cfg.desc}</p>
                         <div className="space-y-4 mb-8">
                             {cfg.ex.map((ex, i) => (
@@ -628,7 +666,6 @@
                             <div className="bg-[#18181b] p-6 rounded-xl border border-zinc-700">
                                 <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-4">ACTIVITY LOGGER (MANUAL & AI SCAN)</p>
                                 
-                                {/* ส่วนเลือกกีฬา & ปุ่มสแกน AI */}
                                 <div className="flex gap-2 mb-4">
                                     <select value={inAct} onChange={e=>setInAct(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-700 text-center font-bold text-xs text-white outline-none focus:border-[#bef264] flex-1">
                                         <option value="Run">🏃‍♂️ Run</option>
@@ -643,10 +680,12 @@
                                 </div>
                                 {scanError && <p className="text-red-400 text-xs font-bold text-center mb-4 bg-red-500/10 p-2 rounded-lg border border-red-500/20">{scanError}</p>}
 
-                                <div className="grid grid-cols-3 gap-3 mb-6">
-                                    <input type="number" value={inDist} onChange={e=>setInDist(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-700 text-center font-bold text-lg text-white outline-none focus:border-[#bef264]" placeholder="KM"/>
-                                    <input type="text" value={inPace} onChange={e=>setInPace(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-700 text-center font-bold text-lg text-white outline-none focus:border-[#bef264]" placeholder="PACE"/>
-                                    <input type="number" value={inHr} onChange={e=>setInHr(e.target.value)} className="bg-black p-4 rounded-xl border border-zinc-700 text-center font-bold text-lg text-white outline-none focus:border-[#bef264]" placeholder="HR"/>
+                                {/* 🛠️ อัปเดต UI เพิ่มช่องกรอก SPM (รอบขา) */}
+                                <div className="grid grid-cols-4 gap-2 mb-6">
+                                    <input type="number" value={inDist} onChange={e=>setInDist(e.target.value)} className="bg-black p-3 rounded-xl border border-zinc-700 text-center font-bold text-sm md:text-lg text-white outline-none focus:border-[#bef264]" placeholder="KM"/>
+                                    <input type="text" value={inPace} onChange={e=>setInPace(e.target.value)} className="bg-black p-3 rounded-xl border border-zinc-700 text-center font-bold text-sm md:text-lg text-white outline-none focus:border-[#bef264]" placeholder="PACE"/>
+                                    <input type="number" value={inHr} onChange={e=>setInHr(e.target.value)} className="bg-black p-3 rounded-xl border border-zinc-700 text-center font-bold text-sm md:text-lg text-white outline-none focus:border-[#bef264]" placeholder="HR"/>
+                                    <input type="number" value={inCadence} onChange={e=>setInCadence(e.target.value)} className="bg-black p-3 rounded-xl border border-zinc-700 text-center font-bold text-sm md:text-lg text-white outline-none focus:border-[#bef264]" placeholder="SPM"/>
                                 </div>
                                 <button onClick={saveRun} disabled={!inDist || !inPace} className="w-full suunto-bg-accent py-5 rounded-xl uppercase tracking-widest text-sm font-black disabled:opacity-30 disabled:grayscale transition-all active:scale-95 shadow-[0_0_15px_rgba(190,242,100,0.1)]">SAVE ACTIVITY</button>
                             </div>
@@ -658,11 +697,13 @@
                                     <p className="suunto-accent font-black text-sm uppercase tracking-widest">ACTIVITY LOGGED</p>
                                     <button onClick={()=>updateDaily('rLog', false)} className="text-xs text-zinc-400 uppercase font-bold hover:text-white underline">EDIT</button>
                                 </div>
-                                <div className="bg-black p-4 rounded-xl border border-zinc-800 mb-6 grid grid-cols-4 text-center gap-2">
-                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">TYPE</p><p className="text-white font-black text-lg italic">{daily.rType === 'Run' ? '🏃‍♂️' : daily.rType === 'Trail' ? '⛰️' : daily.rType === 'Swim' ? '🏊‍♂️' : daily.rType === 'Bike' ? '🚴‍♂️' : '🏋️‍♂️'}</p></div>
-                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">DIST</p><p className="text-white font-black text-lg italic">{daily.rDist} <span className="text-[10px] font-normal text-zinc-500">km</span></p></div>
-                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">PACE</p><p className="text-white font-black text-lg italic">{daily.rPace}</p></div>
-                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">HR</p><p className="text-white font-black text-lg italic">{daily.rHr}</p></div>
+                                {/* 🛠️ อัปเดต UI ให้แสดงรอบขา (SPM) ในส่วนที่บันทึกแล้ว */}
+                                <div className="bg-black p-4 rounded-xl border border-zinc-800 mb-6 grid grid-cols-5 text-center gap-1">
+                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">TYPE</p><p className="text-white font-black text-sm md:text-lg italic">{daily.rType === 'Run' ? '🏃‍♂️' : daily.rType === 'Trail' ? '⛰️' : daily.rType === 'Swim' ? '🏊‍♂️' : daily.rType === 'Bike' ? '🚴‍♂️' : '🏋️‍♂️'}</p></div>
+                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">DIST</p><p className="text-white font-black text-sm md:text-lg italic">{daily.rDist} <span className="text-[9px] font-normal text-zinc-500">km</span></p></div>
+                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">PACE</p><p className="text-white font-black text-sm md:text-lg italic">{daily.rPace}</p></div>
+                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">HR</p><p className="text-white font-black text-sm md:text-lg italic">{daily.rHr || '-'}</p></div>
+                                    <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">SPM</p><p className="text-white font-black text-sm md:text-lg italic">{daily.rCadence || '-'}</p></div>
                                 </div>
                                 <h4 className="text-xs font-black text-orange-400 uppercase tracking-widest mb-3">🤖 AI COACH FEEDBACK</h4>
                                 <p className="text-base font-bold text-zinc-200 leading-relaxed mb-5">{daily.aiFeedback}</p>
@@ -681,7 +722,8 @@
             );
         };
 
-        const TabPlan = ({ cfg, prof, weekIdx }) => {
+        // 🛠️ รับ isHotWeather มาเพื่อใช้ปรับตารางล่วงหน้า (ถ้าเปิดโหมดร้อนอยู่)
+        const TabPlan = ({ cfg, prof, weekIdx, isHotWeather }) => {
             const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
             const scheduleMap = { 'rest': 'Rest', 'easy': 'Easy', 'speed': 'Speed Work', 'long': 'Long Run' };
             const colorMap = { 'rest': 'text-zinc-500', 'easy': 'text-lime-400', 'speed': 'text-orange-400', 'long': 'text-red-400' };
@@ -695,7 +737,10 @@
                     </section>
 
                     <section className="suunto-card p-8">
-                        <h2 className="font-black text-sm text-zinc-400 uppercase tracking-widest mb-6">TODAY'S PROTOCOL</h2>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="font-black text-sm text-zinc-400 uppercase tracking-widest">TODAY'S PROTOCOL</h2>
+                            {isHotWeather && <span className="bg-orange-500/20 text-orange-400 border border-orange-500/50 px-2 py-1 rounded text-[10px] font-black uppercase">☀️ ปรับเพซสู้แดดแล้ว</span>}
+                        </div>
                         <div className="mb-6 pb-6 border-b border-zinc-800">
                             <p className="text-3xl font-black text-white uppercase italic">{cfg.name}</p>
                             <div className="flex gap-3 mt-4">
@@ -740,10 +785,10 @@
                                 const type = prof?.schedule?.[idx] || 'rest';
                                 const isToday = todayIdx === idx;
                                 
-                                // Simulate ตารางล่วงหน้าของแต่ละวัน
                                 const dummyDate = new Date();
                                 dummyDate.setDate(dummyDate.getDate() + (idx - todayIdx));
-                                const dayCfg = getDayConfig(dummyDate, weekIdx, false, prof);
+                                // ในตารางล่วงหน้าเราจะแสดงแบบปกติ (ไม่คิดความร้อน) เพื่อให้เห็นค่าพื้นฐาน
+                                const dayCfg = getDayConfig(dummyDate, weekIdx, false, prof, false);
 
                                 return (
                                     <div key={idx} className={`p-5 rounded-xl border flex flex-col gap-2 transition-colors ${isToday ? 'bg-zinc-800 border-zinc-500 shadow-md' : 'bg-[#18181b] border-zinc-800'}`}>
@@ -826,6 +871,21 @@
 
             const maxChartDist = Math.max(...chartData.map(d => d.dist), 5); 
 
+            // โซนนี้เราจะไม่เอาความร้อนมาเกี่ยว เพราะเป็น Baseline Zones ประจำตัว
+            const getPaceFromVcr = (pct) => {
+                const spd = (prof.vcr || 4500) / 1800 * (pct / 100);
+                if (spd <= 0) return "0:00";
+                const baseSecs = Math.round(1000 / spd);
+                
+                let fastSecs = baseSecs - 10; 
+                let slowSecs = baseSecs + 15;
+                if(pct >= 85) { fastSecs = baseSecs - 5; slowSecs = baseSecs + 10; }
+                if(pct <= 70) { fastSecs = baseSecs - 15; slowSecs = baseSecs + 20; }
+
+                const fmt = (s) => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+                return `${fmt(fastSecs)} - ${fmt(slowSecs)}`;
+            };
+
             return (
                 <div className="space-y-6 pb-14">
                     <section className="suunto-card p-10 text-center border-t-2 border-t-zinc-700">
@@ -842,6 +902,29 @@
                             </div>
                         </div>
                         <span className="text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg bg-black border border-zinc-800" style={{color: vo2Color}}>{vo2Label}</span>
+                    </section>
+
+                    {/* 🎯 PERSONALIZED ZONES SECTION */}
+                    <section className="suunto-card p-8">
+                        <h2 className="font-black text-sm text-white uppercase tracking-widest mb-6 flex items-center gap-2"><span>🎯</span> TRAINING ZONES</h2>
+                        <div className="space-y-3">
+                            <div className="bg-[#18181b] p-5 rounded-xl border border-l-4 border-l-lime-400 border-zinc-800 flex justify-between items-center">
+                                <div><p className="text-xs font-black text-lime-400 uppercase tracking-widest">EASY (Zone 2)</p><p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase">Recovery / Base</p></div>
+                                <div className="text-right"><p className="text-base font-black text-white italic">{getPaceFromVcr(75)} <span className="text-[10px] text-zinc-500 normal-case font-bold">/km</span></p><p className="text-xs font-bold text-zinc-400 mt-1">{getHrZone(0.6, 0.7, prof.age, prof.rhr)}</p></div>
+                            </div>
+                            <div className="bg-[#18181b] p-5 rounded-xl border border-l-4 border-l-cyan-400 border-zinc-800 flex justify-between items-center">
+                                <div><p className="text-xs font-black text-cyan-400 uppercase tracking-widest">AEROBIC (Zone 3)</p><p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase">Long Run / Endurance</p></div>
+                                <div className="text-right"><p className="text-base font-black text-white italic">{getPaceFromVcr(80)} <span className="text-[10px] text-zinc-500 normal-case font-bold">/km</span></p><p className="text-xs font-bold text-zinc-400 mt-1">{getHrZone(0.7, 0.8, prof.age, prof.rhr)}</p></div>
+                            </div>
+                            <div className="bg-[#18181b] p-5 rounded-xl border border-l-4 border-l-orange-400 border-zinc-800 flex justify-between items-center">
+                                <div><p className="text-xs font-black text-orange-400 uppercase tracking-widest">TEMPO (Zone 4)</p><p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase">Threshold / Race</p></div>
+                                <div className="text-right"><p className="text-base font-black text-white italic">{getPaceFromVcr(90)} <span className="text-[10px] text-zinc-500 normal-case font-bold">/km</span></p><p className="text-xs font-bold text-zinc-400 mt-1">{getHrZone(0.8, 0.88, prof.age, prof.rhr)}</p></div>
+                            </div>
+                            <div className="bg-[#18181b] p-5 rounded-xl border border-l-4 border-l-red-500 border-zinc-800 flex justify-between items-center">
+                                <div><p className="text-xs font-black text-red-500 uppercase tracking-widest">INTERVAL (Zone 5)</p><p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase">Speed / VO2 Max</p></div>
+                                <div className="text-right"><p className="text-base font-black text-white italic">{getPaceFromVcr(105)} <span className="text-[10px] text-zinc-500 normal-case font-bold">/km</span></p><p className="text-xs font-bold text-zinc-400 mt-1">{getHrZone(0.88, 1.0, prof.age, prof.rhr)}</p></div>
+                            </div>
+                        </div>
                     </section>
 
                     <section className="suunto-card p-8">
@@ -902,6 +985,11 @@
         const Dashboard = ({ profileName, onLogout }) => {
             const [activeTab, setActiveTab] = useState('tracker');
             const [showSetup, setShowSetup] = useState(false);
+            const [showToast, setShowToast] = useState(false);
+            const [toastMessage, setToastMessage] = useState('');
+            // 🛠️ State สำหรับโหมดอากาศร้อน 
+            const [isHotWeather, setIsHotWeather] = useState(false);
+
             const safeName = profileName.trim().toLowerCase();
             const localKey = `p80_v14_stable_${safeName}`;
             
@@ -912,21 +1000,21 @@
             });
 
             const todayStr = new Date().toDateString();
-            const [daily, setDaily] = useState(prof.records?.[todayStr] || { w:0, b:false, l:false, s:false, d:false, ex:[false,false,false,false], rLog:false, rDist:'', rPace:'', rHr:'', rType:'Run', aiFeedback: '', perfCondition: '', vcrUpgraded: false, newVcrVal: 0 });
+            const [daily, setDaily] = useState(prof.records?.[todayStr] || { w:0, b:false, l:false, s:false, d:false, ex:[false,false,false,false], rLog:false, rDist:'', rPace:'', rHr:'', rCadence:'', rType:'Run', aiFeedback: '', perfCondition: '', vcrUpgraded: false, newVcrVal: 0 });
             
-            // เพิ่ม State สำหรับ Activity Type และ Scanner
+            // 🛠️ เพิ่ม State สำหรับรอบขา
             const [inAct, setInAct] = useState(daily.rType || 'Run');
             const [inDist, setInDist] = useState(daily.rDist || '');
             const [inPace, setInPace] = useState(daily.rPace || '');
             const [inHr, setInHr] = useState(daily.rHr || '');
+            const [inCadence, setInCadence] = useState(daily.rCadence || '');
             
             const [leaderboardData, setLeaderboardData] = useState([]);
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', safeName);
 
-            // คำนวณวัน Countdown ถอยหลัง
             const raceDateObj = new Date(prof.raceDate || '2026-11-15');
             const planStart = new Date(raceDateObj);
-            planStart.setDate(planStart.getDate() - 168); // ถอยหลัง 24 สัปดาห์
+            planStart.setDate(planStart.getDate() - 168);
             const diffDays = Math.ceil((new Date() - planStart)/(1000*3600*24));
             const weekIdx = Math.max(0, Math.min(23, Math.ceil(diffDays/7)-1));
             const progressPct = Math.max(0, Math.min(100, (diffDays / 168) * 100));
@@ -979,11 +1067,14 @@
                     const equiv = (1800 / rSecs) * 1000;
                     if (equiv > currentVcr + 100) { currentVcr = Math.round(equiv); upgraded = true; }
                 }
-                const cfgToday = getDayConfig(new Date(), weekIdx, false, prof);
-                // ส่ง inAct (ประเภทกีฬา) เข้าไปให้ AI โค้ชวิเคราะห์ด้วย
-                const ai = generateFeedback(dNum, inPace, inHr, cfgToday.pace, inAct);
+                const cfgToday = getDayConfig(new Date(), weekIdx, false, prof, isHotWeather); // 🛠️ ส่งสถานะความร้อนไปคำนวณด้วย
+                
+                // 🛠️ ส่ง inCadence เข้าไปประเมินผลรอบขา
+                const ai = generateFeedback(dNum, inPace, inHr, cfgToday.pace, inAct, inCadence);
                 const perf = calcCondition(inHr, inPace);
-                const nd = {...daily, rLog: true, rDist: inDist, rPace: inPace, rHr: inHr, rType: inAct, aiFeedback: ai, perfCondition: perf, vcrUpgraded: upgraded, newVcrVal: currentVcr};
+                
+                // 🛠️ บันทึก rCadence ด้วย
+                const nd = {...daily, rLog: true, rDist: inDist, rPace: inPace, rHr: inHr, rCadence: inCadence, rType: inAct, aiFeedback: ai, perfCondition: perf, vcrUpgraded: upgraded, newVcrVal: currentVcr};
                 
                 setDaily(nd);
                 const nProf = {...prof, vcr: currentVcr, records: {...prof.records, [todayStr]: nd}};
@@ -999,13 +1090,29 @@
                 safeStorage.setItem(localKey, JSON.stringify({...prof, weight: w}));
             };
 
-            const cfg = getDayConfig(new Date(), weekIdx, daysLeft <= 0, prof);
+            const handleShare = async () => {
+                const shareData = { title: 'Project 80 Suunto', text: 'มาซ้อมวิ่งกับโค้ช AI ใน Project 80 ด้วยกัน!', url: window.location.href };
+                if (navigator.share) {
+                    try { await navigator.share(shareData); } catch (err) { console.error('Share failed', err); }
+                } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = window.location.href;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try { document.execCommand('copy'); setToastMessage('🔗 คัดลอกลิ้งก์สำเร็จ!'); setShowToast(true); setTimeout(() => setShowToast(false), 4000); } 
+                    catch (err) { setToastMessage('❌ ไม่สามารถคัดลอกลิ้งก์ได้'); setShowToast(true); setTimeout(() => setShowToast(false), 4000); }
+                    document.body.removeChild(textArea);
+                }
+            };
+
+            // 🛠️ ส่ง isHotWeather เข้าไปให้ cfg หลักของหน้า
+            const cfg = getDayConfig(new Date(), weekIdx, daysLeft <= 0, prof, isHotWeather);
 
             let tDist = 0, tSecs = 0, f5k = Infinity, f10k = Infinity, longestRun = 0, maxStreakCount = 0, streakCount = 0, maxAquaCount = 0, aquaCount = 0;
             const sortedDates = Object.keys(prof.records || {}).sort((a,b)=>new Date(a)-new Date(b));
             sortedDates.forEach(dt => {
                 const r = prof.records[dt];
-                if(r.rLog && r.rDist && r.rPace && (r.rType === 'Run' || !r.rType)) { // คิดสถิติเฉพาะการวิ่งถนน
+                if(r.rLog && r.rDist && r.rPace && (r.rType === 'Run' || !r.rType)) {
                     const d = parseFloat(r.rDist), s = parsePace(r.rPace);
                     if(!isNaN(d) && isFinite(s)) {
                         tDist += d; tSecs += (s*d);
@@ -1014,7 +1121,6 @@
                     }
                     streakCount++;
                 } else if(r.rLog) {
-                    // ถ้าซ้อมอย่างอื่น ก็นับ streak ด้วย แต่ไม่เอาไปคิด Pace/Distance PB
                     streakCount++;
                 } else streakCount = 0;
                 
@@ -1026,8 +1132,9 @@
             const achievements = { halfMarathon: longestRun >= 21.1, streakMaster: maxStreakCount >= 7, aquaMan: maxAquaCount >= 3 };
             
             let bestMin = (prof.vcr || 4500) / 30;
-            if (f5k !== Infinity) bestMin = Math.max(bestMin, 5000 / (f5k / 60));
-            if (f10k !== Infinity) bestMin = Math.max(bestMin, 10000 / (f10k / 60));
+            // 🛠️ แก้บั๊กคณิตศาสตร์: เปลี่ยน 5000 และ 10000 เป็น 1000 (เพราะ Pace คือเวลาต่อ 1 กม.)
+            if (f5k !== Infinity) bestMin = Math.max(bestMin, 1000 / (f5k / 60));
+            if (f10k !== Infinity) bestMin = Math.max(bestMin, 1000 / (f10k / 60));
             let vo2Value = parseFloat(((bestMin * 0.2) + 3.5).toFixed(1));
 
             let pTime = "NEED DATA", pSource = "Run 5K to unlock";
@@ -1048,19 +1155,30 @@
                     {showConfetti && <Confetti />}
                     {showSetup && <SetupModal initialProf={prof} onSave={(d)=>{ const finalD = {...prof, ...d, isSetupComplete: true}; setProf(finalD); setDoc(docRef, finalD); safeStorage.setItem(localKey, JSON.stringify(finalD)); setShowSetup(false);}} onCancel={()=> prof.initialWeight && setShowSetup(false)} />}
                     
+                    {showToast && (
+                        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-[#bef264] text-black px-6 py-3 rounded-full font-black text-xs md:text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(190,242,100,0.4)] transition-all">
+                            {toastMessage}
+                        </div>
+                    )}
+
                     <header className="flex justify-between items-start mb-8 pt-4">
                         <div>
                             <p className="text-zinc-400 font-black text-xs tracking-[0.3em] uppercase mb-2">TARGET RACE DAY</p>
                             <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">PRO <span className="suunto-accent">80</span></h1>
                             <p className="text-sm font-bold text-zinc-400 mt-3 tracking-widest uppercase">Runner: <span className="text-white">{profileName}</span></p>
                         </div>
-                        <button onClick={onLogout} className="suunto-card p-4 w-16 h-16 flex flex-col items-center justify-center active:scale-95 transition-transform hover:bg-zinc-800">
-                            <svg className="w-6 h-6 text-zinc-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                            <span className="text-[10px] font-black uppercase text-zinc-400">EXIT</span>
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={handleShare} className="suunto-card p-4 w-16 h-16 flex flex-col items-center justify-center active:scale-95 transition-transform hover:bg-zinc-800">
+                                <svg className="w-6 h-6 text-cyan-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                                <span className="text-[10px] font-black uppercase text-cyan-400">SHARE</span>
+                            </button>
+                            <button onClick={onLogout} className="suunto-card p-4 w-16 h-16 flex flex-col items-center justify-center active:scale-95 transition-transform hover:bg-zinc-800">
+                                <svg className="w-6 h-6 text-zinc-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                <span className="text-[10px] font-black uppercase text-zinc-400">EXIT</span>
+                            </button>
+                        </div>
                     </header>
 
-                    {/* Progress Bar วันแข่ง */}
                     <div className="mb-8">
                         <div className="flex justify-between text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">
                             <span>Plan Started</span>
@@ -1104,8 +1222,9 @@
                     </nav>
 
                     <main className="animate-in fade-in duration-300">
-                        {activeTab === 'tracker' && <TabTracker score={score} daily={daily} updateDaily={updateDaily} cfg={cfg} inDist={inDist} setInDist={setInDist} inPace={inPace} setInPace={setInPace} inHr={inHr} setInHr={setInHr} inAct={inAct} setInAct={setInAct} saveRun={saveRun} targetWater={targetWater} />}
-                        {activeTab === 'plan' && <TabPlan cfg={cfg} prof={prof} weekIdx={weekIdx} />}
+                        {/* 🛠️ สั่ง TabTracker ให้รับค่า isHotWeather ไปใช้ด้วย */}
+                        {activeTab === 'tracker' && <TabTracker score={score} daily={daily} updateDaily={updateDaily} cfg={cfg} inDist={inDist} setInDist={setInDist} inPace={inPace} setInPace={setInPace} inHr={inHr} setInHr={setInHr} inCadence={inCadence} setInCadence={setInCadence} inAct={inAct} setInAct={setInAct} saveRun={saveRun} targetWater={targetWater} isHotWeather={isHotWeather} setIsHotWeather={setIsHotWeather} />}
+                        {activeTab === 'plan' && <TabPlan cfg={cfg} prof={prof} weekIdx={weekIdx} isHotWeather={isHotWeather} />}
                         {activeTab === 'ranking' && <TabRanking leaderboardData={leaderboardData} />}
                         {activeTab === 'stats' && <TabStats prof={prof} vo2Value={vo2Value} tDist={tDist} pTime={pTime} pSource={pSource} fastest5kSecs={f5k} fastest10kSecs={f10k} longestRun={longestRun} achievements={achievements} />}
                     </main>
