@@ -457,12 +457,18 @@
             );
         };
 
+        // 🛠️ อัปเดต fetchWithRetry ให้ดึง Error จาก Google มาโชว์ชัดๆ
         const fetchWithRetry = async (url, options, retries = 5) => {
             const delays = [1000, 2000, 4000, 8000, 16000];
             for (let i = 0; i < retries; i++) {
                 try {
                     const response = await fetch(url, options);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) {
+                        // ดึงข้อความ Error จริงๆ จาก Google ทะลุออกมาเลย
+                        const errData = await response.json().catch(() => ({}));
+                        const errMsg = errData?.error?.message || `HTTP error! status: ${response.status}`;
+                        throw new Error(errMsg);
+                    }
                     return await response.json();
                 } catch (error) {
                     if (i === retries - 1) throw error;
@@ -547,15 +553,15 @@
                             setScanError("ไม่พบข้อมูลในรูปภาพนี้ครับ");
                         }
                     } catch (err) {
-                        // แจ้งเตือนถ้ารหัสผิดหรือหมดอายุ
-                        if (err.message.includes('400') || err.message.includes('403')) {
-                            setScanError("API Key ไม่ถูกต้อง หรือถูกระงับ กรุณาตั้งค่าใหม่");
+                        // 🛠️ โชว์ข้อความ Error จาก Google ให้อ่านง่ายๆ
+                        setScanError("AI สแกนไม่ผ่าน: " + err.message);
+                        
+                        // ถ้ารหัสผิด ให้ลบออกจากระบบ จะได้เด้งให้กรอกใหม่
+                        if (err.message.includes('API key not valid') || err.message.includes('API_KEY_INVALID') || err.message.includes('not found')) {
                             safeStorage.removeItem('p80_gemini_key');
                             setAiKey('');
-                        } else {
-                            setScanError("ระบบ AI สแกนขัดข้อง: " + (err.message || "เกิดข้อผิดพลาด"));
                         }
-                        console.error(err);
+                        console.error("รายละเอียด Error:", err);
                     } finally {
                         setIsScanning(false);
                     }
