@@ -509,8 +509,8 @@
                     try {
                         const base64Data = reader.result.split(',')[1];
                         
-                        // ใช้รหัสที่ผู้ใช้กรอกเข้ามา
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentKey}`;
+                        // 🛠️ อัปเดต: เปลี่ยน URL กลับไปใช้ gemini-2.5-flash-preview-09-2025 ที่ระบบรองรับ 100%
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${currentKey}`;
                         
                         const payload = {
                             contents: [{
